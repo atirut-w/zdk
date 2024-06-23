@@ -18,17 +18,27 @@ CXChildVisitResult Codegen::visit(CXCursor cursor, CXCursor parent)
     {
         CXString name = clang_getCursorSpelling(cursor);
         os << "\t.global " << clang_getCString(name) << "\n";
+        clang_disposeString(name);
+        return CXChildVisit_Recurse;
+    }
+    case CXCursor_CompoundStmt:
+        return visitCompoundStmt(cursor, parent);
+    }
+
+    return CXChildVisit_Continue;
+}
+
+CXChildVisitResult Codegen::visitCompoundStmt(CXCursor cursor, CXCursor parent)
+{
+    if (clang_getCursorKind(parent) == CXCursor_FunctionDecl)
+    {
+        CXString name = clang_getCursorSpelling(parent);
         os << "\t.type " << clang_getCString(name) << ", @function\n";
         os << clang_getCString(name) << ":\n";
         clang_disposeString(name);
-        
-        // TODO: Implement function body
-        os << "\tret\n";
 
-        os << "\n";
-        break;
+        // TODO: Compile function body
+        os << "\tret\n\n";
     }
-    }
-
-    return CXChildVisit_Recurse;
+    return CXChildVisit_Continue;
 }
