@@ -10,6 +10,6 @@ private:
     std::ostream &os;
 
 public:
-    Codegen(Analyzer &analyzer, std::ostream &os) : analyzer(analyzer), os(os) {}
+    Codegen(Analyzer &analyzer, std::ostream &os);
     CXChildVisitResult visit(CXCursor cursor, CXCursor parent) override;
 };
