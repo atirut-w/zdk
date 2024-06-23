@@ -5,6 +5,7 @@
 #include <vector>
 #include <clang-c/Index.h>
 #include <stdexcept>
+#include <analyzer.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -93,6 +94,9 @@ int main(int argc, char *argv[])
     {
         return 1;
     }
+
+    Analyzer analyzer;
+    analyzer.analyze(tu);
 
     return 0;
 }
