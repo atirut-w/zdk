@@ -1,11 +1,8 @@
 #pragma once
-#include <clang-c/Index.h>
+#include <ivisitor.hpp>
 
 /// This class gather the necessary information for codegen such as required stack size, etc.
-struct Analyzer
+struct Analyzer : IVisitor
 {
-    void analyze(CXTranslationUnit tu);
-
-private:
-    CXChildVisitResult visit(CXCursor cursor, CXCursor parent, CXClientData client_data);
+    CXChildVisitResult visit(CXCursor cursor, CXCursor parent) override;
 };

@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     }
 
     Analyzer analyzer;
-    analyzer.analyze(tu);
+    analyzer.visit_children(clang_getTranslationUnitCursor(tu));
 
     return 0;
 }
