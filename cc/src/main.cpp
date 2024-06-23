@@ -6,6 +6,8 @@
 #include <clang-c/Index.h>
 #include <stdexcept>
 #include <analyzer.hpp>
+#include <codegen.hpp>
+#include <fstream>
 
 using namespace std;
 using namespace argparse;
@@ -97,6 +99,10 @@ int main(int argc, char *argv[])
 
     Analyzer analyzer;
     analyzer.visit_children(clang_getTranslationUnitCursor(tu));
+
+    ofstream out(path.replace_extension(".s"));
+    Codegen codegen(analyzer, out);
+    codegen.visit_children(clang_getTranslationUnitCursor(tu));
 
     return 0;
 }
