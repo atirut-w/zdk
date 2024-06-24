@@ -9,19 +9,11 @@ externalDeclaration
     ;
 
 lineMarker
-    : HASH decLiteral stringLiteral decLiteral (',' decLiteral)? '\n'
-    ;
-
-stringLiteral
-    : DQUOTE ( ~DQUOTE | '\\' DQUOTE )* DQUOTE
-    ;
-
-decLiteral
-    : DEC_DIGIT+
+    : HASH DEC_LITERAL STRING_LITERAL DEC_LITERAL*
     ;
 
 WHITESPACE: [ \t\n\r]+ -> skip;
 HASH: '#';
-DEC_DIGIT: [0-9];
-DQUOTE: '"';
-SQUOTE: '\'';
+
+DEC_LITERAL: [0-9]+;
+STRING_LITERAL: '"' ('\\' . | .)*? '"';
