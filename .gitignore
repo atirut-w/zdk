@@ -3,6 +3,6 @@ build/
 .cache/
 compile_commands.json
 
-# TODO: Bother ANTLR devs enough to not generate this directory outside of CWD
+# TODO: Figure out how to stop ANTLR from generating these directories
 .antlr/
 dist/

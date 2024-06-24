@@ -1,6 +1,6 @@
 add_custom_command(
     COMMENT "Generating parser"
-    MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/3rd/grammars-v4/c/C.g4
+    MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/C.g4
     OUTPUT
         parser/CBaseListener.h
         parser/CBaseListener.cpp
@@ -19,7 +19,7 @@ add_custom_command(
         parser/CLexer.tokens
         parser/CParser.interp
         parser/CParser.tokens
-    COMMAND antlr4 -Dlanguage=Cpp -o ${CMAKE_BINARY_DIR}/src/cc/parser -visitor ${CMAKE_SOURCE_DIR}/3rd/grammars-v4/c/C.g4
+    COMMAND antlr4 -Dlanguage=Cpp -o ${CMAKE_BINARY_DIR}/src/cc/parser -visitor ${CMAKE_SOURCE_DIR}/C.g4
 )
 
 add_executable(zdk-cc
