@@ -5,9 +5,15 @@
 #include <vector>
 #include <stdexcept>
 #include <fstream>
+#include <clang/Tooling/CommonOptionsParser.h>
+#include <llvm/Support/CommandLine.h>
 
 using namespace std;
 using namespace argparse;
+using namespace clang::tooling;
+using namespace llvm;
+
+static cl::OptionCategory ccCategory("cc options");
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 {
@@ -38,11 +44,9 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     return parser;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
-    auto args = parse_args(argc, argv);
-    auto path = filesystem::absolute(args->get<filesystem::path>("source"));
-    auto includes = args->get<vector<filesystem::path>>("include");
+    auto expected_parser = CommonOptionsParser::create(argc, argv, ccCategory);
 
     return 0;
 }
