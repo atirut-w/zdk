@@ -58,7 +58,16 @@ int main(int argc, char *argv[])
         output << "\t.type " << function.getName().str() << ", @function\n";
         output << function.getName().str() << ":\n";
 
+        // TODO: Detect "frame-pointer" attribute
+        output << "\tpush ix\n";
+        output << "\tld ix, 0\n";
+        output << "\tadd ix, sp\n";
+
         // TODO: Implement function body
+
+        // TODO: "frame-pointer" attribute, again
+        output << "\tld sp, ix\n";
+        output << "\tpop ix\n";
         output << "\tret\n\n";
     }
     
