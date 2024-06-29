@@ -10,6 +10,9 @@ private:
     std::unique_ptr<llvm::Module> &module;
     std::ostream &output;
 
+    void enter();
+    void leave();
+
 public:
     CodeGen(std::unique_ptr<llvm::Module> &module, std::ostream &output);
 

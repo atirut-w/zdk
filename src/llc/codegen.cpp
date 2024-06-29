@@ -17,15 +17,27 @@ void CodeGen::generate()
         output << function.getName().str() << ":\n";
 
         // TODO: Detect "frame-pointer" attribute
-        output << "\tpush ix\n";
-        output << "\tld ix, 0\n";
-        output << "\tadd ix, sp\n";
+        enter();
 
         // TODO: Implement function body
 
         // TODO: "frame-pointer" attribute, again
-        output << "\tld sp, ix\n";
-        output << "\tpop ix\n";
+        leave();
         output << "\tret\n\n";
     }
+}
+
+void CodeGen::enter()
+{
+    output << "\t; Create stack frame\n";
+    output << "\tpush ix\n";
+    output << "\tld ix, 0\n";
+    output << "\tadd ix, sp\n";
+}
+
+void CodeGen::leave()
+{
+    output << "\t; Destroy stack frame\n";
+    output << "\tld sp, ix\n";
+    output << "\tpop ix\n";
 }
