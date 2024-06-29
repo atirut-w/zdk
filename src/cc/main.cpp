@@ -5,6 +5,9 @@
 #include <memory>
 #include <vector>
 
+#include <LLVMIRLexer.h>
+#include <LLVMIRParser.h>
+
 using namespace std;
 using namespace argparse;
 
@@ -47,10 +50,24 @@ int main(int argc, char *argv[])
         clang_preamble += "-I" + include.string() + " ";
     }
 
-    if (system((clang_preamble + "-fsyntax-only " + args->get<filesystem::path>("source").string()).c_str()))
+    if (system((clang_preamble + "-S -emit-llvm " + args->get<filesystem::path>("source").string()).c_str()))
     {
         return 1;
     }
+
+    ifstream input(args->get<filesystem::path>("source").replace_extension(".ll"));
+    if (!input)
+    {
+        cerr << "BUG: Could not open \"" << args->get<filesystem::path>("source").replace_extension(".ll") << "\" for reading" << endl;
+    }
+
+    antlr4::ANTLRInputStream input_stream(input);
+    LLVMIRLexer lexer(&input_stream);
+    antlr4::CommonTokenStream tokens(&lexer);
+    LLVMIRParser parser(&tokens);
+
+    // NOTE: No syntax checking, assume Clang emits 100% correct LLVM IR
+    antlr4::tree::ParseTree *tree = parser.compilationUnit();
 
     return 0;
 }

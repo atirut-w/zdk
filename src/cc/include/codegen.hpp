@@ -1,6 +1,6 @@
 #pragma once
-#include <CBaseVisitor.h>
+#include <LLVMIRBaseVisitor.h>
 
-class CodeGen : public CBaseVisitor
+class CodeGen : public LLVMIRBaseVisitor
 {
 };
