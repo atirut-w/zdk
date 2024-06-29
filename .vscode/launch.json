@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "preLaunchTask": "CMake: build",
-            "program": "${workspaceFolder}/build/cc/zdk-cc",
+            "program": "${workspaceFolder}/build/src/cc/zdk-cc",
             "cwd": "${workspaceFolder}",
             "args": [
                 "test.c"
