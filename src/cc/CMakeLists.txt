@@ -23,8 +23,8 @@ add_custom_command(
 )
 
 add_executable(zdk-cc
-    src/main.cpp
-    src/codegen.cpp
+    main.cpp
+    codegen.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp
