@@ -2,6 +2,7 @@ find_package(LLVM REQUIRED CONFIG)
 
 add_executable(zdk-llc
     main.cpp
+    codegen.cpp
 )
 target_include_directories(zdk-llc PRIVATE include)
 target_compile_features(zdk-llc PRIVATE cxx_std_17)
