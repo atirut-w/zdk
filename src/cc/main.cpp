@@ -37,30 +37,17 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     return parser;
 }
 
-bool validate_input(const filesystem::path &path, vector<filesystem::path> includes)
-{
-    if (!filesystem::exists(path))
-    {
-        cerr << "File not found: " << path << endl;
-        return false;
-    }
-
-    string command = "clang -fsyntax-only -nostdinc -nostdlib ";
-    for (const auto &include : includes)
-    {
-        command += "-I" + include.string() + " ";
-    }
-
-    return system((command + path.string()).c_str()) == 0;
-}
-
 int main(int argc, char *argv[])
 {
     auto args = parse_args(argc, argv);
-    auto path = filesystem::absolute(args->get<filesystem::path>("source"));
-    auto includes = args->get<vector<filesystem::path>>("include");
+    
+    string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
+    for (auto &include : args->get<vector<filesystem::path>>("--include"))
+    {
+        clang_preamble += "-I" + include.string() + " ";
+    }
 
-    if (!validate_input(path, includes))
+    if (system((clang_preamble + "-S -emit-llvm " + args->get<filesystem::path>("source").string()).c_str()))
     {
         return 1;
     }
