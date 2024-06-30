@@ -29,7 +29,7 @@ declarator
     ;
 
 parameters
-    : (parameter COMMA)+ moreParameters?
+    : (parameter (COMMA parameter)*)+ moreParameters?
     | VOID
     ;
 
