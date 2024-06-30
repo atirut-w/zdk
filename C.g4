@@ -12,29 +12,29 @@ externalDeclaration
     ;
 
 functionDefinition
-    : specifier* declarator declaration* '{' declaration* statement* '}'
+    : specifier* declarator declaration* LBRACE declaration* statement* RBRACE
     ;
 
 statement
-    : 'return' ';'
+    : RETURN SEMICOLON
     ;
 
 declaration
-    : specifier+ ';'
+    : specifier+ SEMICOLON
     ;
 
 declarator
     : IDENTIFIER
-    | declarator '(' parameters? ')'
+    | declarator LPAREN parameters? RPAREN
     ;
 
 parameters
-    : (parameter ',')+ moreParameters?
+    : (parameter COMMA)+ moreParameters?
     ;
 
 moreParameters
-    : ','
-    | '...'
+    : COMMA
+    | VARARGS
     ;
 
 parameter
@@ -46,10 +46,10 @@ specifier
     ;
 
 typeSpecifier
-    : 'void'
-    | 'char'
-    | 'short'
-    | 'int'
+    : VOID
+    | CHAR
+    | SHORT
+    | INT
     ;
 
 lineMarker
@@ -58,6 +58,21 @@ lineMarker
 
 // LEXER RULES START HERE
 WHITESPACE: [ \t\n\r]+ -> skip;
+
+RETURN: 'return';
+
+LPAREN: '(';
+RPAREN: ')';
+LBRACE: '{';
+RBRACE: '}';
+SEMICOLON: ';';
+COMMA: ',';
+VARARGS: '...';
+
+VOID: 'void';
+CHAR: 'char';
+SHORT: 'short';
+INT: 'int';
 
 HASH: '#';
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
