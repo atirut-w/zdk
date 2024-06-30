@@ -46,13 +46,13 @@ int main(int argc, char *argv[])
     auto args = parse_args(argc, argv);
     
     auto path = args->get<filesystem::path>("source");
-    string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
+    string clang_preamble = "exec -a zdk-cc clang -std=c90 ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
     {
         clang_preamble += "-I" + include.string() + " ";
     }
 
-    if (system((clang_preamble + "-fsyntax-only " + path.string()).c_str()))
+    if (system((clang_preamble + "-fsyntax-only -nostdinc -nostdlib " + path.string()).c_str()) != 0)
     {
         return 1;
     }
