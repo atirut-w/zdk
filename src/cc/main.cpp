@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    const filesystem::path preprocessed_path = path.stem().string() + ".i";
+    filesystem::path preprocessed_path = path;
+    preprocessed_path.replace_extension(".i");
     system((clang_preamble + "-E " + path.string() + " > " + preprocessed_path.string()).c_str());
     ifstream stream(preprocessed_path.string());
 
