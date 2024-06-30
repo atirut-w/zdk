@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
         clang_preamble += "-I" + include.string() + " ";
     }
 
-    if (system((clang_preamble + "-S -emit-llvm " + args->get<filesystem::path>("source").string()).c_str()))
+    if (system((clang_preamble + "-fsyntax-only " + args->get<filesystem::path>("source").string()).c_str()))
     {
         return 1;
     }
