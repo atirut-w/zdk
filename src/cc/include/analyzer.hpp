@@ -3,5 +3,4 @@
 
 class Analyzer : public CBaseVisitor
 {
-
 };

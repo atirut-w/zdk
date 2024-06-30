@@ -1,8 +1,8 @@
 #include <argparse/argparse.hpp>
-#include <memory>
-#include <filesystem>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 using namespace std;
@@ -14,10 +14,10 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     parser->add_description("C compiler for Z80");
 
     // Source file
-    parser->add_argument("source")
-        .help("Source file")
-        .action([](const string &value) { return filesystem::absolute(value); });
-    
+    parser->add_argument("source").help("Source file").action([](const string &value) {
+        return filesystem::absolute(value);
+    });
+
     // Include directories
     parser->add_argument("-I", "--include")
         .help("Add directory to include search path")
@@ -40,7 +40,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     auto args = parse_args(argc, argv);
-    
+
     string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
     {
