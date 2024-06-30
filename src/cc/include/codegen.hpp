@@ -6,6 +6,6 @@ class CodeGen : public CBaseVisitor
 {
     std::ostream &os;
 
-public:
+  public:
     CodeGen(std::ostream &os);
 };

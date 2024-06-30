@@ -1,11 +1,11 @@
 #include <argparse/argparse.hpp>
+#include <codegen.hpp>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <fstream>
-#include <codegen.hpp>
 
 #include <CLexer.h>
 #include <CParser.h>
@@ -30,12 +30,9 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .action([](const string &value) { return filesystem::absolute(value); })
         .nargs(nargs_pattern::any)
         .default_value(vector<filesystem::path>{});
-    
+
     // Keep intermediate files
-    parser->add_argument("-k", "--keep")
-        .help("Keep intermediate files")
-        .default_value(false)
-        .implicit_value(true);
+    parser->add_argument("-k", "--keep").help("Keep intermediate files").default_value(false).implicit_value(true);
 
     try
     {
@@ -52,7 +49,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     auto args = parse_args(argc, argv);
-    
+
     const auto path = args->get<filesystem::path>("source");
     string clang_preamble = "exec -a zdk-cc clang -std=c90 ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
