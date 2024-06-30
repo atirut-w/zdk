@@ -25,7 +25,6 @@ add_custom_command(
 add_executable(zdk-cc
     main.cpp
     codegen.cpp
-    analyzer.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp
