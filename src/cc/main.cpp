@@ -67,8 +67,7 @@ int main(int argc, char *argv[])
     CParser parser(&tokens);
 
     tree::ParseTree *tree = parser.translationUnit();
-
-    cout << lexer.getNumberOfSyntaxErrors() << endl;
+    cout << tree->toStringTree(&parser) << endl;
 
     return 0;
 }
