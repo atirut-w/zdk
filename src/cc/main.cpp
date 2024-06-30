@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 #include <fstream>
+#include <codegen.hpp>
+
 #include <CLexer.h>
 #include <CParser.h>
 
@@ -28,6 +30,12 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .action([](const string &value) { return filesystem::absolute(value); })
         .nargs(nargs_pattern::any)
         .default_value(vector<filesystem::path>{});
+    
+    // Keep intermediate files
+    parser->add_argument("-k", "--keep")
+        .help("Keep intermediate files")
+        .default_value(false)
+        .implicit_value(true);
 
     try
     {
@@ -57,10 +65,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    filesystem::path preprocessed_path = path;
-    preprocessed_path.replace_extension(".i");
-    system((clang_preamble + "-E " + path.string() + " > " + preprocessed_path.string()).c_str());
-    ifstream stream(preprocessed_path.string());
+    filesystem::path intermediate_path = path;
+    intermediate_path.replace_extension(".i");
+    system((clang_preamble + "-E " + path.string() + " > " + intermediate_path.string()).c_str());
+    ifstream stream(intermediate_path.string());
 
     ANTLRInputStream input(stream);
     CLexer lexer(&input);
@@ -68,7 +76,20 @@ int main(int argc, char *argv[])
     CParser parser(&tokens);
 
     tree::ParseTree *tree = parser.translationUnit();
-    cout << tree->toStringTree(&parser) << endl;
+    if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
+    {
+        cerr << "BUG: Syntax error, check grammar or lexer" << endl;
+        return 1;
+    }
+
+    if (!args->get<bool>("--keep"))
+    {
+        filesystem::remove(intermediate_path);
+    }
+
+    ofstream output(intermediate_path.replace_extension(".s").string());
+    CodeGen codegen(output);
+    codegen.visit(tree);
 
     return 0;
 }
