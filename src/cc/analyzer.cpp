@@ -1,4 +1,5 @@
 #include <analyzer.hpp>
+#include <any>
 #include <iostream>
 
 using namespace std;
@@ -16,7 +17,19 @@ std::any Analyzer::visitCompilationUnit(LLVMIRParser::CompilationUnitContext *ct
         {
             module_ctx.source_file = unquote(source_fname->StringLit()->getText());
         }
+        else if (auto func_def = ent->funcDef())
+        {
+            FunctionInfo func_info = any_cast<FunctionInfo>(visitFuncDef(func_def));
+            module_ctx.functions[func_info.name] = func_info;
+        }
     }
 
     return module_ctx;
+}
+
+std::any Analyzer::visitFuncDef(LLVMIRParser::FuncDefContext *ctx)
+{
+    FunctionInfo func_info;
+    
+    return func_info;
 }
