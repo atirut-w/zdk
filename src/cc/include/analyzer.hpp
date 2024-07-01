@@ -1,12 +1,16 @@
 #pragma once
 #include <LLVMIRBaseVisitor.h>
+#include <string>
+#include <vector>
 
-struct ModuleCtx
+struct ModuleInfo
 {
+    std::string source_file;
 };
 
 class Analyzer : public LLVMIRBaseVisitor
 {
-  public:
-    ModuleCtx module_ctx;
+    ModuleInfo module_ctx;
+
+    virtual std::any visitCompilationUnit(LLVMIRParser::CompilationUnitContext *ctx) override;
 };

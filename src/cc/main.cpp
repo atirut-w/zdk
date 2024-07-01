@@ -70,7 +70,9 @@ int main(int argc, char *argv[])
     antlr4::tree::ParseTree *tree = parser.compilationUnit();
 
     Analyzer analyzer;
-    analyzer.visit(tree);
+    ModuleInfo module_ctx = any_cast<ModuleInfo>(analyzer.visit(tree));
+
+    cout << "Source file: " << module_ctx.source_file << endl;
 
     return 0;
 }
