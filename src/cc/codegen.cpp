@@ -1,4 +1,5 @@
 #include <codegen.hpp>
+#include <stdexcept>
 #include <string.h>
 
 using namespace std;
@@ -12,15 +13,31 @@ CodeGen::CodeGen(ostream &os) : os(os)
 antlrcpp::Any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 {
     string fn_name = ctx->declarator()->declarator()->getText();
+    current_fn = FunctionContext();
     os << "\t.global " << fn_name << "\n";
     os << "\t.type " << fn_name << ", @function\n";
     os << fn_name << ":\n";
 
+    auto type_specs = ctx->specifier();
+    if (type_specs.size() != 1)
+    {
+        throw runtime_error("BUG?: Malformed function type specification");
+    }
+    current_fn.return_type = type_specs[0]->typeSpecifier()->getText();
+
     // TODO: Save frame pointer
     // TODO: Allocate local variables
-    // TODO: Function body
 
-    os << "\tret\n";
+    return visitChildren(ctx);
+}
+
+antlrcpp::Any CodeGen::visitStatement(CParser::StatementContext *ctx)
+{
+    // TODO: Add check for plain return for void functions after implementing expression returns
+    if (ctx->RETURN())
+    {
+        os << "\tret\n";
+    }
 
     return visitChildren(ctx);
 }
