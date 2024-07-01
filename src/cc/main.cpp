@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <analyzer.hpp>
 
 #include <LLVMIRLexer.h>
 #include <LLVMIRParser.h>
@@ -65,9 +66,11 @@ int main(int argc, char *argv[])
     LLVMIRLexer lexer(&input_stream);
     antlr4::CommonTokenStream tokens(&lexer);
     LLVMIRParser parser(&tokens);
-
     // NOTE: No syntax checking, assume Clang emits 100% correct LLVM IR
     antlr4::tree::ParseTree *tree = parser.compilationUnit();
+
+    Analyzer analyzer;
+    analyzer.visit(tree);
 
     return 0;
 }
