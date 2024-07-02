@@ -20,5 +20,9 @@ any Analyzer::visitFuncDef(LLVMIRParser::FuncDefContext *ctx)
 {
     FunctionInfo info;
 
+    auto header = ctx->funcHeader();
+    info.type = header->type()->getText();
+    info.name = header->GlobalIdent()->getText().substr(1);
+
     return info;
 }
