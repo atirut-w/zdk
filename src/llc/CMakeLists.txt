@@ -24,6 +24,7 @@ add_custom_command(
 
 add_executable(zdk-llc
     main.cpp
+    analyzer.cpp
 
     parser/LLVMIRBaseListener.cpp
     parser/LLVMIRBaseVisitor.cpp
