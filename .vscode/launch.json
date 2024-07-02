@@ -14,6 +14,17 @@
             "args": [
                 "test.c"
             ]
+        },
+        {
+            "name": "Debug: llc",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "CMake: build",
+            "program": "${workspaceFolder}/build/src/llc/zdk-llc",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "test.ll"
+            ]
         }
     ]
 }
