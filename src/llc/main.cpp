@@ -2,6 +2,7 @@
 #include "tree/ParseTree.h"
 #include <analyzer.hpp>
 #include <argparse/argparse.hpp>
+#include <compiler.hpp>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -39,7 +40,7 @@ int main(int argc, char *argv[])
 {
     auto args = parse_args(argc, argv);
 
-    const auto path = args->get<filesystem::path>("source");
+    auto path = args->get<filesystem::path>("source");
     ifstream input(path);
     if (!input.is_open())
     {
@@ -60,6 +61,10 @@ int main(int argc, char *argv[])
 
     Analyzer analyzer;
     auto module_info = any_cast<ModuleInfo>(analyzer.visit(tree));
+
+    ofstream output(path.replace_extension(".s"));
+    Compiler compiler(module_info, output);
+    compiler.visit(tree);
 
     return 0;
 }
