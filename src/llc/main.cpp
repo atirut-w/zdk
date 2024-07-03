@@ -2,7 +2,7 @@
 #include "tree/ParseTree.h"
 #include <analyzer.hpp>
 #include <argparse/argparse.hpp>
-#include <compiler.hpp>
+#include <codegen.hpp>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     auto module_info = any_cast<ModuleInfo>(analyzer.visit(tree));
 
     ofstream output(path.replace_extension(".s"));
-    Compiler compiler(module_info, output);
+    Codegen compiler(module_info, output);
     compiler.visit(tree);
 
     return 0;
