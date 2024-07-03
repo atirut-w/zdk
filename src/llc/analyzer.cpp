@@ -4,6 +4,8 @@ using namespace std;
 
 any Analyzer::visitCompilationUnit(LLVMIRParser::CompilationUnitContext *ctx)
 {
+    module_info = ModuleInfo();
+    
     for (auto ent : ctx->topLevelEntity())
     {
         if (auto func_def = ent->funcDef())
