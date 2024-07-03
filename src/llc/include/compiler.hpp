@@ -8,6 +8,6 @@ class Compiler : public LLVMIRBaseVisitor
     ModuleInfo &module_info;
     std::ostream &os;
 
-  public:
+public:
     Compiler(ModuleInfo &module_info, std::ostream &output);
 };
