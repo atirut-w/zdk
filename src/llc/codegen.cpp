@@ -32,13 +32,18 @@ any Codegen::visitFuncHeader(LLVMIRParser::FuncHeaderContext *ctx)
 
 any Codegen::visitRetTerm(LLVMIRParser::RetTermContext *ctx)
 {
-    if (ctx->concreteType())
+    if (auto concrete_type = ctx->concreteType())
     {
-        // TODO: Handle non-void return types
+        if (auto int_type = concrete_type->intType())
+        {
+            // TODO: Load return value
+        }
+        else
+        {
+            throw runtime_error(concrete_type->getText() + " is not supported yet.");
+        }
     }
-    else
-    {
-        os << "\tret\n";
-    }
+    os << "\tret\n";
+    
     return any();
 }
