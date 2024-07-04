@@ -26,5 +26,7 @@ any Analyzer::visitFuncDef(LLVMIRParser::FuncDefContext *ctx)
     info.type = header->type()->getText();
     info.name = header->GlobalIdent()->getText().substr(1);
 
+    // TODO: Iterate over args and locals for stack manip
+
     return info;
 }

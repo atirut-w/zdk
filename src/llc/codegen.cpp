@@ -32,6 +32,13 @@ any Codegen::visitFuncHeader(LLVMIRParser::FuncHeaderContext *ctx)
 
 any Codegen::visitRetTerm(LLVMIRParser::RetTermContext *ctx)
 {
-    os << "\tret\n";
+    if (ctx->concreteType())
+    {
+        // TODO: Handle non-void return types
+    }
+    else
+    {
+        os << "\tret\n";
+    }
     return any();
 }

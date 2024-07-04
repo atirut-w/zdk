@@ -7,6 +7,7 @@ struct FunctionInfo
 {
     std::string name;
     std::string type;
+    // TODO: Args & locals
 };
 
 struct ModuleInfo
