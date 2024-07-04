@@ -25,7 +25,32 @@ any Codegen::visitFuncDef(LLVMIRParser::FuncDefContext *ctx)
     visitFuncHeader(ctx->funcHeader());
     os << current_function->name << ":\n";
 
+    if (current_function->attribute_group != -1)
+    {
+        auto &group = module_info.attribute_groups[current_function->attribute_group];
+        if (group["frame-pointer"] == "all")
+        {
+            os << "\tpush ix\n";
+            os << "\tld ix, 0\n";
+            os << "\tadd ix, sp\n";
+        }
+        else if (group["frame-pointer"] != "none")
+        {
+            throw runtime_error("Unsupported frame-pointer attribute value: " + group["frame-pointer"]);
+        }
+    }
+
     visitFuncBody(ctx->funcBody());
+
+    if (current_function->attribute_group != -1)
+    {
+        auto &group = module_info.attribute_groups[current_function->attribute_group];
+        if (group["frame-pointer"] == "all")
+        {
+            os << "\tld sp, ix\n";
+            os << "\tpop ix\n";
+        }
+    }
 
     return any();
 }
