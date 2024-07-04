@@ -1,7 +1,19 @@
 #include <codegen.hpp>
 #include <stdexcept>
+#include <vector>
 
 using namespace std;
+
+int least_bytes_required(int bits)
+{
+    int rem = bits % 8;
+    int bytes = bits / 8;
+    if (rem > 0)
+    {
+        bytes++;
+    }
+    return bytes;
+}
 
 Codegen::Codegen(ModuleInfo &module_info, ostream &output) : module_info(module_info), os(output)
 {
@@ -36,7 +48,35 @@ any Codegen::visitRetTerm(LLVMIRParser::RetTermContext *ctx)
     {
         if (auto int_type = concrete_type->intType())
         {
-            // TODO: Load return value
+            int bits = stoi(int_type->getText().substr(1));
+            int bytes = least_bytes_required(bits);
+            if (bytes > 4)
+            {
+                throw runtime_error("Integers with more than 32 bits are not supported.");
+            }
+
+            auto value_ctx = ctx->value();
+            if (auto constant = value_ctx->constant())
+            {
+                int value = stoi(constant->getText());
+                if (bytes == 1)
+                {
+                    os << "\tld a, " << value << "\n";
+                }
+                else if (bytes == 2)
+                {
+                    os << "\tld hl, " << value << "\n";
+                }
+                else if (bytes == 4)
+                {
+                    os << "\tld hl, " << (value & 0xffff) << "\n";
+                    os << "\tld de, " << (value >> 16) << "\n";
+                }
+            }
+            else
+            {
+                throw runtime_error("Only constant returns are supported.");
+            }
         }
         else
         {
