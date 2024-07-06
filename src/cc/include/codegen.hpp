@@ -2,6 +2,9 @@
 #include <CBaseVisitor.h>
 #include <analyzer.hpp>
 #include <ostream>
+#include <variant>
+
+typedef std::variant<int, float, char> ConstantValue;
 
 class CodeGen : public CBaseVisitor
 {
