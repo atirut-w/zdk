@@ -76,20 +76,7 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
     if (auto const_ctx = ctx->Constant())
     {
-        cout << "Trying to parse constant: " << const_ctx->getText() << "\n";
-        ConstantValue result = parse_constant(const_ctx->getText());
-        if (holds_alternative<int>(result))
-        {
-            cout << "PrimaryExpression(int): " << get<int>(result) << "\n";
-        }
-        else if (holds_alternative<float>(result))
-        {
-            cout << "PrimaryExpression(float): " << get<float>(result) << "\n";
-        }
-        else if (holds_alternative<char>(result))
-        {
-            cout << "PrimaryExpression(char): " << (int)get<char>(result) << "\n";
-        }
+        return parse_constant(const_ctx->getText());
     }
     else
     {
