@@ -31,6 +31,12 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .nargs(nargs_pattern::any)
         .default_value(vector<filesystem::path>{});
 
+    // Keep intermediate files
+    parser->add_argument("-k", "--keep-intermediate")
+        .help("Keep intermediate files")
+        .default_value(false)
+        .implicit_value(true);
+
     try
     {
         parser->parse_args(argc, argv);
@@ -48,6 +54,7 @@ int main(int argc, char *argv[])
     auto args = parse_args(argc, argv);
     const auto source = args->get<filesystem::path>("source");
     filesystem::path intermediate = source;
+    auto keep_intermediate = args->get<bool>("--keep-intermediate");
 
     string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
@@ -79,6 +86,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if (!keep_intermediate)
+    {
+        filesystem::remove(intermediate.replace_extension(".i"));
+    }
     std::ofstream output(intermediate.replace_extension(".s"));
 
     Analyzer analyzer;
