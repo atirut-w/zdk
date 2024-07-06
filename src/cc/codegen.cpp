@@ -74,14 +74,17 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
+    ExpressionCtx expr_ctx;
+    
     if (auto const_ctx = ctx->Constant())
     {
-        return parse_constant(const_ctx->getText());
+        expr_ctx.constant = true;
+        expr_ctx.value = parse_constant(const_ctx->getText());
     }
     else
     {
         throw runtime_error("unsupported expression type");
     }
 
-    return any();
+    return expr_ctx;
 }
