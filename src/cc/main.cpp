@@ -40,6 +40,8 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     auto args = parse_args(argc, argv);
+    const auto source = args->get<filesystem::path>("source");
+    filesystem::path intermediate = source;
 
     string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
@@ -47,7 +49,11 @@ int main(int argc, char *argv[])
         clang_preamble += "-I" + include.string() + " ";
     }
 
-    if (system((clang_preamble + "-fsyntax-only " + args->get<filesystem::path>("source").string()).c_str()))
+    if (system((clang_preamble + "-fsyntax-only " + source.string()).c_str()))
+    {
+        return 1;
+    }
+    if (system((clang_preamble + "-E " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
     {
         return 1;
     }
