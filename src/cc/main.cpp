@@ -2,13 +2,13 @@
 #include <CParser.h>
 #include <analyzer.hpp>
 #include <argparse/argparse.hpp>
+#include <codegen.hpp>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <fstream>
-#include <codegen.hpp>
 
 using namespace std;
 using namespace argparse;
