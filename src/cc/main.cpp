@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 #include <fstream>
+#include <codegen.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -78,8 +79,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    std::ofstream output(intermediate.replace_extension(".s"));
+
     Analyzer analyzer;
     ProgramMeta meta = any_cast<ProgramMeta>(analyzer.visit(tree));
+    CodeGen codegen(meta, output);
+    codegen.visit(tree);
 
     return 0;
 }
