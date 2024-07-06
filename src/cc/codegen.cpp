@@ -41,6 +41,12 @@ ConstantValue parse_constant(string text)
             }
         }
     }
+    else if (text[0] == '\'')
+    {
+        // TODO: Unescape characters
+        return text[1];
+    }
+    else
     
     throw runtime_error("unhandled constant type");
 }
