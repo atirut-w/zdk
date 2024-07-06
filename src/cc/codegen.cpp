@@ -1,4 +1,7 @@
 #include <codegen.hpp>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 
 using namespace std;
 using namespace antlr4;
@@ -20,6 +23,20 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     // TODO: Function body
     // TODO: Function epilogue
     output << "\tret\n";
+
+    return any();
+}
+
+any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
+{
+    if (auto const_ctx = ctx->Constant())
+    {
+        // Thanks to the fact that the child rules are fragments, we have to do our own parsing.
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
 
     return any();
 }
