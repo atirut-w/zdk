@@ -65,11 +65,19 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     output << name << ":\n";
 
     // TODO: Function prologue
-    // TODO: Function body
+
+    if (auto block_itemlist_ctx = ctx->compoundStatement()->blockItemList())
+    {
+        for (auto block_item_ctx : block_itemlist_ctx->blockItem())
+        {
+            visit(block_item_ctx);
+        }
+    }
+
     // TODO: Function epilogue
     output << "\tret\n";
 
-    return visitChildren(ctx);
+    return any();
 }
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
