@@ -53,7 +53,8 @@ int main(int argc, char *argv[])
     {
         return 1;
     }
-    if (system((clang_preamble + "-E " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
+    if (system(
+            (clang_preamble + "-E " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
     {
         return 1;
     }
