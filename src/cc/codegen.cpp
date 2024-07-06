@@ -1,14 +1,48 @@
+#include <cctype>
 #include <codegen.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
 using namespace std;
 using namespace antlr4;
 
-ConstantValue parse_constant(const string &text)
+ConstantValue parse_constant(string text)
 {
-    return 0; // TODO: Implement this
+    // Note: I'm not handling exceptions here, because I trust the ANTLR parser to not let anything weird through.
+    if (isdigit(text[0]))
+    {
+        if (text[0] != '0' || text.size() == 1)
+        {
+            if (text.find('.') != string::npos)
+            {
+                return stof(text);
+            }
+            else
+            {
+                return stoi(text);
+            }
+        }
+        else
+        {
+            char base = tolower(text[1]);
+            if (base == 'x' || base == 'X')
+            {
+                return stoi(text, nullptr, 16);
+            }
+            else if (base == 'b' || base == 'B')
+            {
+                return stoi(text, nullptr, 2);
+            }
+            else
+            {
+                return stoi(text, nullptr, 8);
+            }
+        }
+    }
+    
+    throw runtime_error("unhandled constant type");
 }
 
 CodeGen::CodeGen(ProgramMeta &program_meta, std::ostream &output) : program_meta(program_meta), output(output)
@@ -29,14 +63,27 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     // TODO: Function epilogue
     output << "\tret\n";
 
-    return any();
+    return visitChildren(ctx);
 }
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
     if (auto const_ctx = ctx->Constant())
     {
-        return parse_constant(const_ctx->getText());
+        cout << "Trying to parse constant: " << const_ctx->getText() << "\n";
+        ConstantValue result = parse_constant(const_ctx->getText());
+        if (holds_alternative<int>(result))
+        {
+            cout << "PrimaryExpression(int): " << get<int>(result) << "\n";
+        }
+        else if (holds_alternative<float>(result))
+        {
+            cout << "PrimaryExpression(float): " << get<float>(result) << "\n";
+        }
+        else if (holds_alternative<char>(result))
+        {
+            cout << "PrimaryExpression(char): " << (int)get<char>(result) << "\n";
+        }
     }
     else
     {
