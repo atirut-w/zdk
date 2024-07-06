@@ -1,12 +1,17 @@
+#include <CLexer.h>
+#include <CParser.h>
+#include <analyzer.hpp>
 #include <argparse/argparse.hpp>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 using namespace argparse;
+using namespace antlr4;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 {
@@ -59,6 +64,22 @@ int main(int argc, char *argv[])
         cerr << "BUG: clang -E failed despite syntax check passing" << endl;
         return 1;
     }
+
+    ifstream input(intermediate.replace_extension(".i"));
+    ANTLRInputStream input_stream(input);
+    CLexer lexer(&input_stream);
+    CommonTokenStream tokens(&lexer);
+    CParser parser(&tokens);
+
+    tree::ParseTree *tree = parser.compilationUnit();
+    if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
+    {
+        cerr << "BUG: ANTLR syntax error. mayhapes C version newer than C11?" << endl;
+        return 1;
+    }
+
+    Analyzer analyzer;
+    ProgramMeta meta = any_cast<ProgramMeta>(analyzer.visit(tree));
 
     return 0;
 }
