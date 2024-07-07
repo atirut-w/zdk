@@ -26,6 +26,7 @@ add_executable(zdk-cc
     main.cpp
     codegen.cpp
     analyzer.cpp
+    expressions.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp
