@@ -3,5 +3,8 @@ site_url: https://atirut-w.github.io/zdk
 repo_url: https://github.com/atirut-w/zdk/
 edit_uri: edit/main/docs/
 
+theme:
+  name: material
+
 markdown_extensions: 
   - admonition
