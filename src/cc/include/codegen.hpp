@@ -36,6 +36,7 @@ class CodeGen : public CBaseVisitor
     std::ostream &output;
 
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+    virtual std::any visitJumpStatement(CParser::JumpStatementContext *ctx) override;
 
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here

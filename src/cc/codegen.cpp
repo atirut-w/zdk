@@ -29,8 +29,24 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         }
     }
 
-    // TODO: Function epilogue
-    output << "\tret\n";
+    return any();
+}
+
+any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
+{
+    if (ctx->Return())
+    {
+        if (ctx->expression())
+        {
+            visit(ctx->expression());
+        }
+        // TODO: Function epilogue
+        output << "\tret\n";
+    }
+    else
+    {
+        throw runtime_error("unsupported jump statement");
+    }
 
     return any();
 }
