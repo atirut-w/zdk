@@ -21,7 +21,7 @@ ConstantValue parse_constant(string text)
             }
             else
             {
-                return stoi(text);
+                return static_cast<unsigned>(stoi(text));
             }
         }
         else
@@ -29,26 +29,27 @@ ConstantValue parse_constant(string text)
             char base = tolower(text[1]);
             if (base == 'x' || base == 'X')
             {
-                return stoi(text, nullptr, 16);
+                return static_cast<unsigned>(stoi(text, nullptr, 16));
             }
             else if (base == 'b' || base == 'B')
             {
-                return stoi(text, nullptr, 2);
+                return static_cast<unsigned>(stoi(text, nullptr, 2));
             }
             else
             {
-                return stoi(text, nullptr, 8);
+                return static_cast<unsigned>(stoi(text, nullptr, 8));
             }
         }
     }
     else if (text[0] == '\'')
     {
         // TODO: Unescape characters
-        return text[1];
+        return static_cast<uint8_t>(text[1]);
     }
     else
-    
-    throw runtime_error("unhandled constant type");
+    {
+        throw runtime_error("unhandled constant type");
+    }
 }
 
 CodeGen::CodeGen(ProgramMeta &program_meta, std::ostream &output) : program_meta(program_meta), output(output)
@@ -83,7 +84,7 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
     ExpressionCtx expr_ctx;
-    
+
     if (auto const_ctx = ctx->Constant())
     {
         expr_ctx.value = parse_constant(const_ctx->getText());
