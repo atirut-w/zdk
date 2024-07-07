@@ -5,14 +5,8 @@
 #include <variant>
 #include <string>
 
-typedef std::variant<int, float, char> ConstantValue;
-
-struct ExpressionCtx
-{
-    bool constant; // Used for constant folding
-    ConstantValue value;
-    std::string symbol;
-};
+typedef std::variant<int, float, char, std::string> ConstantValue;
+typedef std::variant<ConstantValue, std::string> ExpressionValue;
 
 class CodeGen : public CBaseVisitor
 {

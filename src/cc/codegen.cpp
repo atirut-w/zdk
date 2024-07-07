@@ -82,12 +82,11 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
-    ExpressionCtx expr_ctx;
+    ExpressionValue expr_val;
     
     if (auto const_ctx = ctx->Constant())
     {
-        expr_ctx.constant = true;
-        expr_ctx.value = parse_constant(const_ctx->getText());
+        expr_val = parse_constant(const_ctx->getText());
     }
     else
     {
