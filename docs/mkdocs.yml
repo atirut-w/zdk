@@ -1,1 +1,4 @@
-site_name: My Docs
+site_name: ZDK Documentation
+site_url: https://atirut-w.github.io/zdk
+repo_url: https://github.com/atirut-w/zdk/
+edit_uri: edit/main/docs/
