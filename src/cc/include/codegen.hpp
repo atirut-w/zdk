@@ -6,7 +6,22 @@
 #include <string>
 #include <cstdint>
 
-typedef std::variant<uint8_t, uint16_t, uint32_t, std::string> ConstantValue;
+struct ConstantValue
+{
+    int width;
+    union
+    {
+        uint8_t u8;
+        uint16_t u16;
+        uint32_t u32;
+    };
+
+    ConstantValue() : width(0) {}
+    ConstantValue(uint8_t value) : width(1), u8(value) {}
+    ConstantValue(uint16_t value) : width(2), u16(value) {}
+    ConstantValue(uint32_t value) : width(4), u32(value) {}
+};
+
 typedef std::variant<ConstantValue, std::string> ExpressionValue;
 
 struct ExpressionCtx

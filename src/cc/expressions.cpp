@@ -134,15 +134,82 @@ any CodeGen::visitMultiplicativeExpression(CParser::MultiplicativeExpressionCont
 
 any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
 {
-    ExpressionCtx expr_ctx;
+    ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(ctx->multiplicativeExpression()[0]));
 
-    if (auto mult_expr_ctx = ctx->multiplicativeExpression()[0])
+    if (holds_alternative<string>(expr_ctx.value))
     {
-        expr_ctx = any_cast<ExpressionCtx>(visit(mult_expr_ctx));
+        if (get<string>(expr_ctx.value) == "")
+        {
+            throw runtime_error("tainted expression not supported yet");
+        }
+        else
+        {
+            throw runtime_error("BUG: unresolved reference in expression");
+        }
     }
     else
     {
-        throw runtime_error("unsupported expression type");
+        ConstantValue val = get<ConstantValue>(expr_ctx.value);
+
+        for (int i = 1; i < ctx->multiplicativeExpression().size(); i++)
+        {
+            ExpressionCtx add_expr_ctx = any_cast<ExpressionCtx>(visit(ctx->multiplicativeExpression()[i]));
+
+            if (holds_alternative<string>(add_expr_ctx.value))
+            {
+                if (get<string>(add_expr_ctx.value) == "")
+                {
+                    throw runtime_error("tainted expression not supported yet");
+                }
+                else
+                {
+                    throw runtime_error("BUG: unresolved reference in expression");
+                }
+            }
+            else
+            {
+                ConstantValue add_val = get<ConstantValue>(add_expr_ctx.value);
+                int promoted_width = max(val.width, add_val.width);
+                val.width = promoted_width;
+                char op = ctx->children[2 * i - 1]->getText()[0];
+
+                if (promoted_width == 1)
+                {
+                    if (op == '+')
+                    {
+                        val.u8 += add_val.u8;
+                    }
+                    else if (op == '-')
+                    {
+                        val.u8 -= add_val.u8;
+                    }
+                }
+                else if (promoted_width == 2)
+                {
+                    if (op == '+')
+                    {
+                        val.u16 += add_val.u16;
+                    }
+                    else if (op == '-')
+                    {
+                        val.u16 -= add_val.u16;
+                    }
+                }
+                else if (promoted_width == 4)
+                {
+                    if (op == '+')
+                    {
+                        val.u32 += add_val.u32;
+                    }
+                    else if (op == '-')
+                    {
+                        val.u32 -= add_val.u32;
+                    }
+                }
+            }
+        }
+
+        expr_ctx.value = val;
     }
 
     return expr_ctx;
@@ -330,19 +397,18 @@ any CodeGen::visitExpression(CParser::ExpressionContext *ctx)
         {
             ConstantValue val = get<ConstantValue>(expr_ctx.value);
 
-            if (holds_alternative<uint8_t>(val))
+            if (val.width == 1)
             {
-                output << "\tld a, " << static_cast<unsigned>(get<uint8_t>(val)) << "\n";
+                output << "\tld a, " << static_cast<unsigned>(val.u8) << "\n";
             }
-            else if (holds_alternative<uint16_t>(val))
+            else if (val.width == 2)
             {
-                output << "\tld hl, " << static_cast<unsigned>(get<uint16_t>(val)) << "\n";
+                output << "\tld hl, " << static_cast<unsigned>(val.u16) << "\n";
             }
-            else if (holds_alternative<uint32_t>(val))
+            else if (val.width == 4)
             {
-                uint32_t u32 = get<uint32_t>(val);
-                output << "\tld hl, " << (u32 & 0xffff) << "\n";
-                output << "\tld de, " << (u32 >> 16) << "\n";
+                output << "\tld hl, " << (val.u32 & 0xffff) << "\n";
+                output << "\tld de, " << (val.u32 >> 16) << "\n";
             }
         }
     }
