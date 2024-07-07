@@ -356,8 +356,25 @@ any CodeGen::visitExpression(CParser::ExpressionContext *ctx)
                 throw runtime_error("BUG: unresolved reference in expression");
             }
         }
+        else
+        {
+            ConstantValue val = get<ConstantValue>(expr_ctx.value);
 
-        ConstantValue val = get<ConstantValue>(expr_ctx.value);
+            if (holds_alternative<uint8_t>(val))
+            {
+                output << "\tld a, " << static_cast<unsigned>(get<uint8_t>(val)) << "\n";
+            }
+            else if (holds_alternative<uint16_t>(val))
+            {
+                output << "\tld hl, " << static_cast<unsigned>(get<uint16_t>(val)) << "\n";
+            }
+            else if (holds_alternative<uint32_t>(val))
+            {
+                uint32_t u32 = get<uint32_t>(val);
+                output << "\tld hl, " << (u32 & 0xffff) << "\n";
+                output << "\tld de, " << (u32 >> 16) << "\n";
+            }
+        }
     }
     else
     {
