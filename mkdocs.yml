@@ -16,5 +16,5 @@ theme:
       primary: "black"
       accent: "grey"
 
-markdown_extensions: 
+markdown_extensions:
   - admonition
