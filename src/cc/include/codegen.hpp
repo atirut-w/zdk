@@ -22,6 +22,7 @@ struct ConstantValue
     ConstantValue(uint32_t value) : width(4), u32(value) {}
 };
 
+// A value representing an expression's result. Contains an empty string when already loaded, and a symbol name when not a constant.
 typedef std::variant<ConstantValue, std::string> ExpressionValue;
 
 struct ExpressionCtx
