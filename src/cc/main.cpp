@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     tree::ParseTree *tree = parser.compilationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
-        cerr << "BUG: ANTLR syntax error. mayhapes C version newer than C11?" << endl;
+        cerr << "BUG: ANTLR syntax error. check grammar." << endl;
         return 1;
     }
 
