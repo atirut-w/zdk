@@ -25,6 +25,9 @@ The callee have to save the `IX`, `IY`, and other callee-saved registers if they
 
 Single-byte return values are returned in the `A` register, while multi-byte return values are returned in `HL` (low word) and `DE` (high word).
 
+??? note "Note on value expressions"
+    Value expressions are valuated the same way with single-byte values in `A` and so on.
+
 ### Examples
 These example roughly outlines how the compiler generate a function's prologue and epilogue depending on how arguments and locals are used.
 
