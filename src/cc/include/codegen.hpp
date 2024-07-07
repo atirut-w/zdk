@@ -24,21 +24,21 @@ class CodeGen : public CBaseVisitor
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
     virtual std::any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
-    // virtual std::any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
-    // virtual std::any visitCastExpression(CParser::CastExpressionContext *ctx) override;
-    // virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
-    // virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
-    // virtual std::any visitShiftExpression(CParser::ShiftExpressionContext *ctx) override;
-    // virtual std::any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
-    // virtual std::any visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
-    // virtual std::any visitAndExpression(CParser::AndExpressionContext *ctx) override;
-    // virtual std::any visitExclusiveOrExpression(CParser::ExclusiveOrExpressionContext *ctx) override;
-    // virtual std::any visitInclusiveOrExpression(CParser::InclusiveOrExpressionContext *ctx) override;
-    // virtual std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
-    // virtual std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
-    // virtual std::any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
-    // virtual std::any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
-    // virtual std::any visitExpression(CParser::ExpressionContext *ctx) override;
+    virtual std::any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
+    virtual std::any visitCastExpression(CParser::CastExpressionContext *ctx) override;
+    virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
+    virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+    virtual std::any visitShiftExpression(CParser::ShiftExpressionContext *ctx) override;
+    virtual std::any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
+    virtual std::any visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
+    virtual std::any visitAndExpression(CParser::AndExpressionContext *ctx) override;
+    virtual std::any visitExclusiveOrExpression(CParser::ExclusiveOrExpressionContext *ctx) override;
+    virtual std::any visitInclusiveOrExpression(CParser::InclusiveOrExpressionContext *ctx) override;
+    virtual std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
+    virtual std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
+    virtual std::any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
+    virtual std::any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
+    virtual std::any visitExpression(CParser::ExpressionContext *ctx) override;
 public:
     CodeGen(ProgramMeta &program_meta, std::ostream &output);
 };

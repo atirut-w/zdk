@@ -102,47 +102,264 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
 
     if (auto primary_expr_ctx = ctx->primaryExpression())
     {
-        if (ctx->expression().size() > 0)
-        {
-            throw runtime_error("array expression not supported yet");
-        }
-        else if (ctx->argumentExpressionList().size() > 0)
-        {
-            throw runtime_error("function call expression not supported yet");
-        }
-        else
-        {
-            expr_ctx = any_cast<ExpressionCtx>(visit(primary_expr_ctx));
-            if (holds_alternative<string>(expr_ctx.value))
-            {
-                throw runtime_error("dynamic expression not supported yet");
-            }
-
-            if (ctx->PlusPlus().size() > 0)
-            {
-                expr_ctx.postfix = 1;
-            }
-            else if (ctx->MinusMinus().size() > 0)
-            {
-                expr_ctx.postfix = -1;
-            }
-            else if (ctx->Dot().size() > 0)
-            {
-                throw runtime_error("struct member expression not supported yet");
-            }
-            else if (ctx->Arrow().size() > 0)
-            {
-                throw runtime_error("struct pointer member expression not supported yet");
-            }
-            else if (ctx->LeftBracket().size() > 0)
-            {
-                throw runtime_error("array index expression not supported yet");
-            }
-        }
+        expr_ctx = any_cast<ExpressionCtx>(visit(primary_expr_ctx));
     }
     else
     {
         throw runtime_error("struct expression not supported yet");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitUnaryExpression(CParser::UnaryExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto postfix_expr_ctx = ctx->postfixExpression())
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(postfix_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitCastExpression(CParser::CastExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto unary_expr_ctx = ctx->unaryExpression())
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(unary_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto cast_expr_ctx = ctx->castExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(cast_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto mult_expr_ctx = ctx->multiplicativeExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(mult_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitShiftExpression(CParser::ShiftExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto add_expr_ctx = ctx->additiveExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(add_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitRelationalExpression(CParser::RelationalExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto shift_expr_ctx = ctx->shiftExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(shift_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitEqualityExpression(CParser::EqualityExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto rel_expr_ctx = ctx->relationalExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(rel_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitAndExpression(CParser::AndExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto eq_expr_ctx = ctx->equalityExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(eq_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitExclusiveOrExpression(CParser::ExclusiveOrExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto and_expr_ctx = ctx->andExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(and_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitInclusiveOrExpression(CParser::InclusiveOrExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto excl_or_expr_ctx = ctx->exclusiveOrExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(excl_or_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto incl_or_expr_ctx = ctx->inclusiveOrExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(incl_or_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto log_and_expr_ctx = ctx->logicalAndExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(log_and_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitConditionalExpression(CParser::ConditionalExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto log_or_expr_ctx = ctx->logicalOrExpression())
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(log_or_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto cond_expr_ctx = ctx->conditionalExpression())
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(cond_expr_ctx));
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitExpression(CParser::ExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto assign_expr_ctx = ctx->assignmentExpression()[0])
+    {
+        expr_ctx = any_cast<ExpressionCtx>(visit(assign_expr_ctx));
+        if (holds_alternative<string>(expr_ctx.value))
+        {
+            if (get<string>(expr_ctx.value) == "")
+            {
+                throw runtime_error("tainted expression not supported yet");
+            }
+            else
+            {
+                throw runtime_error("BUG: unresolved reference in expression");
+            }
+        }
+
+        ConstantValue val = get<ConstantValue>(expr_ctx.value);
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
     }
 
     return expr_ctx;
