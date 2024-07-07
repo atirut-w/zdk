@@ -9,9 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: write
-      pages: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
