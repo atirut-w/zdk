@@ -46,7 +46,7 @@ These example roughly outlines how the compiler generate a function's prologue a
     add ix, sp
 
     ; Now you can access arguments using ix
-    ld a, (ix+0)
+    ld a, (ix+2)
 
     ; Clean up and return
     pop ix
@@ -67,7 +67,7 @@ These example roughly outlines how the compiler generate a function's prologue a
     ld sp, iy
 
     ; Accessing arguments
-    ld a, (ix+0)
+    ld a, (ix+4)
     ; Accessing locals
     ld (iy+0), a
 
