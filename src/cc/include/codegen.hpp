@@ -8,6 +8,12 @@
 typedef std::variant<int, float, char, std::string> ConstantValue;
 typedef std::variant<ConstantValue, std::string> ExpressionValue;
 
+struct ExpressionCtx
+{
+    ExpressionValue value;
+    int postfix = 0;
+};
+
 class CodeGen : public CBaseVisitor
 {
     ProgramMeta &program_meta;
@@ -17,7 +23,7 @@ class CodeGen : public CBaseVisitor
 
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
-    // virtual std::any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
+    virtual std::any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
     // virtual std::any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
     // virtual std::any visitCastExpression(CParser::CastExpressionContext *ctx) override;
     // virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;

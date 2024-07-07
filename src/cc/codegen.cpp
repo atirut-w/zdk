@@ -82,15 +82,67 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
-    ExpressionValue expr_val;
+    ExpressionCtx expr_ctx;
     
     if (auto const_ctx = ctx->Constant())
     {
-        expr_val = parse_constant(const_ctx->getText());
+        expr_ctx.value = parse_constant(const_ctx->getText());
     }
     else
     {
         throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
+
+any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
+{
+    ExpressionCtx expr_ctx;
+
+    if (auto primary_expr_ctx = ctx->primaryExpression())
+    {
+        if (ctx->expression().size() > 0)
+        {
+            throw runtime_error("array expression not supported yet");
+        }
+        else if (ctx->argumentExpressionList().size() > 0)
+        {
+            throw runtime_error("function call expression not supported yet");
+        }
+        else
+        {
+            expr_ctx = any_cast<ExpressionCtx>(visit(primary_expr_ctx));
+            if (holds_alternative<string>(expr_ctx.value))
+            {
+                throw runtime_error("dynamic expression not supported yet");
+            }
+
+            if (ctx->PlusPlus().size() > 0)
+            {
+                expr_ctx.postfix = 1;
+            }
+            else if (ctx->MinusMinus().size() > 0)
+            {
+                expr_ctx.postfix = -1;
+            }
+            else if (ctx->Dot().size() > 0)
+            {
+                throw runtime_error("struct member expression not supported yet");
+            }
+            else if (ctx->Arrow().size() > 0)
+            {
+                throw runtime_error("struct pointer member expression not supported yet");
+            }
+            else if (ctx->LeftBracket().size() > 0)
+            {
+                throw runtime_error("array index expression not supported yet");
+            }
+        }
+    }
+    else
+    {
+        throw runtime_error("struct expression not supported yet");
     }
 
     return expr_ctx;
