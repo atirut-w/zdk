@@ -1,17 +1,5 @@
-# Welcome to MkDocs
+# ZDK
+C compiler and libraries for Z80 development.
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
-
-## Commands
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+!!! note
+    This documentation is a work in progress. If anything's missing, feel free to open an issue or a pull request. Be sure to watch out for duplicate issues and pull requests, though!
