@@ -4,8 +4,9 @@
 #include <ostream>
 #include <variant>
 #include <string>
+#include <cstdint>
 
-typedef std::variant<int, float, char, std::string> ConstantValue;
+typedef std::variant<uint8_t, uint16_t, uint32_t, std::string> ConstantValue;
 typedef std::variant<ConstantValue, std::string> ExpressionValue;
 
 struct ExpressionCtx

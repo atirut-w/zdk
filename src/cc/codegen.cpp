@@ -17,7 +17,8 @@ ConstantValue parse_constant(string text)
         {
             if (text.find('.') != string::npos)
             {
-                return stof(text);
+                throw runtime_error("TODO: figure out floating point math");
+                // return stof(text);
             }
             else
             {
