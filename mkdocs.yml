@@ -7,6 +7,11 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+
+  features:
+    - navigation.instant
+    - navigation.tracking
+
   palette:
     - media: "(prefers-color-scheme)"
     - media: "(prefers-color-scheme: light)"
@@ -22,3 +27,5 @@ markdown_extensions:
   - admonition
   - pymdownx.superfences
   - pymdownx.details
+  - toc:
+      permalink: true
