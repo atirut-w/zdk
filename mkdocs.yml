@@ -5,6 +5,16 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  palette:
+    - media: "(prefers-color-scheme)"
+    - media: "(prefers-color-scheme: light)"
+      scheme: "default"
+      primary: "blue grey"
+      accent: "grey"
+    - media: "(prefers-color-scheme: dark)"
+      scheme: "slate"
+      primary: "black"
+      accent: "grey"
 
 markdown_extensions: 
   - admonition
