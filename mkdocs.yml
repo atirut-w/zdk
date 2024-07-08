@@ -5,6 +5,10 @@ repo_url: https://github.com/atirut-w/zdk/
 repo_name: atirut-w/zdk
 edit_uri: edit/main/docs/
 
+nav:
+  - 'index.md'
+  - 'calling-convention.md'
+
 theme:
   name: material
 
