@@ -7,8 +7,10 @@
 using namespace std;
 using namespace antlr4;
 
-ConstantValue parse_constant(string text)
+ExpressionCtx parse_constant(string text)
 {
+    ExpressionCtx expr_ctx;
+    
     // Note: I'm not handling exceptions here, because I trust the ANTLR parser to not let anything weird through.
     if (isdigit(text[0]))
     {
@@ -21,7 +23,8 @@ ConstantValue parse_constant(string text)
             }
             else
             {
-                return static_cast<unsigned>(stoi(text));
+                expr_ctx.width = 4;
+                expr_ctx.value = static_cast<unsigned>(stoi(text));
             }
         }
         else
@@ -29,27 +32,33 @@ ConstantValue parse_constant(string text)
             char base = tolower(text[1]);
             if (base == 'x' || base == 'X')
             {
-                return static_cast<unsigned>(stoi(text, nullptr, 16));
+                expr_ctx.width = 4;
+                expr_ctx.value = static_cast<unsigned>(stoi(text, nullptr, 16));
             }
             else if (base == 'b' || base == 'B')
             {
-                return static_cast<unsigned>(stoi(text, nullptr, 2));
+                expr_ctx.width = 4;
+                expr_ctx.value = static_cast<unsigned>(stoi(text, nullptr, 2));
             }
             else
             {
-                return static_cast<unsigned>(stoi(text, nullptr, 8));
+                expr_ctx.width = 4;
+                expr_ctx.value = static_cast<unsigned>(stoi(text, nullptr, 8));
             }
         }
     }
     else if (text[0] == '\'')
     {
         // TODO: Unescape characters
-        return static_cast<uint8_t>(text[1]);
+        expr_ctx.width = 1;
+        expr_ctx.value = static_cast<uint8_t>(text[1]);
     }
     else
     {
         throw runtime_error("unhandled constant type");
     }
+
+    return expr_ctx;
 }
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
@@ -58,7 +67,7 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 
     if (auto const_ctx = ctx->Constant())
     {
-        expr_ctx.value = parse_constant(const_ctx->getText());
+        expr_ctx = parse_constant(const_ctx->getText());
     }
     else
     {
@@ -169,8 +178,8 @@ any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
             else
             {
                 ConstantValue add_val = get<ConstantValue>(add_expr_ctx.value);
-                int promoted_width = max(val.width, add_val.width);
-                val.width = promoted_width;
+                int promoted_width = max(expr_ctx.width, expr_ctx.width);
+                expr_ctx.width = promoted_width;
                 char op = ctx->children[2 * i - 1]->getText()[0];
 
                 if (promoted_width == 1)
@@ -397,15 +406,15 @@ any CodeGen::visitExpression(CParser::ExpressionContext *ctx)
         {
             ConstantValue val = get<ConstantValue>(expr_ctx.value);
 
-            if (val.width == 1)
+            if (expr_ctx.width == 1)
             {
                 output << "\tld a, " << static_cast<unsigned>(val.u8) << "\n";
             }
-            else if (val.width == 2)
+            else if (expr_ctx.width == 2)
             {
                 output << "\tld hl, " << static_cast<unsigned>(val.u16) << "\n";
             }
-            else if (val.width == 4)
+            else if (expr_ctx.width == 4)
             {
                 output << "\tld hl, " << (val.u32 & 0xffff) << "\n";
                 output << "\tld de, " << (val.u32 >> 16) << "\n";

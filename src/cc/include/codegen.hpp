@@ -8,7 +8,6 @@
 
 struct ConstantValue
 {
-    int width;
     union
     {
         uint8_t u8;
@@ -16,10 +15,10 @@ struct ConstantValue
         uint32_t u32;
     };
 
-    ConstantValue() : width(0) {}
-    ConstantValue(uint8_t value) : width(1), u8(value) {}
-    ConstantValue(uint16_t value) : width(2), u16(value) {}
-    ConstantValue(uint32_t value) : width(4), u32(value) {}
+    ConstantValue() : u32(0) {}
+    ConstantValue(uint8_t u8) : u8(u8) {}
+    ConstantValue(uint16_t u16) : u16(u16) {}
+    ConstantValue(uint32_t u32) : u32(u32) {}
 };
 
 // A value representing an expression's result. Contains an empty string when already loaded, and a symbol name when not a constant.
@@ -28,6 +27,7 @@ typedef std::variant<ConstantValue, std::string> ExpressionValue;
 struct ExpressionCtx
 {
     ExpressionValue value;
+    int width = 0;
     int postfix = 0;
 };
 
