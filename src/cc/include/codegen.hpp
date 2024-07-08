@@ -2,7 +2,7 @@
 #include <CBaseVisitor.h>
 #include <analyzer.hpp>
 #include <ostream>
-#include <variant>
+#include <optional>
 #include <string>
 #include <cstdint>
 
@@ -21,12 +21,10 @@ struct ConstantValue
     ConstantValue(uint32_t u32) : u32(u32) {}
 };
 
-// A value representing an expression's result. Contains an empty string when already loaded, and a symbol name when not a constant.
-typedef std::variant<ConstantValue, std::string> ExpressionValue;
-
 struct ExpressionCtx
 {
-    ExpressionValue value;
+    // Empty if no longer applicable for constant folding, i.e. loaded into register(s)
+    std::optional<ConstantValue> constant;
     int width = 0;
     int postfix = 0;
 };

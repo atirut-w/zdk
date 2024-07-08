@@ -24,7 +24,7 @@ ExpressionCtx parse_constant(string text)
             else
             {
                 expr_ctx.width = 4;
-                expr_ctx.value = static_cast<unsigned>(stoi(text));
+                expr_ctx.constant = static_cast<unsigned>(stoi(text));
             }
         }
         else
@@ -33,17 +33,17 @@ ExpressionCtx parse_constant(string text)
             if (base == 'x' || base == 'X')
             {
                 expr_ctx.width = 4;
-                expr_ctx.value = static_cast<unsigned>(stoi(text, nullptr, 16));
+                expr_ctx.constant = static_cast<unsigned>(stoi(text, nullptr, 16));
             }
             else if (base == 'b' || base == 'B')
             {
                 expr_ctx.width = 4;
-                expr_ctx.value = static_cast<unsigned>(stoi(text, nullptr, 2));
+                expr_ctx.constant = static_cast<unsigned>(stoi(text, nullptr, 2));
             }
             else
             {
                 expr_ctx.width = 4;
-                expr_ctx.value = static_cast<unsigned>(stoi(text, nullptr, 8));
+                expr_ctx.constant = static_cast<unsigned>(stoi(text, nullptr, 8));
             }
         }
     }
@@ -51,7 +51,7 @@ ExpressionCtx parse_constant(string text)
     {
         // TODO: Unescape characters
         expr_ctx.width = 1;
-        expr_ctx.value = static_cast<uint8_t>(text[1]);
+        expr_ctx.constant = static_cast<uint8_t>(text[1]);
     }
     else
     {
@@ -145,39 +145,25 @@ any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
 {
     ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(ctx->multiplicativeExpression()[0]));
 
-    if (holds_alternative<string>(expr_ctx.value))
+    if (!expr_ctx.constant)
     {
-        if (get<string>(expr_ctx.value) == "")
-        {
-            throw runtime_error("tainted expression not supported yet");
-        }
-        else
-        {
-            throw runtime_error("BUG: unresolved reference in expression");
-        }
+        throw runtime_error("tainted expression not supported yet");
     }
     else
     {
-        ConstantValue val = get<ConstantValue>(expr_ctx.value);
+        ConstantValue val = *expr_ctx.constant;
 
         for (int i = 1; i < ctx->multiplicativeExpression().size(); i++)
         {
             ExpressionCtx add_expr_ctx = any_cast<ExpressionCtx>(visit(ctx->multiplicativeExpression()[i]));
 
-            if (holds_alternative<string>(add_expr_ctx.value))
+            if (!add_expr_ctx.constant)
             {
-                if (get<string>(add_expr_ctx.value) == "")
-                {
-                    throw runtime_error("tainted expression not supported yet");
-                }
-                else
-                {
-                    throw runtime_error("BUG: unresolved reference in expression");
-                }
+                throw runtime_error("tainted expression not supported yet");
             }
             else
             {
-                ConstantValue add_val = get<ConstantValue>(add_expr_ctx.value);
+                ConstantValue add_val = *add_expr_ctx.constant;
                 int promoted_width = max(expr_ctx.width, expr_ctx.width);
                 expr_ctx.width = promoted_width;
                 char op = ctx->children[2 * i - 1]->getText()[0];
@@ -218,7 +204,7 @@ any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
             }
         }
 
-        expr_ctx.value = val;
+        expr_ctx.constant = val;
     }
 
     return expr_ctx;
@@ -391,20 +377,13 @@ any CodeGen::visitExpression(CParser::ExpressionContext *ctx)
     if (auto assign_expr_ctx = ctx->assignmentExpression()[0])
     {
         expr_ctx = any_cast<ExpressionCtx>(visit(assign_expr_ctx));
-        if (holds_alternative<string>(expr_ctx.value))
+        if (!expr_ctx.constant)
         {
-            if (get<string>(expr_ctx.value) == "")
-            {
-                throw runtime_error("tainted expression not supported yet");
-            }
-            else
-            {
-                throw runtime_error("BUG: unresolved reference in expression");
-            }
+            throw runtime_error("tainted expression not supported yet");
         }
         else
         {
-            ConstantValue val = get<ConstantValue>(expr_ctx.value);
+            ConstantValue val = *expr_ctx.constant;
 
             if (expr_ctx.width == 1)
             {
