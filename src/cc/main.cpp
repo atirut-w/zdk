@@ -36,6 +36,12 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .help("Keep intermediate files")
         .default_value(false)
         .implicit_value(true);
+    
+    // Dump AST
+    parser->add_argument("--dump-ast")
+        .help("Dump AST to stdout")
+        .default_value(false)
+        .implicit_value(true);
 
     try
     {
@@ -91,6 +97,12 @@ int main(int argc, char *argv[])
         filesystem::remove(intermediate.replace_extension(".i"));
     }
     std::ofstream output(intermediate.replace_extension(".s"));
+
+    if (args->get<bool>("--dump-ast"))
+    {
+        cout << tree->toStringTree(&parser) << endl;
+        return 0;
+    }
 
     Analyzer analyzer;
     ProgramMeta meta = any_cast<ProgramMeta>(analyzer.visit(tree));
