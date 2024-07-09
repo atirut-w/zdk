@@ -61,6 +61,28 @@ ExpressionCtx parse_constant(string text)
     return expr_ctx;
 }
 
+void CodeGen::ensure_expression(ExpressionCtx &ctx)
+{
+    if (ctx.constant)
+    {
+        if (ctx.width == 1)
+        {
+            output << "\tld a, " << static_cast<unsigned>(ctx.constant->u8) << "\n";
+        }
+        else if (ctx.width == 2)
+        {
+            output << "\tld hl, " << static_cast<unsigned>(ctx.constant->u16) << "\n";
+        }
+        else if (ctx.width == 4)
+        {
+            output << "\tld hl, " << (ctx.constant->u32 & 0xffff) << "\n";
+            output << "\tld de, " << (ctx.constant->u32 >> 16) << "\n";
+        }
+
+        ctx.constant = nullopt;
+    }
+}
+
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
     ExpressionCtx expr_ctx;
@@ -377,28 +399,7 @@ any CodeGen::visitExpression(CParser::ExpressionContext *ctx)
     if (auto assign_expr_ctx = ctx->assignmentExpression()[0])
     {
         expr_ctx = any_cast<ExpressionCtx>(visit(assign_expr_ctx));
-        if (!expr_ctx.constant)
-        {
-            throw runtime_error("tainted expression not supported yet");
-        }
-        else
-        {
-            ConstantValue val = *expr_ctx.constant;
-
-            if (expr_ctx.width == 1)
-            {
-                output << "\tld a, " << static_cast<unsigned>(val.u8) << "\n";
-            }
-            else if (expr_ctx.width == 2)
-            {
-                output << "\tld hl, " << static_cast<unsigned>(val.u16) << "\n";
-            }
-            else if (expr_ctx.width == 4)
-            {
-                output << "\tld hl, " << (val.u32 & 0xffff) << "\n";
-                output << "\tld de, " << (val.u32 >> 16) << "\n";
-            }
-        }
+        ensure_expression(expr_ctx);
     }
     else
     {
