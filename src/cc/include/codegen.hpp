@@ -11,8 +11,11 @@ struct ConstantValue
     union
     {
         uint8_t u8;
+        int8_t i8;
         uint16_t u16;
+        int16_t i16;
         uint32_t u32;
+        int32_t i32;
     };
 
     ConstantValue() : u32(0) {}
@@ -26,6 +29,7 @@ struct ExpressionCtx
     // Empty if no longer applicable for constant folding, i.e. loaded into register(s)
     std::optional<ConstantValue> constant;
     int width = 0;
+    bool signedness = true;
     int postfix = 0;
 };
 
@@ -38,6 +42,7 @@ class CodeGen : public CBaseVisitor
     virtual std::any visitJumpStatement(CParser::JumpStatementContext *ctx) override;
 
     void ensure_expression(ExpressionCtx &ctx);
+    void promote_expression(ExpressionCtx &ctx);
 
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here

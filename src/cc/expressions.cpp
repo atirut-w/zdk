@@ -10,7 +10,7 @@ using namespace antlr4;
 ExpressionCtx parse_constant(string text)
 {
     ExpressionCtx expr_ctx;
-    
+
     // Note: I'm not handling exceptions here, because I trust the ANTLR parser to not let anything weird through.
     if (isdigit(text[0]))
     {
@@ -81,6 +81,55 @@ void CodeGen::ensure_expression(ExpressionCtx &ctx)
 
         ctx.constant = nullopt;
     }
+}
+
+void CodeGen::promote_expression(ExpressionCtx &ctx)
+{
+    if (!ctx.constant)
+    {
+        if (!ctx.signedness)
+        {
+            if (ctx.width == 1)
+            {
+                output << "\tld h, 0\n";
+                output << "\tld l, a\n";
+            }
+            else if (ctx.width == 2)
+            {
+                output << "\tld de, 0\n";
+            }
+        }
+        else
+        {
+            if (ctx.width == 1)
+            {
+                output << "\tcall _crt_sext_8\n";
+            }
+            else if (ctx.width == 2)
+            {
+                output << "\tcall _crt_sext_16\n";
+            }
+        }
+    }
+    else
+    {
+        if (ctx.width == 1)
+        {
+            if (!ctx.signedness)
+                ctx.constant->u32 = ctx.constant->u8;
+            else
+                ctx.constant->i32 = static_cast<int8_t>(ctx.constant->u8);
+        }
+        else if (ctx.width == 2)
+        {
+            if (!ctx.signedness)
+                ctx.constant->u32 = ctx.constant->u16;
+            else
+                ctx.constant->i32 = static_cast<int16_t>(ctx.constant->u16);
+        }
+    }
+
+    ctx.width = 4;
 }
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
@@ -166,6 +215,7 @@ any CodeGen::visitMultiplicativeExpression(CParser::MultiplicativeExpressionCont
 any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
 {
     ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(ctx->multiplicativeExpression()[0]));
+    promote_expression(expr_ctx);
 
     if (!expr_ctx.constant)
     {
@@ -178,6 +228,12 @@ any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
         for (int i = 1; i < ctx->multiplicativeExpression().size(); i++)
         {
             ExpressionCtx add_expr_ctx = any_cast<ExpressionCtx>(visit(ctx->multiplicativeExpression()[i]));
+            promote_expression(add_expr_ctx);
+
+            if (!add_expr_ctx.signedness)
+            {
+                expr_ctx.signedness = false;
+            }
 
             if (!add_expr_ctx.constant)
             {
@@ -186,33 +242,20 @@ any CodeGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
             else
             {
                 ConstantValue add_val = *add_expr_ctx.constant;
-                int promoted_width = max(expr_ctx.width, expr_ctx.width);
-                expr_ctx.width = promoted_width;
                 char op = ctx->children[2 * i - 1]->getText()[0];
 
-                if (promoted_width == 1)
+                if (expr_ctx.signedness)
                 {
                     if (op == '+')
                     {
-                        val.u8 += add_val.u8;
+                        val.i32 += add_val.i32;
                     }
                     else if (op == '-')
                     {
-                        val.u8 -= add_val.u8;
+                        val.i32 -= add_val.i32;
                     }
                 }
-                else if (promoted_width == 2)
-                {
-                    if (op == '+')
-                    {
-                        val.u16 += add_val.u16;
-                    }
-                    else if (op == '-')
-                    {
-                        val.u16 -= add_val.u16;
-                    }
-                }
-                else if (promoted_width == 4)
+                else
                 {
                     if (op == '+')
                     {
