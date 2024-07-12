@@ -47,8 +47,9 @@ ConstantValue parse_constant(string text)
         return text[1];
     }
     else
-    
-    throw runtime_error("unhandled constant type");
+    {
+        throw runtime_error("unhandled constant type");
+    }
 }
 
 CodeGen::CodeGen(ProgramMeta &program_meta, std::ostream &output) : program_meta(program_meta), output(output)
@@ -83,7 +84,7 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
     ExpressionCtx expr_ctx;
-    
+
     if (auto const_ctx = ctx->Constant())
     {
         expr_ctx.constant = true;
