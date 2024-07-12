@@ -54,8 +54,24 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 
     if (auto const_ctx = ctx->Constant())
     {
-        expr_ctx.constant = true;
-        expr_ctx.value = parse_constant(const_ctx->getText());
+        ConstantValue value = parse_constant(const_ctx->getText());
+
+        if (holds_alternative<char>(value))
+        {
+            expr_ctx.width = 1;
+            output << "\tld a, " << (int)get<char>(value) << "\n";
+        }
+        else if (holds_alternative<short>(value))
+        {
+            expr_ctx.width = 2;
+            output << "\tld hl, " << (int)get<short>(value) << "\n";
+        }
+        else if (holds_alternative<int>(value))
+        {
+            expr_ctx.width = 4;
+            output << "\tld hl, " << (get<int>(value) & 0xffff) << "\n";
+            output << "\tld de, " << (get<int>(value) >> 16) << "\n";
+        }
     }
     else
     {
