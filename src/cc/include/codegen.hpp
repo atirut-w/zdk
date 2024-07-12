@@ -3,15 +3,13 @@
 #include <analyzer.hpp>
 #include <ostream>
 #include <variant>
-#include <string>
 
 typedef std::variant<char, short, int> ConstantValue;
 
 struct ExpressionCtx
 {
-    bool constant; // Used for constant folding
-    ConstantValue value;
-    std::string symbol;
+    int width;
+    bool signedness = true;
 };
 
 class CodeGen : public CBaseVisitor
