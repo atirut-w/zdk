@@ -5,7 +5,7 @@
 #include <variant>
 #include <string>
 
-typedef std::variant<int, float, char> ConstantValue;
+typedef std::variant<char, short, int> ConstantValue;
 
 struct ExpressionCtx
 {

@@ -12,7 +12,8 @@ ConstantValue parse_constant(string text)
         {
             if (text.find('.') != string::npos)
             {
-                return stof(text);
+                throw runtime_error("floating point arithmetic not supported");
+                // return stof(text);
             }
             else
             {
