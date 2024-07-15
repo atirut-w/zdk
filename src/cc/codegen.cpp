@@ -96,6 +96,7 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
     {
         if (auto assignment_ctx = init_ctx->assignmentExpression())
         {
+            output << "\t; Init \"" << name << "\"\n";
             ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(assignment_ctx));
 
             if (local_meta.symbol.width == 1)
