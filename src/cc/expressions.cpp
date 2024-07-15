@@ -74,9 +74,12 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
             output << "\tld de, " << (get<int>(value) >> 16) << "\n";
         }
     }
-    else
+    else if (auto *ident_ctx = ctx->Identifier())
     {
         // TODO: Add support for at least symbol references
+    }
+    else
+    {
         throw runtime_error("unsupported expression type");
     }
 
