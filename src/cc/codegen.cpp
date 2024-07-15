@@ -66,7 +66,22 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     output << "\t.type " << name << ", @function\n";
     output << name << ":\n";
 
-    // TODO: Function prologue
+    if (current_function->local_alloc > 0)
+    {
+        output << "\tpush iy\n";
+    }
+    // TODO: clause for arguments
+    if (current_function->local_alloc > 0)
+    {
+        output << "\tpush ix\n";
+        output << "\tld ix, 0\n";
+        output << "\tadd ix, sp\n";
+    }
+    if (current_function->local_alloc > 0)
+    {
+        output << "\tld iy, " << -current_function->local_alloc << "\n";
+        output << "\tadd iy, sp\n";
+    }
 
     if (auto block_itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
@@ -76,7 +91,17 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         }
     }
 
-    // TODO: Function epilogue
+    // TODO: clause for arguments
+    if (current_function->local_alloc > 0)
+    {
+        output << "\tld sp, ix\n";
+        output << "\tpop ix\n";
+    }
+    if (current_function->local_alloc > 0)
+    {
+        output << "\tpop iy\n";
+    }
+
     output << "\tret\n";
 
     return any();
