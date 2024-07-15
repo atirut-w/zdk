@@ -80,3 +80,48 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 
     return expr_ctx;
 }
+
+any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
+{
+    // TODO: Test this visitor
+    ExpressionCtx expr_ctx;
+
+    if (auto primary_expr_ctx = ctx->primaryExpression())
+    {
+        if (ctx->expression().size() > 0)
+        {
+            throw runtime_error("indexing not supported");
+        }
+        else if (ctx->argumentExpressionList().size() > 0)
+        {
+            throw runtime_error("I don't even know what this is");
+        }
+        else if (ctx->Identifier().size() > 0)
+        {
+            throw runtime_error("struct member access not supported");
+        }
+
+        if (ctx->PlusPlus().size() > 0)
+        {
+            if (ctx->PlusPlus().size() > 1)
+            {
+                throw runtime_error("multiple increments not supported");
+            }
+            expr_ctx.postfix = 1;
+        }
+        else if (ctx->MinusMinus().size() > 0)
+        {
+            if (ctx->MinusMinus().size() > 1)
+            {
+                throw runtime_error("multiple decrements not supported");
+            }
+            expr_ctx.postfix = -1;
+        }
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return expr_ctx;
+}
