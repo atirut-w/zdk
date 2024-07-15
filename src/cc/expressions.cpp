@@ -12,6 +12,7 @@ ConstantValue parse_constant(string text)
         {
             if (text.find('.') != string::npos)
             {
+                // TODO: Figure out runtime support for floating point arithmetic
                 throw runtime_error("floating point arithmetic not supported");
                 // return stof(text);
             }
@@ -75,6 +76,7 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
     }
     else
     {
+        // TODO: Add support for at least symbol references
         throw runtime_error("unsupported expression type");
     }
 
@@ -88,6 +90,7 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
 
     if (auto primary_expr_ctx = ctx->primaryExpression())
     {
+        // TODO: Add complete support for all postfix expressions
         if (ctx->expression().size() > 0)
         {
             throw runtime_error("indexing not supported");
