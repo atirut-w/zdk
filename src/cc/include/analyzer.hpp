@@ -3,10 +3,22 @@
 #include <map>
 #include <string>
 
+struct SymbolMeta
+{
+    int width = 0;
+    bool signedness = true;
+};
+
+struct LocalMeta
+{
+    SymbolMeta symbol;
+    int offset;
+};
+
 struct FunctionMeta
 {
     // Offset into the local frame for local variables
-    std::map<std::string, int> variables;
+    std::map<std::string, LocalMeta> variables;
     int local_alloc = 0;
 };
 

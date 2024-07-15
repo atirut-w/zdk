@@ -70,8 +70,11 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
                 throw runtime_error("unsupported declarator");
             }
 
-            current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] =
-                current_function->local_alloc;
+            LocalMeta local;
+            local.symbol.width = group_alloc;
+            local.offset = current_function->local_alloc;
+
+            current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
             current_function->local_alloc += group_alloc;
         }
 
