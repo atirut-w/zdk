@@ -84,7 +84,7 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
 {
     // TODO: Test this visitor
-    ExpressionCtx expr_ctx;
+    ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(ctx->primaryExpression()));
 
     if (auto primary_expr_ctx = ctx->primaryExpression())
     {
