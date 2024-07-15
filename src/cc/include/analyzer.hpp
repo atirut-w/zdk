@@ -5,6 +5,9 @@
 
 struct FunctionMeta
 {
+    // Offset into the local frame for local variables
+    std::map<std::string, int> variables;
+    int local_alloc = 0;
 };
 
 struct ProgramMeta
