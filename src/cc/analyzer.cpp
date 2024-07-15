@@ -71,6 +71,11 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
             current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = current_function->local_alloc;
             current_function->local_alloc += group_alloc;
         }
+
+        if (current_function->local_alloc > 0xff)
+        {
+            throw runtime_error("local variables exceed 8-bit displacement");
+        }
     }
 
     return visitChildren(ctx);
