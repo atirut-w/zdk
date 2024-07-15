@@ -1,3 +1,4 @@
+#include "analyzer.hpp"
 #include <cctype>
 #include <codegen.hpp>
 #include <iostream>
@@ -81,6 +82,39 @@ any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
     else
     {
         throw runtime_error("unsupported jump statement");
+    }
+
+    return any();
+}
+
+any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
+{
+    string name = ctx->declarator()->directDeclarator()->Identifier()->getText();
+    LocalMeta &local_meta = current_function->variables[name];
+
+    if (auto init_ctx = ctx->initializer())
+    {
+        if (auto assignment_ctx = init_ctx->assignmentExpression())
+        {
+            ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(assignment_ctx));
+
+            if (local_meta.symbol.width == 1)
+            {
+                output << "\tld (iy+" << local_meta.offset << "), a\n";
+            }
+            else if (local_meta.symbol.width == 2)
+            {
+                output << "\tld (iy+" << local_meta.offset << "), l\n";
+                output << "\tld (iy+" << local_meta.offset + 1 << "), h\n";
+            }
+            else if (local_meta.symbol.width == 4)
+            {
+                output << "\tld (iy+" << local_meta.offset << "), l\n";
+                output << "\tld (iy+" << local_meta.offset + 1 << "), h\n";
+                output << "\tld (iy+" << local_meta.offset + 2 << "), e\n";
+                output << "\tld (iy+" << local_meta.offset + 3 << "), d\n";
+            }
+        }
     }
 
     return any();
