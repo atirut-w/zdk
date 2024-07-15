@@ -21,3 +21,8 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
     return visitChildren(ctx);
 }
+
+any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
+{
+    return visitChildren(ctx);
+}

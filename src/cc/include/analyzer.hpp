@@ -20,4 +20,5 @@ class Analyzer : public CBaseVisitor
 public:
     virtual std::any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+    virtual std::any visitDeclaration(CParser::DeclarationContext *ctx) override;
 };
