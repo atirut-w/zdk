@@ -60,6 +60,7 @@ CodeGen::CodeGen(ProgramMeta &program_meta, std::ostream &output) : program_meta
 any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 {
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
+    current_function = &program_meta.functions[name];
 
     output << "\t.global " << name << "\n";
     output << "\t.type " << name << ", @function\n";

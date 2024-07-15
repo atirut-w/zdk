@@ -17,6 +17,7 @@ struct ExpressionCtx
 class CodeGen : public CBaseVisitor
 {
     ProgramMeta &program_meta;
+    FunctionMeta *current_function = nullptr;
     std::ostream &output;
 
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
