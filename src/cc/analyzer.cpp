@@ -34,7 +34,8 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
         }
     }
 
-    if ((type_spec_ctx->atomicTypeSpecifier() != nullptr) || (type_spec_ctx->structOrUnionSpecifier() != nullptr) || (type_spec_ctx->enumSpecifier() != nullptr) || (type_spec_ctx->typedefName() != nullptr))
+    if ((type_spec_ctx->atomicTypeSpecifier() != nullptr) || (type_spec_ctx->structOrUnionSpecifier() != nullptr) ||
+        (type_spec_ctx->enumSpecifier() != nullptr) || (type_spec_ctx->typedefName() != nullptr))
     {
         throw runtime_error("unsupported type specifier");
     }
@@ -63,12 +64,14 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
         for (auto *init_decl_ctx : init_decl_list_ctx->initDeclarator())
         {
             auto *declarator_ctx = init_decl_ctx->declarator();
-            if (declarator_ctx->directDeclarator()->Identifier() == nullptr || declarator_ctx->directDeclarator()->DigitSequence() != nullptr)
+            if (declarator_ctx->directDeclarator()->Identifier() == nullptr ||
+                declarator_ctx->directDeclarator()->DigitSequence() != nullptr)
             {
                 throw runtime_error("unsupported declarator");
             }
 
-            current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = current_function->local_alloc;
+            current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] =
+                current_function->local_alloc;
             current_function->local_alloc += group_alloc;
         }
 
