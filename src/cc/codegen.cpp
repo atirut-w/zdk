@@ -100,6 +100,7 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
 
             if (local_meta.symbol.width == 1)
             {
+                // TODO: Properly downcast this. Bigger types doesn't need this because they're stored linearly in L, H, E, and D
                 output << "\tld (iy+" << local_meta.offset << "), a\n";
             }
             else if (local_meta.symbol.width == 2)
