@@ -103,9 +103,12 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
             {
                 if (expr_ctx.width > 1)
                 {
-                    output << "\tld a, l\n";
+                    output << "\tld (iy+" << local_meta.offset << "), l\n";
                 }
-                output << "\tld (iy+" << local_meta.offset << "), a\n";
+                else
+                {
+                    output << "\tld (iy+" << local_meta.offset << "), a\n";
+                }
             }
             else if (local_meta.symbol.width == 2)
             {
