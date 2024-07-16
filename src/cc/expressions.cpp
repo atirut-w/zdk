@@ -94,6 +94,7 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
     if (auto primary_expr_ctx = ctx->primaryExpression())
     {
         // TODO: Add complete support for all postfix expressions
+        // TODO: Iterate through sequential postfix expressions (e.g. nested structs, etc.)
         if (ctx->expression().size() > 0)
         {
             throw runtime_error("indexing not supported");
