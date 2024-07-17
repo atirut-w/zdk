@@ -74,10 +74,12 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         output << "\tpush ix\n";
         output << "\tld ix, 0\n";
         output << "\tadd ix, sp\n";
+
         if (current_function->local_alloc > 0)
         {
             output << "\tld iy, " << -current_function->local_alloc << "\n";
             output << "\tadd iy, sp\n";
+            output << "\tld sp, iy\n";
         }
     }
 
