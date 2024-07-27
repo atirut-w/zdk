@@ -64,23 +64,12 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
         throw runtime_error("unsupported type specifier");
     }
 
-    int group_alloc;
-    if (type_spec_ctx->Char())
-    {
-        group_alloc = 1;
-    }
-    else if (type_spec_ctx->Short())
-    {
-        group_alloc = 2;
-    }
-    else if (type_spec_ctx->Int())
-    {
-        group_alloc = 4;
-    }
-    else
+    PrimitiveType *group_type;
+    if (primitives.find(type_spec_ctx->getText()) == primitives.end())
     {
         throw runtime_error("unsupported type specifier");
     }
+    group_type = &(primitives[type_spec_ctx->getText()]);
 
     // The fact that you can just do `int;` without declaring actual variables just absolutely sends me
     if (auto *init_decl_list_ctx = ctx->initDeclaratorList())
@@ -95,11 +84,11 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
             }
 
             LocalMeta local;
-            local.symbol.width = group_alloc;
+            local.type = group_type;
             local.offset = current_function->local_alloc;
 
             current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
-            current_function->local_alloc += group_alloc;
+            current_function->local_alloc += group_type->size;
         }
 
         if (current_function->local_alloc > 0xff)

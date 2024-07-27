@@ -1,4 +1,5 @@
 #include "analyzer.hpp"
+#include "types.hpp"
 #include <cctype>
 #include <codegen.hpp>
 #include <iostream>
@@ -98,29 +99,19 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
         {
             output << "\t; Init \"" << name << "\"\n";
             ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(assignment_ctx));
+            PrimitiveType *store_type = dynamic_cast<PrimitiveType *>(local_meta.type);
 
-            if (local_meta.symbol.width == 1)
+            if (store_type->size == 1)
             {
-                if (expr_ctx.width > 1)
-                {
-                    output << "\tld (iy+" << local_meta.offset << "), l\n";
-                }
-                else
-                {
-                    output << "\tld (iy+" << local_meta.offset << "), a\n";
-                }
+                output << "\tld (iy+" << local_meta.offset << "), " << expr_ctx.type->byte_layout[0] << "\n";
             }
-            else if (local_meta.symbol.width == 2)
+            else
             {
-                output << "\tld (iy+" << local_meta.offset << "), l\n";
-                output << "\tld (iy+" << local_meta.offset + 1 << "), h\n";
-            }
-            else if (local_meta.symbol.width == 4)
-            {
-                output << "\tld (iy+" << local_meta.offset << "), l\n";
-                output << "\tld (iy+" << local_meta.offset + 1 << "), h\n";
-                output << "\tld (iy+" << local_meta.offset + 2 << "), e\n";
-                output << "\tld (iy+" << local_meta.offset + 3 << "), d\n";
+                // TODO: Promote types
+                for (int nbytes = 0; nbytes < store_type->size; nbytes++)
+                {
+                    output << "\tld (iy+" << local_meta.offset + nbytes << "), " << store_type->byte_layout[nbytes] << "\n";
+                }
             }
         }
     }
