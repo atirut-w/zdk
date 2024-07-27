@@ -3,12 +3,13 @@
 #include <analyzer.hpp>
 #include <ostream>
 #include <variant>
+#include <types.hpp>
 
 typedef std::variant<char, short, int> ConstantValue;
 
 struct ExpressionCtx
 {
-    int width;
+    PrimitiveType *type;
     bool signedness = true;
     int postfix = 0;
 };

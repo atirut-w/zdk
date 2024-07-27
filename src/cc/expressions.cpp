@@ -59,19 +59,19 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 
         if (holds_alternative<char>(value))
         {
-            expr_ctx.width = 1;
+            expr_ctx.type = &primitives["char"];
             output << "\tld a, " << (int)get<char>(value) << "\n";
         }
         else if (holds_alternative<short>(value))
         {
-            expr_ctx.width = 2;
-            output << "\tld hl, " << (int)get<short>(value) << "\n";
+            expr_ctx.type = &primitives["short"];
+            output << "\tld " << expr_ctx.type->word_layout[0] << ", " << (int)get<short>(value) << "\n";
         }
         else if (holds_alternative<int>(value))
         {
-            expr_ctx.width = 4;
-            output << "\tld hl, " << (get<int>(value) & 0xffff) << "\n";
-            output << "\tld de, " << (get<int>(value) >> 16) << "\n";
+            expr_ctx.type = &primitives["int"];
+            output << "\tld " << expr_ctx.type->word_layout[0] << ", " << (get<int>(value) & 0xffff) << "\n";
+            output << "\tld " << expr_ctx.type->word_layout[1] << ", " << (get<int>(value) >> 16) << "\n";
         }
     }
     else if (auto *ident_ctx = ctx->Identifier())

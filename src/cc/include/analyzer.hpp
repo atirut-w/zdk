@@ -4,15 +4,9 @@
 #include <string>
 #include <types.hpp>
 
-struct SymbolMeta
-{
-    int width = 0;
-    bool signedness = true;
-};
-
 struct LocalMeta
 {
-    SymbolMeta symbol;
+    Type *type;
     int offset;
 };
 
