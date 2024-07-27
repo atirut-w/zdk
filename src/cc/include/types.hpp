@@ -14,6 +14,7 @@ struct PrimitiveType : public Type
 {
     std::vector<std::string> byte_layout;
     std::vector<std::string> word_layout;
+    // TODO: Optional subroutine for name for sign extension
 };
 
 // TODO: Structs
