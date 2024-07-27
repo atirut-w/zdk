@@ -3,5 +3,8 @@
 using namespace std;
 
 map<string, PrimitiveType> primitives = {
-    // TODO: Fill this out
+    {"void", {0, {}, {}}},
+    {"char", {1, {"a"}, {}}},
+    {"short", {2, {"l", "h"}, {"hl"}}},
+    {"int", {4, {"l", "h", "e", "d"}, {"hl", "de"}}},
 };
