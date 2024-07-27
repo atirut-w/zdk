@@ -99,18 +99,48 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
         {
             output << "\t; Init \"" << name << "\"\n";
             ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(assignment_ctx));
+            PrimitiveType *expr_type = dynamic_cast<PrimitiveType *>(expr_ctx.type);
             PrimitiveType *store_type = dynamic_cast<PrimitiveType *>(local_meta.type);
 
             if (store_type->size == 1)
             {
-                output << "\tld (iy+" << local_meta.offset << "), " << expr_ctx.type->byte_layout[0] << "\n";
+                output << "\tld (iy+" << local_meta.offset << "), " << expr_type->byte_layout[0] << "\n";
             }
             else
             {
-                // TODO: Promote types
+                if (expr_type->size < store_type->size)
+                {
+                    // TODO: Consider emitting call to C runtime instead of inline code
+                    // Transform expression layout to store layout
+                    for (int nbytes = 0; nbytes < expr_type->size; nbytes++)
+                    {
+                        if (store_type->byte_layout[nbytes] != expr_type->byte_layout[nbytes])
+                            output << "\tld " << store_type->byte_layout[nbytes] << ", "
+                                   << expr_type->byte_layout[nbytes] << "\n";
+                    }
+
+                    if (expr_ctx.signedness)
+                    {
+                        if (expr_type->byte_layout[expr_type->size - 1] != "a")
+                            output << "\tld a, " << expr_type->byte_layout[expr_type->size - 1] << "\n";
+                        output << "\tadd a, a\n";
+                        output << "\tsbc a, a\n";
+                    }
+                    else
+                    {
+                        output << "\tld a, 0\n";
+                    }
+
+                    for (int nbytes = expr_type->size; nbytes < store_type->size; nbytes++)
+                    {
+                        output << "\tld " << store_type->byte_layout[nbytes] << ", a\n";
+                    }
+                }
+
                 for (int nbytes = 0; nbytes < store_type->size; nbytes++)
                 {
-                    output << "\tld (iy+" << local_meta.offset + nbytes << "), " << store_type->byte_layout[nbytes] << "\n";
+                    output << "\tld (iy+" << local_meta.offset + nbytes << "), " << store_type->byte_layout[nbytes]
+                           << "\n";
                 }
             }
         }
