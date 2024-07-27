@@ -1,5 +1,6 @@
 #include "CParser.h"
 #include <analyzer.hpp>
+#include <any>
 
 using namespace std;
 using namespace antlr4;
@@ -20,7 +21,27 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     }
     current_function = &meta.functions[name];
 
-    return visitChildren(ctx);
+    if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
+    {
+        for (auto *item_ctx : itemlist_ctx->blockItem())
+        {
+            // We check for return statements here because we only want to check if this function *ends* with a return statement
+            if (auto *statement_ctx = item_ctx->statement())
+            {
+                if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
+                {
+                    if (jump_statement_ctx->Return())
+                    {
+                        current_function->has_return = true;
+                    }
+                }
+            }
+            
+            visit(item_ctx);
+        }
+    }
+
+    return any();
 }
 
 any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)

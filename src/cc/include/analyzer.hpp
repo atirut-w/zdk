@@ -20,6 +20,7 @@ struct FunctionMeta
     // Offset into the local frame for local variables
     std::map<std::string, LocalMeta> variables;
     int local_alloc = 0;
+    bool has_return = false; // TODO: Come up with a better name for this
 };
 
 struct ProgramMeta

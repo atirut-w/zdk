@@ -20,7 +20,10 @@ class CodeGen : public CBaseVisitor
     FunctionMeta *current_function = nullptr;
     std::ostream &output;
 
+    void teardown_frame();
+
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+    virtual std::any visitJumpStatement(CParser::JumpStatementContext *ctx) override;
 
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
