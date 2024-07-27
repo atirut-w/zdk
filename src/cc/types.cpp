@@ -1,5 +1,7 @@
 #include <types.hpp>
 
-std::map<std::string, PrimitiveType> primitives = {
+using namespace std;
+
+map<string, PrimitiveType> primitives = {
     // TODO: Fill this out
 };
