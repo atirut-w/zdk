@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <string>
+#include <vector>
 
 struct Type
 {
@@ -11,7 +12,8 @@ struct Type
 // TODO: Flesh this out
 struct PrimitiveType : public Type
 {
-
+    std::vector<std::string> byte_layout;
+    std::vector<std::string> word_layout;
 };
 
 // TODO: Structs
