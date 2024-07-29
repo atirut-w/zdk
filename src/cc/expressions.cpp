@@ -51,7 +51,7 @@ ConstantValue parse_constant(string text)
 
 any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 {
-    ExpressionCtx expr_ctx;
+    current_expression = ExpressionCtx();
 
     if (auto const_ctx = ctx->Constant())
     {
@@ -59,19 +59,19 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
 
         if (holds_alternative<char>(value))
         {
-            expr_ctx.type = &primitives["char"];
+            current_expression->type = &primitives["char"];
             output << "\tld a, " << (int)get<char>(value) << "\n";
         }
         else if (holds_alternative<short>(value))
         {
-            expr_ctx.type = &primitives["short"];
-            output << "\tld " << expr_ctx.type->word_layout[0] << ", " << (int)get<short>(value) << "\n";
+            current_expression->type = &primitives["short"];
+            output << "\tld " << current_expression->type->word_layout[0] << ", " << (int)get<short>(value) << "\n";
         }
         else if (holds_alternative<int>(value))
         {
-            expr_ctx.type = &primitives["int"];
-            output << "\tld " << expr_ctx.type->word_layout[0] << ", " << (get<int>(value) & 0xffff) << "\n";
-            output << "\tld " << expr_ctx.type->word_layout[1] << ", " << (get<int>(value) >> 16) << "\n";
+            current_expression->type = &primitives["int"];
+            output << "\tld " << current_expression->type->word_layout[0] << ", " << (get<int>(value) & 0xffff) << "\n";
+            output << "\tld " << current_expression->type->word_layout[1] << ", " << (get<int>(value) >> 16) << "\n";
         }
     }
     else if (auto *ident_ctx = ctx->Identifier())
@@ -85,7 +85,7 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
         LocalMeta &local_meta = current_function->variables[name];
         if (auto *primitive = dynamic_cast<PrimitiveType *>(local_meta.type))
         {
-            expr_ctx.type = primitive;
+            current_expression->type = primitive;
             if (last_local != &local_meta)
             {
                 for (int i = 0; i < primitive->size; i++)
@@ -104,13 +104,13 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
         throw runtime_error("unsupported expression type");
     }
 
-    return expr_ctx;
+    return any();
 }
 
 any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
 {
     // TODO: Test this visitor
-    ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(ctx->primaryExpression()));
+    visit(ctx->primaryExpression());
 
     if (auto primary_expr_ctx = ctx->primaryExpression())
     {
@@ -135,7 +135,7 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
             {
                 throw runtime_error("multiple increments not supported");
             }
-            expr_ctx.postfix = 1;
+            current_expression->postfix = 1;
         }
         else if (ctx->MinusMinus().size() > 0)
         {
@@ -143,7 +143,7 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
             {
                 throw runtime_error("multiple decrements not supported");
             }
-            expr_ctx.postfix = -1;
+            current_expression->postfix = -1;
         }
     }
     else
@@ -151,5 +151,5 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
         throw runtime_error("unsupported expression type");
     }
 
-    return expr_ctx;
+    return any();
 }

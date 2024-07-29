@@ -27,6 +27,53 @@ void CodeGen::teardown_frame()
     }
 }
 
+void CodeGen::primitive_cast(PrimitiveType *to, bool signedness)
+{
+    if (to->size == 1)
+    {
+        output << "\tld a, " << current_expression->type->byte_layout[0] << "\n";
+    }
+    else
+    {
+        if (current_expression->type->size < to->size)
+        {
+            for (int nbytes = 0; nbytes < current_expression->type->size; nbytes++)
+            {
+                if (current_expression->type->byte_layout[nbytes] != to->byte_layout[nbytes])
+                    output << "\tld " << to->byte_layout[nbytes] << ", "
+                           << current_expression->type->byte_layout[nbytes] << "\n";
+            }
+
+            if (signedness)
+            {
+                if (current_expression->type->byte_layout[current_expression->type->size - 1] != "a")
+                    output << "\tld a, " << current_expression->type->byte_layout[current_expression->type->size - 1]
+                           << "\n";
+                output << "\tadd a, a\n";
+                output << "\tsbc a, a\n";
+            }
+            else
+            {
+                output << "\tld a, 0\n";
+            }
+
+            for (int nbytes = current_expression->type->size; nbytes < to->size; nbytes++)
+            {
+                output << "\tld " << to->byte_layout[nbytes] << ", a\n";
+            }
+        }
+        else
+        {
+            for (int nbytes = 0; nbytes < to->size; nbytes++)
+            {
+                if (current_expression->type->byte_layout[nbytes] != to->byte_layout[nbytes])
+                    output << "\tld " << to->byte_layout[nbytes] << ", "
+                           << current_expression->type->byte_layout[nbytes] << "\n";
+            }
+        }
+    }
+}
+
 any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 {
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
@@ -99,50 +146,20 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
         if (auto assignment_ctx = init_ctx->assignmentExpression())
         {
             output << "\t; Init \"" << name << "\"\n";
-            ExpressionCtx expr_ctx = any_cast<ExpressionCtx>(visit(assignment_ctx));
-            PrimitiveType *expr_type = dynamic_cast<PrimitiveType *>(expr_ctx.type);
+            visit(assignment_ctx);
             PrimitiveType *store_type = dynamic_cast<PrimitiveType *>(local_meta.type);
 
-            if (store_type->size == 1)
+            if (store_type)
             {
-                output << "\tld (iy+" << local_meta.offset << "), " << expr_type->byte_layout[0] << "\n";
+                primitive_cast(store_type, true);
+                for (int i = 0; i < store_type->size; i++)
+                {
+                    output << "\tld (iy+" << local_meta.offset + i << "), " << store_type->byte_layout[i] << "\n";
+                }
             }
             else
             {
-                if (expr_type->size < store_type->size)
-                {
-                    // TODO: Consider emitting call to C runtime instead of inline code
-                    // Transform expression layout to store layout
-                    for (int nbytes = 0; nbytes < expr_type->size; nbytes++)
-                    {
-                        if (store_type->byte_layout[nbytes] != expr_type->byte_layout[nbytes])
-                            output << "\tld " << store_type->byte_layout[nbytes] << ", "
-                                   << expr_type->byte_layout[nbytes] << "\n";
-                    }
-
-                    if (expr_ctx.signedness)
-                    {
-                        if (expr_type->byte_layout[expr_type->size - 1] != "a")
-                            output << "\tld a, " << expr_type->byte_layout[expr_type->size - 1] << "\n";
-                        output << "\tadd a, a\n";
-                        output << "\tsbc a, a\n";
-                    }
-                    else
-                    {
-                        output << "\tld a, 0\n";
-                    }
-
-                    for (int nbytes = expr_type->size; nbytes < store_type->size; nbytes++)
-                    {
-                        output << "\tld " << store_type->byte_layout[nbytes] << ", a\n";
-                    }
-                }
-
-                for (int nbytes = 0; nbytes < store_type->size; nbytes++)
-                {
-                    output << "\tld (iy+" << local_meta.offset + nbytes << "), " << store_type->byte_layout[nbytes]
-                           << "\n";
-                }
+                throw runtime_error("non-primitive types not supported");
             }
         }
     }
