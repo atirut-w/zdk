@@ -86,9 +86,12 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
         if (auto *primitive = dynamic_cast<PrimitiveType *>(local_meta.type))
         {
             expr_ctx.type = primitive;
-            for (int i = 0; i < primitive->size; i++)
+            if (last_local != &local_meta)
             {
-                output << "\tld " << primitive->byte_layout[i] << ", (iy+" << local_meta.offset + i << ")\n";
+                for (int i = 0; i < primitive->size; i++)
+                {
+                    output << "\tld " << primitive->byte_layout[i] << ", (iy+" << local_meta.offset + i << ")\n";
+                }
             }
         }
         else

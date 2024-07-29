@@ -92,6 +92,7 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
 {
     string name = ctx->declarator()->directDeclarator()->Identifier()->getText();
     LocalMeta &local_meta = current_function->variables[name];
+    last_local = &local_meta;
 
     if (auto init_ctx = ctx->initializer())
     {

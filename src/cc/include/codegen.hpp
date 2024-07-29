@@ -18,6 +18,7 @@ class CodeGen : public CBaseVisitor
 {
     ProgramMeta &program_meta;
     FunctionMeta *current_function = nullptr;
+    LocalMeta *last_local = nullptr;
     std::ostream &output;
 
     void teardown_frame();
