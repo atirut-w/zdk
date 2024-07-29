@@ -124,6 +124,7 @@ any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
     if (ctx->Return())
     {
         visit(ctx->expression());
+        primitive_cast(dynamic_cast<PrimitiveType *>(current_function->return_type), true);
         teardown_frame();
         output << "\tret\n";
     }
