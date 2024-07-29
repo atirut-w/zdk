@@ -2,6 +2,7 @@
 #include <CBaseVisitor.h>
 #include <map>
 #include <string>
+#include <types.hpp>
 
 struct SymbolMeta
 {
@@ -17,6 +18,7 @@ struct LocalMeta
 
 struct FunctionMeta
 {
+    Type *return_type;
     // Offset into the local frame for local variables
     std::map<std::string, LocalMeta> variables;
     int local_alloc = 0;

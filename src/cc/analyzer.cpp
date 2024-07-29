@@ -1,4 +1,5 @@
 #include "CParser.h"
+#include "types.hpp"
 #include <analyzer.hpp>
 #include <any>
 
@@ -14,12 +15,14 @@ any Analyzer::visitCompilationUnit(CParser::CompilationUnitContext *ctx)
 any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 {
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
+    string return_type = ctx->declarationSpecifiers()->declarationSpecifier()[0]->typeSpecifier()->getText();
 
     if (meta.functions.find(name) == meta.functions.end())
     {
         meta.functions[name] = FunctionMeta();
     }
     current_function = &meta.functions[name];
+    current_function->return_type = &primitives[return_type];
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
