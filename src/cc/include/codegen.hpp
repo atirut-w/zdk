@@ -33,6 +33,7 @@ class CodeGen : public CBaseVisitor
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
     virtual std::any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
+    virtual std::any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
 
 public:
     CodeGen(ProgramMeta &program_meta, std::ostream &output);

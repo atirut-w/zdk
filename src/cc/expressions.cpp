@@ -153,3 +153,17 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
 
     return any();
 }
+
+any CodeGen::visitUnaryExpression(CParser::UnaryExpressionContext *ctx)
+{
+    if (auto *postfix_ctx = ctx->postfixExpression())
+    {
+        visit(postfix_ctx);
+    }
+    else
+    {
+        throw runtime_error("unsupported expression type");
+    }
+
+    return any();
+}
