@@ -76,7 +76,25 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
     }
     else if (auto *ident_ctx = ctx->Identifier())
     {
-        // TODO: Add support for at least symbol references
+        string name = ident_ctx->getText();
+        if (current_function->variables.find(name) == current_function->variables.end())
+        {
+            throw runtime_error("undeclared variable");
+        }
+
+        LocalMeta &local_meta = current_function->variables[name];
+        if (auto *primitive = dynamic_cast<PrimitiveType *>(local_meta.type))
+        {
+            expr_ctx.type = primitive;
+            for (int i = 0; i < primitive->size; i++)
+            {
+                output << "\tld " << primitive->byte_layout[i] << ", (iy+" << local_meta.offset + i << ")\n";
+            }
+        }
+        else
+        {
+            throw runtime_error("non-primitive types not supported");
+        }
     }
     else
     {
