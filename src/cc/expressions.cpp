@@ -83,7 +83,7 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
         }
 
         LocalMeta &local_meta = current_function->variables[name];
-        if (auto *primitive = dynamic_cast<PrimitiveType *>(local_meta.type))
+        if (auto *primitive = dynamic_cast<PrimitiveType *>(local_meta.declaration.type))
         {
             current_expression->type = primitive;
             if (last_local != &local_meta)

@@ -27,24 +27,26 @@ void CodeGen::teardown_frame()
     }
 }
 
-void CodeGen::primitive_cast(PrimitiveType *to, bool signedness)
+void CodeGen::primitive_cast(DeclarationMeta to)
 {
-    if (to->size == 1)
+    auto *to_primitive = dynamic_cast<PrimitiveType *>(to.type);
+
+    if (to_primitive->size == 1)
     {
         output << "\tld a, " << current_expression->type->byte_layout[0] << "\n";
     }
     else
     {
-        if (current_expression->type->size < to->size)
+        if (current_expression->type->size < to_primitive->size)
         {
             for (int nbytes = 0; nbytes < current_expression->type->size; nbytes++)
             {
-                if (current_expression->type->byte_layout[nbytes] != to->byte_layout[nbytes])
-                    output << "\tld " << to->byte_layout[nbytes] << ", "
+                if (current_expression->type->byte_layout[nbytes] != to_primitive->byte_layout[nbytes])
+                    output << "\tld " << to_primitive->byte_layout[nbytes] << ", "
                            << current_expression->type->byte_layout[nbytes] << "\n";
             }
 
-            if (signedness)
+            if (to.signedness)
             {
                 if (current_expression->type->byte_layout[current_expression->type->size - 1] != "a")
                     output << "\tld a, " << current_expression->type->byte_layout[current_expression->type->size - 1]
@@ -57,17 +59,17 @@ void CodeGen::primitive_cast(PrimitiveType *to, bool signedness)
                 output << "\tld a, 0\n";
             }
 
-            for (int nbytes = current_expression->type->size; nbytes < to->size; nbytes++)
+            for (int nbytes = current_expression->type->size; nbytes < to_primitive->size; nbytes++)
             {
-                output << "\tld " << to->byte_layout[nbytes] << ", a\n";
+                output << "\tld " << to_primitive->byte_layout[nbytes] << ", a\n";
             }
         }
         else
         {
-            for (int nbytes = 0; nbytes < to->size; nbytes++)
+            for (int nbytes = 0; nbytes < to_primitive->size; nbytes++)
             {
-                if (current_expression->type->byte_layout[nbytes] != to->byte_layout[nbytes])
-                    output << "\tld " << to->byte_layout[nbytes] << ", "
+                if (current_expression->type->byte_layout[nbytes] != to_primitive->byte_layout[nbytes])
+                    output << "\tld " << to_primitive->byte_layout[nbytes] << ", "
                            << current_expression->type->byte_layout[nbytes] << "\n";
             }
         }
@@ -124,7 +126,7 @@ any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
     if (ctx->Return())
     {
         visit(ctx->expression());
-        primitive_cast(dynamic_cast<PrimitiveType *>(current_function->return_type), true);
+        primitive_cast(current_function->return_type);
         teardown_frame();
         output << "\tret\n";
     }
@@ -148,11 +150,11 @@ any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
         {
             output << "\t; Init \"" << name << "\"\n";
             visit(assignment_ctx);
-            PrimitiveType *store_type = dynamic_cast<PrimitiveType *>(local_meta.type);
+            PrimitiveType *store_type = dynamic_cast<PrimitiveType *>(local_meta.declaration.type);
 
             if (store_type)
             {
-                primitive_cast(store_type, true);
+                primitive_cast(local_meta.declaration);
                 for (int i = 0; i < store_type->size; i++)
                 {
                     output << "\tld (iy+" << local_meta.offset + i << "), " << store_type->byte_layout[i] << "\n";

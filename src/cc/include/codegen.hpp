@@ -24,7 +24,7 @@ class CodeGen : public CBaseVisitor
     std::ostream &output;
 
     void teardown_frame();
-    void primitive_cast(PrimitiveType *to, bool signedness);
+    void primitive_cast(DeclarationMeta to);
 
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
     virtual std::any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;

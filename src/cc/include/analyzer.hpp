@@ -4,15 +4,21 @@
 #include <string>
 #include <types.hpp>
 
-struct LocalMeta
+struct DeclarationMeta
 {
     Type *type;
+    bool signedness = true;
+};
+
+struct LocalMeta
+{
+    DeclarationMeta declaration;
     int offset;
 };
 
 struct FunctionMeta
 {
-    Type *return_type;
+    DeclarationMeta return_type;
     // Offset into the local frame for local variables
     std::map<std::string, LocalMeta> variables;
     int local_alloc = 0;
