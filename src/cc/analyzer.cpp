@@ -22,13 +22,14 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         meta.functions[name] = FunctionMeta();
     }
     current_function = &meta.functions[name];
-    current_function->return_type = &primitives[return_type];
+    current_function->return_type.type = &primitives[return_type];
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
         for (auto *item_ctx : itemlist_ctx->blockItem())
         {
-            // We check for return statements here because we only want to check if this function *ends* with a return statement
+            // We check for return statements here because we only want to check if this function *ends* with a return
+            // statement
             if (auto *statement_ctx = item_ctx->statement())
             {
                 if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
@@ -39,7 +40,7 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
                     }
                 }
             }
-            
+
             visit(item_ctx);
         }
     }
@@ -84,7 +85,7 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
             }
 
             LocalMeta local;
-            local.type = group_type;
+            local.declaration.type = group_type;
             local.offset = current_function->local_alloc;
 
             current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
