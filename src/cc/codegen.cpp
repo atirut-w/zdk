@@ -1,3 +1,5 @@
+#include "analyzer.hpp"
+#include "types.hpp"
 #include <cctype>
 #include <codegen.hpp>
 #include <iostream>
@@ -5,50 +7,6 @@
 
 using namespace std;
 using namespace antlr4;
-
-ConstantValue parse_constant(string text)
-{
-    // Note: I'm not handling exceptions here, because I trust the ANTLR parser to not let anything weird through.
-    if (isdigit(text[0]))
-    {
-        if (text[0] != '0' || text.size() == 1)
-        {
-            if (text.find('.') != string::npos)
-            {
-                return stof(text);
-            }
-            else
-            {
-                return stoi(text);
-            }
-        }
-        else
-        {
-            char base = tolower(text[1]);
-            if (base == 'x' || base == 'X')
-            {
-                return stoi(text, nullptr, 16);
-            }
-            else if (base == 'b' || base == 'B')
-            {
-                return stoi(text, nullptr, 2);
-            }
-            else
-            {
-                return stoi(text, nullptr, 8);
-            }
-        }
-    }
-    else if (text[0] == '\'')
-    {
-        // TODO: Unescape characters
-        return text[1];
-    }
-    else
-    {
-        throw runtime_error("unhandled constant type");
-    }
-}
 
 CodeGen::CodeGen(ProgramMeta &program_meta, std::ostream &output) : program_meta(program_meta), output(output)
 {
@@ -65,6 +23,55 @@ void CodeGen::teardown_frame()
         if (current_function->local_alloc > 0)
         {
             output << "\tpop iy\n";
+        }
+    }
+}
+
+void CodeGen::primitive_cast(DeclarationMeta to)
+{
+    auto *to_primitive = dynamic_cast<PrimitiveType *>(to.type);
+
+    if (to_primitive->size == 1)
+    {
+        output << "\tld a, " << current_expression->type->byte_layout[0] << "\n";
+    }
+    else
+    {
+        if (current_expression->type->size < to_primitive->size)
+        {
+            for (int nbytes = 0; nbytes < current_expression->type->size; nbytes++)
+            {
+                if (current_expression->type->byte_layout[nbytes] != to_primitive->byte_layout[nbytes])
+                    output << "\tld " << to_primitive->byte_layout[nbytes] << ", "
+                           << current_expression->type->byte_layout[nbytes] << "\n";
+            }
+
+            if (to.signedness)
+            {
+                if (current_expression->type->byte_layout[current_expression->type->size - 1] != "a")
+                    output << "\tld a, " << current_expression->type->byte_layout[current_expression->type->size - 1]
+                           << "\n";
+                output << "\tadd a, a\n";
+                output << "\tsbc a, a\n";
+            }
+            else
+            {
+                output << "\tld a, 0\n";
+            }
+
+            for (int nbytes = current_expression->type->size; nbytes < to_primitive->size; nbytes++)
+            {
+                output << "\tld " << to_primitive->byte_layout[nbytes] << ", a\n";
+            }
+        }
+        else
+        {
+            for (int nbytes = 0; nbytes < to_primitive->size; nbytes++)
+            {
+                if (current_expression->type->byte_layout[nbytes] != to_primitive->byte_layout[nbytes])
+                    output << "\tld " << to_primitive->byte_layout[nbytes] << ", "
+                           << current_expression->type->byte_layout[nbytes] << "\n";
+            }
         }
     }
 }
@@ -119,6 +126,7 @@ any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
     if (ctx->Return())
     {
         visit(ctx->expression());
+        primitive_cast(current_function->return_type);
         teardown_frame();
         output << "\tret\n";
     }
@@ -130,19 +138,34 @@ any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
     return any();
 }
 
-any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
+any CodeGen::visitInitDeclarator(CParser::InitDeclaratorContext *ctx)
 {
-    ExpressionCtx expr_ctx;
+    string name = ctx->declarator()->directDeclarator()->Identifier()->getText();
+    LocalMeta &local_meta = current_function->variables[name];
+    last_local = &local_meta;
 
-    if (auto const_ctx = ctx->Constant())
+    if (auto init_ctx = ctx->initializer())
     {
-        expr_ctx.constant = true;
-        expr_ctx.value = parse_constant(const_ctx->getText());
-    }
-    else
-    {
-        throw runtime_error("unsupported expression type");
+        if (auto assignment_ctx = init_ctx->assignmentExpression())
+        {
+            output << "\t; Init \"" << name << "\"\n";
+            visit(assignment_ctx);
+            PrimitiveType *store_type = dynamic_cast<PrimitiveType *>(local_meta.declaration.type);
+
+            if (store_type)
+            {
+                primitive_cast(local_meta.declaration);
+                for (int i = 0; i < store_type->size; i++)
+                {
+                    output << "\tld (iy+" << local_meta.offset + i << "), " << store_type->byte_layout[i] << "\n";
+                }
+            }
+            else
+            {
+                throw runtime_error("non-primitive types not supported");
+            }
+        }
     }
 
-    return expr_ctx;
+    return any();
 }

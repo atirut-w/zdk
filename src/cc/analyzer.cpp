@@ -22,13 +22,14 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         meta.functions[name] = FunctionMeta();
     }
     current_function = &meta.functions[name];
-    current_function->return_type = &primitives[return_type];
+    current_function->return_type.type = &primitives[return_type];
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
         for (auto *item_ctx : itemlist_ctx->blockItem())
         {
-            // We check for return statements here because we only want to check if this function *ends* with a return statement
+            // We check for return statements here because we only want to check if this function *ends* with a return
+            // statement
             if (auto *statement_ctx = item_ctx->statement())
             {
                 if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
@@ -39,7 +40,7 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
                     }
                 }
             }
-            
+
             visit(item_ctx);
         }
     }
@@ -64,23 +65,12 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
         throw runtime_error("unsupported type specifier");
     }
 
-    int group_alloc;
-    if (type_spec_ctx->Char())
-    {
-        group_alloc = 1;
-    }
-    else if (type_spec_ctx->Short())
-    {
-        group_alloc = 2;
-    }
-    else if (type_spec_ctx->Int())
-    {
-        group_alloc = 4;
-    }
-    else
+    PrimitiveType *group_type;
+    if (primitives.find(type_spec_ctx->getText()) == primitives.end())
     {
         throw runtime_error("unsupported type specifier");
     }
+    group_type = &(primitives[type_spec_ctx->getText()]);
 
     // The fact that you can just do `int;` without declaring actual variables just absolutely sends me
     if (auto *init_decl_list_ctx = ctx->initDeclaratorList())
@@ -95,11 +85,11 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
             }
 
             LocalMeta local;
-            local.symbol.width = group_alloc;
+            local.declaration.type = group_type;
             local.offset = current_function->local_alloc;
 
             current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
-            current_function->local_alloc += group_alloc;
+            current_function->local_alloc += group_type->size;
         }
 
         if (current_function->local_alloc > 0xff)
