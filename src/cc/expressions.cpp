@@ -114,36 +114,22 @@ any CodeGen::visitPostfixExpression(CParser::PostfixExpressionContext *ctx)
 
     if (auto primary_expr_ctx = ctx->primaryExpression())
     {
-        // TODO: Add complete support for all postfix expressions
-        // TODO: Iterate through sequential postfix expressions (e.g. nested structs, etc.)
-        if (ctx->expression().size() > 0)
+        for (int i = 1; i < ctx->children.size(); i++)
         {
-            throw runtime_error("indexing not supported");
-        }
-        else if (ctx->argumentExpressionList().size() > 0)
-        {
-            throw runtime_error("I don't even know what this is");
-        }
-        else if (ctx->Identifier().size() > 0)
-        {
-            throw runtime_error("struct member access not supported");
-        }
+            auto *child = ctx->children[i];
 
-        if (ctx->PlusPlus().size() > 0)
-        {
-            if (ctx->PlusPlus().size() > 1)
+            if (child->getText() == "++")
             {
-                throw runtime_error("multiple increments not supported");
+                current_expression->postfix = 1;
             }
-            current_expression->postfix = 1;
-        }
-        else if (ctx->MinusMinus().size() > 0)
-        {
-            if (ctx->MinusMinus().size() > 1)
+            else if (child->getText() == "--")
             {
-                throw runtime_error("multiple decrements not supported");
+                current_expression->postfix = -1;
             }
-            current_expression->postfix = -1;
+            else
+            {
+                throw runtime_error("unsupported postfix expression");
+            }
         }
     }
     else
