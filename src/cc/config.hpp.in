@@ -1,2 +1,0 @@
-#pragma once
-#cmakedefine CLANG_VALIDATION_ENABLED @CLANG_VALIDATION_ENABLED@
