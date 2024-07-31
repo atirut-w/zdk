@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     const auto source = args->get<filesystem::path>("source");
     filesystem::path intermediate = source;
 
-    string cpp_preamble = "exec -a zdk-cpp clang -E -P -nostdinc -nostdinc++ ";
+    string cpp_preamble = "clang -E -P -nostdinc -nostdinc++ ";
     for (const auto &include : args->get<vector<filesystem::path>>("--include"))
     {
         cpp_preamble += " -I" + include.string();
