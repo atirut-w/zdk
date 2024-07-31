@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <lexer.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -103,6 +104,10 @@ int main(int argc, char *argv[])
         return 1;
     }
     filesystem::remove(intermediate.replace_extension(".o"));
+
+    ifstream input(intermediate);
+    Lexer lexer(input);
+    auto tokens = lexer.tokenize();
 
     return 0;
 }
