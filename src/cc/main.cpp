@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <lexer.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -61,6 +62,10 @@ int main(int argc, char *argv[])
         cerr << "Failed to preprocess source file" << endl;
         return 1;
     }
+
+    ifstream input(intermediate);
+    Lexer lexer(input);
+    auto tokens = lexer.tokenize();
 
     return 0;
 }
