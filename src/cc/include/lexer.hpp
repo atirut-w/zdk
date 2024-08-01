@@ -1,19 +1,47 @@
 #pragma once
+#include <any>
 #include <istream>
+#include <string>
 #include <vector>
-#include <memory>
 
-struct Token
+struct Positional
 {
-    ~Token() = default; // Force polymorphism
+    int line, col;
 };
 
-class Lexer
+struct Token : Positional
+{
+    enum class Type
+    {
+        Identifier,
+        Keyword,
+        LParen,
+        RParen,
+        LBrace,
+        RBrace,
+        Semicolon,
+        Constant,
+    } type;
+    std::string text;
+    std::any value;
+};
+
+class Lexer : Positional
 {
     std::istream &input;
 
-public:
-    Lexer(std::istream &input) : input(input) {}
+    bool eof() const
+    {
+        return input.peek() == EOF;
+    }
+    char peek() const;
+    char get();
+    bool is_boundary(char c) const;
 
-    std::vector<std::unique_ptr<Token>> tokenize();
+public:
+    Lexer(std::istream &input) : input(input)
+    {
+    }
+
+    std::vector<Token> tokenize();
 };
