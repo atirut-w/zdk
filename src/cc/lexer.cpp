@@ -36,6 +36,9 @@ bool Lexer::is_boundary(char c) const
     vector<char> boundaries = {
         '(',
         ')',
+        '{',
+        '}',
+        ';',
     };
     return isspace(c) || find(boundaries.begin(), boundaries.end(), c) != boundaries.end();
 }
@@ -74,6 +77,48 @@ vector<Token> Lexer::tokenize()
                 token.type = Token::Type::Identifier;
 
             token.text = text;
+        }
+        else if (isdigit(ch))
+        {
+            string text;
+
+            while (isdigit(ch))
+            {
+                text += get();
+                ch = peek();
+            }
+
+            if (!is_boundary(ch))
+                throw runtime_error("Unexpected character: " + string(1, ch));
+
+            token.type = Token::Type::Constant;
+            token.text = text;
+            token.value = stoi(text);
+        }
+        else if (ch == '(')
+        {
+            token.type = Token::Type::LParen;
+            token.text = get();
+        }
+        else if (ch == ')')
+        {
+            token.type = Token::Type::RParen;
+            token.text = get();
+        }
+        else if (ch == '{')
+        {
+            token.type = Token::Type::LBrace;
+            token.text = get();
+        }
+        else if (ch == '}')
+        {
+            token.type = Token::Type::RBrace;
+            token.text = get();
+        }
+        else if (ch == ';')
+        {
+            token.type = Token::Type::Semicolon;
+            token.text = get();
         }
         else
         {

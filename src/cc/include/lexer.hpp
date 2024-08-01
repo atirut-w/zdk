@@ -14,13 +14,13 @@ struct Token : Positional
     enum class Type
     {
         Identifier,
+        Constant,
         Keyword,
         LParen,
         RParen,
         LBrace,
         RBrace,
         Semicolon,
-        Constant,
     } type;
     std::string text;
     std::any value;
