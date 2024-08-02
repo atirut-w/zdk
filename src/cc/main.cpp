@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     filesystem::path intermediate = source;
     auto keep_intermediate = args->get<bool>("--keep-intermediate");
 
-    string cpp_preamble = "clang -E -P -nostdinc -nostdinc++ ";
+    string cpp_preamble = "cpp -P -nostdinc -nostdinc++ ";
     for (const auto &include : args->get<vector<filesystem::path>>("--include"))
     {
         cpp_preamble += " -I" + include.string();
