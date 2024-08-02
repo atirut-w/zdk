@@ -107,7 +107,17 @@ int main(int argc, char *argv[])
 
     ifstream input(intermediate);
     Lexer lexer(input);
-    auto tokens = lexer.tokenize();
+
+    vector<Token> tokens;
+    try
+    {
+        tokens = lexer.tokenize();
+    }
+    catch (const LexerError &e)
+    {
+        cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
+        return 1;
+    }
 
     return 0;
 }
