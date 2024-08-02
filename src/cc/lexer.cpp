@@ -50,6 +50,7 @@ vector<Token> Lexer::tokenize()
     while (peek() != EOF)
     {
         Token token = {line, col};
+        string &text = token.text;
         char ch = peek();
 
         if (isspace(ch))
@@ -60,8 +61,6 @@ vector<Token> Lexer::tokenize()
 
         if (isalpha(ch) || ch == '_')
         {
-            string text;
-
             while (isalnum(ch) || ch == '_')
             {
                 text += get();
@@ -75,13 +74,9 @@ vector<Token> Lexer::tokenize()
                 token.type = Token::Type::Keyword;
             else
                 token.type = Token::Type::Identifier;
-
-            token.text = text;
         }
         else if (isdigit(ch))
         {
-            string text;
-
             while (isdigit(ch))
             {
                 text += get();
@@ -92,33 +87,32 @@ vector<Token> Lexer::tokenize()
                 throw runtime_error("Unexpected character: " + string(1, ch));
 
             token.type = Token::Type::Constant;
-            token.text = text;
             token.value = stoi(text);
         }
         else if (ch == '(')
         {
             token.type = Token::Type::LParen;
-            token.text = get();
+            text = get();
         }
         else if (ch == ')')
         {
             token.type = Token::Type::RParen;
-            token.text = get();
+            text = get();
         }
         else if (ch == '{')
         {
             token.type = Token::Type::LBrace;
-            token.text = get();
+            text = get();
         }
         else if (ch == '}')
         {
             token.type = Token::Type::RBrace;
-            token.text = get();
+            text = get();
         }
         else if (ch == ';')
         {
             token.type = Token::Type::Semicolon;
-            token.text = get();
+            text = get();
         }
         else
         {
