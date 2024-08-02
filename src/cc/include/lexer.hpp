@@ -1,13 +1,9 @@
 #pragma once
 #include <any>
 #include <istream>
+#include <positional.hpp>
 #include <string>
 #include <vector>
-
-struct Positional
-{
-    int line, col;
-};
 
 struct Token : Positional
 {
