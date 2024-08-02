@@ -43,6 +43,11 @@ bool Lexer::is_boundary(char c) const
     return isspace(c) || find(boundaries.begin(), boundaries.end(), c) != boundaries.end();
 }
 
+void Lexer::error(const string &message)
+{
+    throw LexerError(*this, message);
+}
+
 vector<Token> Lexer::tokenize()
 {
     vector<Token> tokens;
@@ -68,7 +73,7 @@ vector<Token> Lexer::tokenize()
             }
 
             if (!is_boundary(ch))
-                throw runtime_error("Unexpected character: " + string(1, ch));
+                error("unexpected character: " + string(1, ch));
 
             if (text == "void" || text == "int" || text == "return")
                 token.type = Token::Type::Keyword;
@@ -84,7 +89,7 @@ vector<Token> Lexer::tokenize()
             }
 
             if (!is_boundary(ch))
-                throw runtime_error("Unexpected character: " + string(1, ch));
+                error("unexpected character: " + string(1, ch));
 
             token.type = Token::Type::Constant;
             token.value = stoi(text);
@@ -116,7 +121,7 @@ vector<Token> Lexer::tokenize()
         }
         else
         {
-            throw runtime_error("Unrecognized character: " + string(1, ch));
+            error("unrecognized character: " + string(1, ch));
         }
 
         tokens.push_back(token);
