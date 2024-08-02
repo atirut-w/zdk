@@ -9,7 +9,7 @@ C compiler and libraries for Z80 development.
 
 ## Dependencies
 - [GNU binutils](https://www.gnu.org/software/binutils/) (`--target=z80-elf`) for assembling and linking. Refer to the [LURe build script](https://github.com/lure-sh/lure-repo/blob/master/binutils-z80/lure.sh) for an example of how to build binutils for the Z80 target, or use LURe to build it for you.
-- Clang for validating input code.
+- A C preprocessor (`cpp`).
 
 ## General Goals
 - [ ] C compiler. It won't implement the entire C standard, of course, but it should be just enough™ to write most programs.
