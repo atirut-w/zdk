@@ -5,7 +5,7 @@
 
 struct ASTNode
 {
-    std::vector<std::shared_ptr<ASTNode>> children;
+    std::vector<std::unique_ptr<ASTNode>> children;
     virtual ~ASTNode() = default; // Force polymorphism
 };
 
@@ -28,4 +28,16 @@ struct FunctionDefinition : ASTNode
 struct Program : ASTNode
 {
     FunctionDefinition *main = nullptr;
+};
+
+class Parser
+{
+    std::vector<Token> &tokens;
+
+public:
+    Parser(std::vector<Token> &tokens) : tokens(tokens)
+    {
+    }
+
+    std::unique_ptr<Program> parse();
 };
