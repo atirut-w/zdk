@@ -2,9 +2,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <memory>
-#include <vector>
 #include <lexer.hpp>
+#include <memory>
+#include <parser.hpp>
+#include <vector>
 
 using namespace std;
 using namespace argparse;
@@ -76,6 +77,9 @@ int main(int argc, char *argv[])
         cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
         return 1;
     }
+
+    Parser parser(tokens);
+    auto program = parser.parse();
 
     return 0;
 }
