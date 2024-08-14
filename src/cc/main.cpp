@@ -28,8 +28,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     parser->add_argument("-I", "--include")
         .help("Add directory to include search path")
         .action([](const string &value) { return filesystem::absolute(value); })
-        .nargs(nargs_pattern::any)
-        .default_value(vector<filesystem::path>{});
+        .nargs(nargs_pattern::any);
 
     // Keep intermediate files
     parser->add_argument("-k", "--keep-intermediate")
