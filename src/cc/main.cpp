@@ -82,6 +82,11 @@ int main(int argc, char *argv[])
     CommonTokenStream tokens(&lexer);
     CParser parser(&tokens);
 
+    if (!keep_intermediate)
+    {
+        filesystem::remove(intermediate.replace_extension(".i"));
+    }
+
     tree::ParseTree *tree = parser.compilationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
@@ -94,10 +99,6 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    if (!keep_intermediate)
-    {
-        filesystem::remove(intermediate.replace_extension(".i"));
-    }
     std::ofstream output(intermediate.replace_extension(".s"));
 
     Analyzer analyzer;
