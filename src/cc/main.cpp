@@ -88,18 +88,17 @@ int main(int argc, char *argv[])
         cerr << "BUG: ANTLR syntax error. mayhapes C version newer than C11?" << endl;
         return 1;
     }
+    if (args->get<bool>("--dump-ast"))
+    {
+        cout << tree->toStringTree(&parser, true) << endl;
+        return 0;
+    }
 
     if (!keep_intermediate)
     {
         filesystem::remove(intermediate.replace_extension(".i"));
     }
     std::ofstream output(intermediate.replace_extension(".s"));
-
-    if (args->get<bool>("--dump-ast"))
-    {
-        cout << tree->toStringTree(&parser, true) << endl;
-        return 0;
-    }
 
     Analyzer analyzer;
     ProgramMeta meta = any_cast<ProgramMeta>(analyzer.visit(tree));
