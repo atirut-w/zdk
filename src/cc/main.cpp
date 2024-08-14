@@ -36,12 +36,9 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .help("Keep intermediate files")
         .default_value(false)
         .implicit_value(true);
-    
+
     // Dump AST
-    parser->add_argument("--dump-ast")
-        .help("Dump AST to stdout")
-        .default_value(false)
-        .implicit_value(true);
+    parser->add_argument("--dump-ast").help("Dump AST to stdout").default_value(false).implicit_value(true);
 
     try
     {

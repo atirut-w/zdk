@@ -28,7 +28,8 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     {
         for (auto *item_ctx : itemlist_ctx->blockItem())
         {
-            // We check for return statements here because we only want to check if this function *ends* with a return statement
+            // We check for return statements here because we only want to check if this function *ends* with a return
+            // statement
             if (auto *statement_ctx = item_ctx->statement())
             {
                 if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
@@ -39,7 +40,7 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
                     }
                 }
             }
-            
+
             visit(item_ctx);
         }
     }
