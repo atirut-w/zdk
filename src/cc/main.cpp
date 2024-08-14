@@ -47,6 +47,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     catch (const exception &e)
     {
         cerr << e.what() << endl;
+        cerr << *parser << endl;
         exit(1);
     }
     return parser;
