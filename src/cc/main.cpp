@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     auto args = parse_args(argc, argv);
     const auto source = args->get<filesystem::path>("source");
     filesystem::path intermediate = source;
-    auto keep_intermediate = args->get<bool>("--keep-intermediate");
+    const auto keep_intermediate = args->get<bool>("--keep-intermediate");
 
     string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
