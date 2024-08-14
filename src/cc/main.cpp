@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
     if (args->get<bool>("--dump-ast"))
     {
-        cout << tree->toStringTree(&parser) << endl;
+        cout << tree->toStringTree(&parser, true) << endl;
         return 0;
     }
 
