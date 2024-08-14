@@ -12,7 +12,8 @@
             "program": "${workspaceFolder}/build/src/cc/zdk-cc",
             "cwd": "${workspaceFolder}",
             "args": [
-                "test.c"
+                "test.c",
+                "-S",
             ]
         }
     ]

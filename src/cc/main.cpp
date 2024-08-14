@@ -30,9 +30,21 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .action([](const string &value) { return filesystem::absolute(value); })
         .nargs(nargs_pattern::any);
 
-    // Keep intermediate files
-    parser->add_argument("-k", "--keep-intermediate")
-        .help("Keep intermediate files")
+    // Preprocess only
+    parser->add_argument("-E")
+        .help("Preprocess the input file, but do not compile")
+        .default_value(false)
+        .implicit_value(true);
+
+    // Codegen only
+    parser->add_argument("-S")
+        .help("Compile the input file, but do not assemble or link")
+        .default_value(false)
+        .implicit_value(true);
+
+    // Assemble only
+    parser->add_argument("-c")
+        .help("Compile and assemble the input file, but do not link")
         .default_value(false)
         .implicit_value(true);
 
@@ -57,7 +69,6 @@ int main(int argc, char *argv[])
     auto args = parse_args(argc, argv);
     const auto source = args->get<filesystem::path>("source");
     filesystem::path intermediate = source;
-    const auto keep_intermediate = args->get<bool>("--keep-intermediate");
 
     string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
     for (auto &include : args->get<vector<filesystem::path>>("--include"))
@@ -75,6 +86,10 @@ int main(int argc, char *argv[])
         cerr << "BUG: clang -E failed despite syntax check passing" << endl;
         return 1;
     }
+    if (args->get<bool>("-E"))
+    {
+        return 0;
+    }
 
     ifstream input(intermediate.replace_extension(".i"));
     ANTLRInputStream input_stream(input);
@@ -82,11 +97,7 @@ int main(int argc, char *argv[])
     CommonTokenStream tokens(&lexer);
     CParser parser(&tokens);
 
-    if (!keep_intermediate)
-    {
-        filesystem::remove(intermediate.replace_extension(".i"));
-    }
-
+    filesystem::remove(intermediate.replace_extension(".i"));
     tree::ParseTree *tree = parser.compilationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
@@ -105,6 +116,30 @@ int main(int argc, char *argv[])
     ProgramMeta meta = any_cast<ProgramMeta>(analyzer.visit(tree));
     CodeGen codegen(meta, output);
     codegen.visit(tree);
+
+    if (args->get<bool>("-S"))
+    {
+        return 0;
+    }
+    if (system(("z80-elf-as " + intermediate.replace_extension(".s").string() + " -o " +
+                intermediate.replace_extension(".o").string())
+                   .c_str()))
+    {
+        return 1;
+    }
+    filesystem::remove(intermediate.replace_extension(".s"));
+
+    if (args->get<bool>("-c"))
+    {
+        return 0;
+    }
+    if (system(("z80-elf-ld " + intermediate.replace_extension(".o").string() + " -o " +
+                intermediate.replace_extension(".elf").string())
+                   .c_str()))
+    {
+        return 1;
+    }
+    filesystem::remove(intermediate.replace_extension(".o"));
 
     return 0;
 }
