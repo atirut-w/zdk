@@ -30,20 +30,22 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .action([](const string &value) { return filesystem::absolute(value); })
         .nargs(nargs_pattern::any);
 
+    ArgumentParser::MutuallyExclusiveGroup &stage = parser->add_mutually_exclusive_group("Compilation stage");
+
     // Preprocess only
-    parser->add_argument("-E")
+    stage.add_argument("-E")
         .help("Preprocess the input file, but do not compile")
         .default_value(false)
         .implicit_value(true);
 
     // Codegen only
-    parser->add_argument("-S")
+    stage.add_argument("-S")
         .help("Compile the input file, but do not assemble or link")
         .default_value(false)
         .implicit_value(true);
 
     // Assemble only
-    parser->add_argument("-c")
+    stage.add_argument("-c")
         .help("Compile and assemble the input file, but do not link")
         .default_value(false)
         .implicit_value(true);
