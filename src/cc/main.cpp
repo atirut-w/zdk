@@ -135,9 +135,7 @@ int main(int argc, char *argv[])
     {
         return 0;
     }
-    if (system(("z80-elf-ld " + intermediate.replace_extension(".o").string() + " -o " +
-                intermediate.replace_extension(".elf").string())
-                   .c_str()))
+    if (system(("z80-elf-ld " + intermediate.replace_extension(".o").string() + " -o a.out").c_str()))
     {
         return 1;
     }
