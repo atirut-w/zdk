@@ -1,0 +1,70 @@
+#!/bin/bash
+# SDCC wrapper for SDCC -> Binutils workflow.
+
+SDCC=${SDCC:-$(which sdcc-sdcc)}
+AS=${AS:-$(which z80-elf-as)}
+LD=${LD:-$(which z80-elf-ld)}
+
+if [ -z "$SDCC" ]; then
+    echo "SDCC not found"
+    exit 1
+elif [ -z "$AS" ]; then
+    echo "AS not found"
+    exit 1
+elif [ -z "$LD" ]; then
+    echo "LD not found"
+    exit 1
+fi
+
+# Do some basic argument parsing
+ARGS="$@"
+SOURCE=""
+SDCC_OUT=""
+PREPROCESS_ONLY=0
+COMPILE_ONLY=0
+ASSEMBLE_ONLY=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o)
+            SDCC_OUT="$2"
+            shift
+            ;;
+        -o*)
+            SDCC_OUT="${1:2}"
+            ;;
+        -E)
+            PREPROCESS_ONLY=1
+            ;;
+        -S)
+            COMPILE_ONLY=1
+            ;;
+        -c)
+            ASSEMBLE_ONLY=1
+            ;;
+        *)
+            SOURCE="$1"
+            ;;
+    esac
+    shift
+done
+SDCC_OUT=${SDCC_OUT:-$(basename $SOURCE .c).asm}
+
+$SDCC -S -mz80 $ARGS
+if [ $? -ne 0 ]; then
+    exit 1
+elif [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $PREPROCESS_ONLY -eq 1 ] || [ $COMPILE_ONLY -eq 1 ]; then
+    exit 0
+fi
+
+$AS -sdcc -o $(basename $SOURCE .c).o $SDCC_OUT
+if [ $? -ne 0 ]; then
+    exit 1
+elif [ $ASSEMBLE_ONLY -eq 1 ]; then
+    exit 0
+fi
+
+$LD -o $(basename $SOURCE .c).elf $(basename $SOURCE .c).o
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+rm $(basename $SOURCE .c).o
