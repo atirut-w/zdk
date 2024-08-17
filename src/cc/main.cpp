@@ -30,7 +30,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
         .action([](const string &value) { return filesystem::absolute(value); })
         .nargs(nargs_pattern::any);
 
-    ArgumentParser::MutuallyExclusiveGroup &stage = parser->add_mutually_exclusive_group("Compilation stage");
+    ArgumentParser::MutuallyExclusiveGroup &stage = parser->add_mutually_exclusive_group(false);
 
     // Preprocess only
     stage.add_argument("-E")
