@@ -84,6 +84,23 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    ifstream input(intermediate);
+    Lexer lexer(input);
+
+    vector<Token> tokens;
+    try
+    {
+        tokens = lexer.tokenize();
+    }
+    catch (const LexerError &e)
+    {
+        cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
+        return 1;
+    }
+
+    Parser parser(tokens);
+    auto program = parser.parse();
+
     if (args->get<bool>("-S"))
     {
         return 0;
@@ -105,23 +122,6 @@ int main(int argc, char *argv[])
         return 1;
     }
     filesystem::remove(intermediate.replace_extension(".o"));
-
-    ifstream input(intermediate);
-    Lexer lexer(input);
-
-    vector<Token> tokens;
-    try
-    {
-        tokens = lexer.tokenize();
-    }
-    catch (const LexerError &e)
-    {
-        cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
-        return 1;
-    }
-
-    Parser parser(tokens);
-    auto program = parser.parse();
 
     return 0;
 }
