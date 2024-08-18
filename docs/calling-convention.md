@@ -5,40 +5,25 @@
 
 The calling convention the ZDK C Compiler uses is loosely based on [`cdecl`](https://en.wikipedia.org/wiki/X86_calling_conventions#cdecl), with some compromises to adapt to the Z80 architecture. Other calling conventions may be supported in the (far) future.
 
-## Register Usage
-| Register Pair         | Usage                    |
-| :-------------------- | :----------------------- |
-| `AF`                  | Caller-saved             |
-| `BC`                  | Not used by the compiler |
-| `DE`                  | Caller-saved             |
-| `HL`                  | Caller-saved             |
-| `IX` (Frame Pointer)  | Callee-saved             |
-| `IY` (Locals Pointer) | Callee-saved             |
+- Arguments are passed right-to-left.
+- The caller is responsible for cleaning up the stack after the call.
+- The callee is responsible for saving and restoring the `IX` (frame pointer) and `IY` (locals pointer) registers, if used.
+
+Registers other than `IX` and `IY` are caller-saved, meaning the callee can modify them without saving them.
 
 Do note that while `IX` is used as a frame pointer, it also serves second purpose for indexing into arguments, while `IY` is only used for indexing into local variables.
 
-## Caller Side
-When a function is called, the caller must push the arguments to the stack right-to-left, and then call the function. The caller is responsible for removing the arguments from the stack after the call.
-
-## Callee Side
-The callee have to save the `IX`, `IY`, and other callee-saved registers if they are used, then allocate space for local variables if needed. The callee is responsible for cleaning up the stack frame before returning.
-
-Single-byte return values are returned in the `A` register, while multi-byte return values are returned in `HL` (low word) and `DE` (high word).
-
-??? note "Note on value expressions"
-    Value expressions are valuated the same way with single-byte values in `A` and so on.
-
-### Examples
+## Examples
 These example roughly outlines how the compiler generate a function's prologue and epilogue depending on how arguments and locals are used.
 
-#### Callee (No Arguments & Locals)
+### Callee (No Arguments & Locals)
 ```asm
     ; Return (char)10
     ld a, 10
     ret
 ```
 
-#### Callee (No Locals)
+### Callee (No Locals)
 ```asm
     ; Create new stack frame
     push ix
@@ -53,7 +38,7 @@ These example roughly outlines how the compiler generate a function's prologue a
     ret
 ```
 
-#### Callee (With Locals)
+### Callee (With Locals)
 ```asm
     ; Save old locals pointer
     push iy
