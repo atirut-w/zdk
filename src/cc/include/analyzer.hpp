@@ -4,21 +4,15 @@
 #include <string>
 #include <types.hpp>
 
-struct Symbol
-{
-    int width = 0;
-    bool signedness = true;
-};
-
 struct Local
 {
-    Symbol symbol;
+    ParsedType type;
     int offset;
 };
 
 struct Function
 {
-    Type *return_type;
+    ParsedType return_type;
     // Offset into the local frame for local variables
     std::map<std::string, Local> locals;
     int local_alloc = 0;
@@ -39,4 +33,5 @@ public:
     virtual std::any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
     virtual std::any visitDeclaration(CParser::DeclarationContext *ctx) override;
+    virtual std::any visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx) override;
 };

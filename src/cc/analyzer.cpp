@@ -2,6 +2,9 @@
 #include "types.hpp"
 #include <analyzer.hpp>
 #include <any>
+#include <memory>
+#include <optional>
+#include <string>
 
 using namespace std;
 using namespace antlr4;
@@ -15,14 +18,13 @@ any Analyzer::visitCompilationUnit(CParser::CompilationUnitContext *ctx)
 any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 {
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
-    string return_type = ctx->declarationSpecifiers()->declarationSpecifier()[0]->typeSpecifier()->getText();
 
     if (module.functions.find(name) == module.functions.end())
     {
         module.functions[name] = Function();
     }
     current_function = &module.functions[name];
-    current_function->return_type = &primitives[return_type];
+    current_function->return_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
@@ -50,38 +52,7 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
 any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
 {
-    CParser::TypeSpecifierContext *type_spec_ctx;
-    for (auto *specifier : ctx->declarationSpecifiers()->declarationSpecifier())
-    {
-        if ((type_spec_ctx = specifier->typeSpecifier()))
-        {
-            break;
-        }
-    }
-
-    if ((type_spec_ctx->atomicTypeSpecifier() != nullptr) || (type_spec_ctx->structOrUnionSpecifier() != nullptr) ||
-        (type_spec_ctx->enumSpecifier() != nullptr) || (type_spec_ctx->typedefName() != nullptr))
-    {
-        throw runtime_error("unsupported type specifier");
-    }
-
-    int group_alloc;
-    if (type_spec_ctx->Char())
-    {
-        group_alloc = 1;
-    }
-    else if (type_spec_ctx->Short())
-    {
-        group_alloc = 2;
-    }
-    else if (type_spec_ctx->Int())
-    {
-        group_alloc = 4;
-    }
-    else
-    {
-        throw runtime_error("unsupported type specifier");
-    }
+    auto group_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
 
     // The fact that you can just do `int;` without declaring actual variables just absolutely sends me
     if (auto *init_decl_list_ctx = ctx->initDeclaratorList())
@@ -96,11 +67,11 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
             }
 
             Local local;
-            local.symbol.width = group_alloc;
+            local.type = group_type;
             local.offset = current_function->local_alloc;
 
             current_function->locals[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
-            current_function->local_alloc += group_alloc;
+            current_function->local_alloc += group_type->size;
         }
 
         if (current_function->local_alloc > 0xff)
@@ -110,4 +81,77 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
     }
 
     return visitChildren(ctx);
+}
+
+any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx)
+{
+    optional<string> primary_type;
+    vector<string> modifiers;
+
+    for (auto *specifier_ctx : ctx->declarationSpecifier())
+    {
+        if (auto *typespec_ctx = specifier_ctx->typeSpecifier())
+        {
+            if (typespec_ctx->Long() || typespec_ctx->Float() || typespec_ctx->Double() ||
+                typespec_ctx->atomicTypeSpecifier() || typespec_ctx->structOrUnionSpecifier() ||
+                typespec_ctx->enumSpecifier() || typespec_ctx->typedefName() || typespec_ctx->getText()[0] == '_')
+            {
+                throw runtime_error("unsupported type specifier");
+            }
+
+            if (typespec_ctx->Void())
+            {
+                primary_type = "void";
+            }
+            else if (typespec_ctx->Char())
+            {
+                primary_type = "char";
+            }
+            else if (typespec_ctx->Int())
+            {
+                primary_type = "int";
+            }
+            else
+            {
+                // if (find(modifiers.begin(), modifiers.end(), typespec_ctx->getText()) != modifiers.end())
+                // {
+                //     throw runtime_error("duplicate type specifier");
+                // }
+                modifiers.push_back(typespec_ctx->getText());
+            }
+        }
+        else
+        {
+            throw runtime_error("unsupported declaration specifier");
+        }
+    }
+
+    auto type = make_shared<PrimitiveType>();
+
+    if (primary_type == "void")
+    {
+        type->size = 0;
+    }
+    else if (primary_type == "char")
+    {
+        type->size = 1;
+        type->byte_layout = {"a"};
+        type->is_signed = find(modifiers.begin(), modifiers.end(), "signed") != modifiers.end();
+    }
+    else if (primary_type == "int")
+    {
+        type->size = 2;
+        type->byte_layout = {"l", "h"};
+        type->word_layout = {"hl"};
+        if (find(modifiers.begin(), modifiers.end(), "unsigned") != modifiers.end())
+        {
+            type->is_signed = false;
+        }
+    }
+    else if (primary_type->empty())
+    {
+        throw runtime_error("type inference from modifiers not implemented");
+    }
+
+    return (ParsedType)type;
 }
