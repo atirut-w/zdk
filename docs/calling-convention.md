@@ -9,12 +9,10 @@ The calling convention the ZDK C Compiler uses is loosely based on [`cdecl`](htt
 - The caller is responsible for cleaning up the stack after the call.
 - The callee is responsible for saving and restoring the `IX` (frame pointer) and `IY` (locals pointer) registers, if used.
 
-Registers other than `IX` and `IY` are caller-saved, meaning the callee can modify them without saving them.
-
-Do note that while `IX` is used as a frame pointer, it also serves second purpose for indexing into arguments, while `IY` is only used for indexing into local variables.
+Registers other than `IX` and `IY` are caller-saved, meaning the callee can modify them without saving them. Please note that while `IX` is used as a frame pointer, it can also be used for indexing into arguments using displacement. `IY` is only used for indexing into local variables.
 
 ## Examples
-These example roughly outlines how the compiler generate a function's prologue and epilogue depending on how arguments and locals are used.
+These example roughly outlines how the compiler may generate a function's prologue and epilogue depending on how arguments and locals are used.
 
 ### Callee (No Arguments & Locals)
 ```asm
@@ -30,7 +28,7 @@ These example roughly outlines how the compiler generate a function's prologue a
     ld ix, 0
     add ix, sp
 
-    ; Now you can access arguments using ix
+    ; Now you can access arguments using IX
     ld a, (ix+2)
 
     ; Clean up and return
@@ -42,7 +40,7 @@ These example roughly outlines how the compiler generate a function's prologue a
 ```asm
     ; Save old locals pointer
     push iy
-    ; We need to save the stack frame, because allocating locals will require saving where it was into ix
+    ; We need to save the stack frame, because allocating locals will require saving where SP was into IX
     push ix
     ld ix, 0
     add ix, sp
