@@ -9,7 +9,7 @@ using namespace antlr4;
 any Analyzer::visitCompilationUnit(CParser::CompilationUnitContext *ctx)
 {
     visitChildren(ctx);
-    return meta;
+    return module;
 }
 
 any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
@@ -17,11 +17,11 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
     string return_type = ctx->declarationSpecifiers()->declarationSpecifier()[0]->typeSpecifier()->getText();
 
-    if (meta.functions.find(name) == meta.functions.end())
+    if (module.functions.find(name) == module.functions.end())
     {
-        meta.functions[name] = FunctionMeta();
+        module.functions[name] = Function();
     }
-    current_function = &meta.functions[name];
+    current_function = &module.functions[name];
     current_function->return_type = &primitives[return_type];
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
@@ -95,11 +95,11 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
                 throw runtime_error("unsupported declarator");
             }
 
-            LocalMeta local;
+            Local local;
             local.symbol.width = group_alloc;
             local.offset = current_function->local_alloc;
 
-            current_function->variables[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
+            current_function->locals[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
             current_function->local_alloc += group_alloc;
         }
 

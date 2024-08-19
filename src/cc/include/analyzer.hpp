@@ -4,36 +4,36 @@
 #include <string>
 #include <types.hpp>
 
-struct SymbolMeta
+struct Symbol
 {
     int width = 0;
     bool signedness = true;
 };
 
-struct LocalMeta
+struct Local
 {
-    SymbolMeta symbol;
+    Symbol symbol;
     int offset;
 };
 
-struct FunctionMeta
+struct Function
 {
     Type *return_type;
     // Offset into the local frame for local variables
-    std::map<std::string, LocalMeta> variables;
+    std::map<std::string, Local> locals;
     int local_alloc = 0;
     bool has_return = false; // TODO: Come up with a better name for this
 };
 
-struct ProgramMeta
+struct Module
 {
-    std::map<std::string, FunctionMeta> functions;
+    std::map<std::string, Function> functions;
 };
 
 class Analyzer : public CBaseVisitor
 {
-    ProgramMeta meta;
-    FunctionMeta *current_function = nullptr;
+    Module module;
+    Function *current_function = nullptr;
 
 public:
     virtual std::any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;

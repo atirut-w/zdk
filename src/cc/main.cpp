@@ -115,8 +115,8 @@ int main(int argc, char *argv[])
     std::ofstream output(intermediate.replace_extension(".s"));
 
     Analyzer analyzer;
-    ProgramMeta meta = any_cast<ProgramMeta>(analyzer.visit(tree));
-    CodeGen codegen(meta, output);
+    Module module = any_cast<Module>(analyzer.visit(tree));
+    CodeGen codegen(module, output);
     codegen.visit(tree);
 
     if (args->get<bool>("-S"))

@@ -16,8 +16,8 @@ struct ExpressionCtx
 
 class CodeGen : public CBaseVisitor
 {
-    ProgramMeta &program_meta;
-    FunctionMeta *current_function = nullptr;
+    Module &program_meta;
+    Function *current_function = nullptr;
     std::ostream &output;
 
     void teardown_frame();
@@ -28,5 +28,5 @@ class CodeGen : public CBaseVisitor
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
 public:
-    CodeGen(ProgramMeta &program_meta, std::ostream &output);
+    CodeGen(Module &program_meta, std::ostream &output);
 };
