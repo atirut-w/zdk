@@ -21,6 +21,8 @@ class Analyzer : public CBaseVisitor
     Module module;
     Function *current_function = nullptr;
 
+    ParsedType parse_type(CParser::DeclarationSpecifiersContext *ctx, bool no_initlist = false);
+
 public:
     virtual std::any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;

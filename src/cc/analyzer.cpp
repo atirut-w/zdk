@@ -9,71 +9,7 @@
 using namespace std;
 using namespace antlr4;
 
-any Analyzer::visitCompilationUnit(CParser::CompilationUnitContext *ctx)
-{
-    visitChildren(ctx);
-    return module;
-}
-
-any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
-{
-    string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
-
-    if (module.functions.find(name) == module.functions.end())
-    {
-        module.functions[name] = Function();
-    }
-    current_function = &module.functions[name];
-    current_function->return_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
-
-    if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
-    {
-        for (auto *item_ctx : itemlist_ctx->blockItem())
-        {
-            // We check for return statements here because we only want to check if this function *ends* with a return
-            // statement
-            if (auto *statement_ctx = item_ctx->statement())
-            {
-                if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
-                {
-                    if (jump_statement_ctx->Return())
-                    {
-                        current_function->has_return = true;
-                    }
-                }
-            }
-
-            visit(item_ctx);
-        }
-    }
-
-    return any();
-}
-
-any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
-{
-    auto group_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
-
-    // The fact that you can just do `int;` without declaring actual variables just absolutely sends me
-    if (auto *init_decl_list_ctx = ctx->initDeclaratorList())
-    {
-        for (auto *init_decl_ctx : init_decl_list_ctx->initDeclarator())
-        {
-            auto *declarator_ctx = init_decl_ctx->declarator();
-            if (declarator_ctx->directDeclarator()->Identifier() == nullptr ||
-                declarator_ctx->directDeclarator()->DigitSequence() != nullptr)
-            {
-                throw runtime_error("unsupported declarator");
-            }
-
-            current_function->locals[declarator_ctx->directDeclarator()->Identifier()->getText()] = group_type;
-        }
-    }
-
-    return visitChildren(ctx);
-}
-
-any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx)
+ParsedType Analyzer::parse_type(CParser::DeclarationSpecifiersContext *ctx, bool no_initlist)
 {
     int kind = -1;
     vector<string> seen;
@@ -83,6 +19,10 @@ any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *
     {
         if (auto *typespec_ctx = specifier_ctx->typeSpecifier())
         {
+            if (no_initlist && specifier_ctx == ctx->declarationSpecifier().back())
+            {
+                break;
+            }
             if (typespec_ctx->Long() || typespec_ctx->Float() || typespec_ctx->Double() ||
                 typespec_ctx->atomicTypeSpecifier() || typespec_ctx->structOrUnionSpecifier() ||
                 typespec_ctx->enumSpecifier() || typespec_ctx->typedefName() || typespec_ctx->getText()[0] == '_')
@@ -166,5 +106,87 @@ any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *
     auto type = make_shared<PrimitiveType>();
     type->kind = static_cast<PrimitiveType::Kind>(kind);
 
-    return (ParsedType)type;
+    return type;
+}
+
+any Analyzer::visitCompilationUnit(CParser::CompilationUnitContext *ctx)
+{
+    visitChildren(ctx);
+    return module;
+}
+
+any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
+{
+    string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
+
+    if (module.functions.find(name) == module.functions.end())
+    {
+        module.functions[name] = Function();
+    }
+    current_function = &module.functions[name];
+    current_function->return_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
+
+    if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
+    {
+        for (auto *item_ctx : itemlist_ctx->blockItem())
+        {
+            // We check for return statements here because we only want to check if this function *ends* with a return
+            // statement
+            if (auto *statement_ctx = item_ctx->statement())
+            {
+                if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
+                {
+                    if (jump_statement_ctx->Return())
+                    {
+                        current_function->has_return = true;
+                    }
+                }
+            }
+
+            visit(item_ctx);
+        }
+    }
+
+    return any();
+}
+
+any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
+{
+    if (auto *init_decl_list_ctx = ctx->initDeclaratorList())
+    {
+        auto group_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
+
+        for (auto *init_decl_ctx : init_decl_list_ctx->initDeclarator())
+        {
+            auto *declarator_ctx = init_decl_ctx->declarator();
+            if (declarator_ctx->directDeclarator()->Identifier() == nullptr ||
+                declarator_ctx->directDeclarator()->DigitSequence() != nullptr)
+            {
+                throw runtime_error("unsupported declarator");
+            }
+
+            string name = declarator_ctx->directDeclarator()->Identifier()->getText();
+            if (current_function->locals.find(name) != current_function->locals.end())
+            {
+                throw runtime_error("duplicate local declaration");
+            }
+            current_function->locals[declarator_ctx->directDeclarator()->Identifier()->getText()] = group_type;
+        }
+    }
+    else
+    {
+        string name = ctx->declarationSpecifiers()->children.back()->getText();
+        if (current_function->locals.find(name) != current_function->locals.end())
+        {
+            throw runtime_error("duplicate local declaration");
+        }
+        current_function->locals[name] = parse_type(ctx->declarationSpecifiers(), true);
+    }
+
+    return any();
+}
+
+any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx)
+{
+    return parse_type(ctx);
 }
