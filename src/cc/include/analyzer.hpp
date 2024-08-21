@@ -4,18 +4,10 @@
 #include <string>
 #include <types.hpp>
 
-struct Local
-{
-    ParsedType type;
-    int offset;
-};
-
 struct Function
 {
     ParsedType return_type;
-    // Offset into the local frame for local variables
-    std::map<std::string, Local> locals;
-    int local_alloc = 0;
+    std::map<std::string, ParsedType> locals;
     bool has_return = false; // TODO: Come up with a better name for this
 };
 

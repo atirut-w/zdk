@@ -1,3 +1,4 @@
+#include "types.hpp"
 #include <cctype>
 #include <codegen.hpp>
 #include <iostream>
@@ -5,6 +6,13 @@
 
 using namespace std;
 using namespace antlr4;
+
+vector<PrimitiveLayout> primitive_layouts = {
+    {{},{}},
+    {{'a'}, {}},
+    {{'l', 'h'}, {"hl"}},
+    {{'l', 'h'}, {"hl"}}
+};
 
 ConstantValue parse_constant(string text)
 {
@@ -58,11 +66,11 @@ CodeGen::CodeGen(Module &program_meta, std::ostream &output) : program_meta(prog
 void CodeGen::teardown_frame()
 {
     // TODO: clause for arguments
-    if (current_function->local_alloc > 0 || false)
+    if (!current_function->locals.empty() || false)
     {
         output << "\tld sp, ix\n";
         output << "\tpop ix\n";
-        if (current_function->local_alloc > 0)
+        if (!current_function->locals.empty())
         {
             output << "\tpop iy\n";
         }
@@ -79,9 +87,9 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     output << name << ":\n";
 
     // TODO: clause for arguments
-    if (current_function->local_alloc > 0 || false)
+    if (!current_function->locals.empty() || false)
     {
-        if (current_function->local_alloc > 0)
+        if (!current_function->locals.empty())
         {
             output << "\tpush iy\n";
         }
@@ -89,9 +97,22 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         output << "\tld ix, 0\n";
         output << "\tadd ix, sp\n";
 
-        if (current_function->local_alloc > 0)
+        if (!current_function->locals.empty())
         {
-            output << "\tld iy, " << -current_function->local_alloc << "\n";
+            int alloc_size = 0;
+            for (auto &local : current_function->locals)
+            {
+                if (auto *primitive = dynamic_cast<PrimitiveType *>(local.second.get()))
+                {
+                    alloc_size += primitive_layouts[primitive->kind].registers.size();
+                }
+                else
+                {
+                    throw runtime_error("unsupported local type");
+                }
+            }
+
+            output << "\tld iy, " << -alloc_size << "\n";
             output << "\tadd iy, sp\n";
             output << "\tld sp, iy\n";
         }

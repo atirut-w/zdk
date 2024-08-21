@@ -66,17 +66,7 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
                 throw runtime_error("unsupported declarator");
             }
 
-            Local local;
-            local.type = group_type;
-            local.offset = current_function->local_alloc;
-
-            current_function->locals[declarator_ctx->directDeclarator()->Identifier()->getText()] = local;
-            current_function->local_alloc += group_type->size;
-        }
-
-        if (current_function->local_alloc > 0xff)
-        {
-            throw runtime_error("local variables exceed 8-bit displacement");
+            current_function->locals[declarator_ctx->directDeclarator()->Identifier()->getText()] = group_type;
         }
     }
 
@@ -85,8 +75,9 @@ any Analyzer::visitDeclaration(CParser::DeclarationContext *ctx)
 
 any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx)
 {
-    optional<string> primary_type;
-    vector<string> modifiers;
+    int kind = -1;
+    vector<string> seen;
+    bool is_signed;
 
     for (auto *specifier_ctx : ctx->declarationSpecifier())
     {
@@ -101,24 +92,24 @@ any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *
 
             if (typespec_ctx->Void())
             {
-                primary_type = "void";
+                kind = PrimitiveType::Void;
             }
             else if (typespec_ctx->Char())
             {
-                primary_type = "char";
+                kind = PrimitiveType::Char;
+                is_signed = false;
             }
             else if (typespec_ctx->Int())
             {
-                primary_type = "int";
+                kind = PrimitiveType::Int;
+                is_signed = true;
             }
-            else
+
+            if (find(seen.begin(), seen.end(), typespec_ctx->getText()) != seen.end())
             {
-                // if (find(modifiers.begin(), modifiers.end(), typespec_ctx->getText()) != modifiers.end())
-                // {
-                //     throw runtime_error("duplicate type specifier");
-                // }
-                modifiers.push_back(typespec_ctx->getText());
+                throw runtime_error("duplicate declaration specifier");
             }
+            seen.push_back(typespec_ctx->getText());
         }
         else
         {
@@ -126,32 +117,54 @@ any Analyzer::visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *
         }
     }
 
-    auto type = make_shared<PrimitiveType>();
-
-    if (primary_type == "void")
+    if (kind == -1)
     {
-        type->size = 0;
-    }
-    else if (primary_type == "char")
-    {
-        type->size = 1;
-        type->byte_layout = {"a"};
-        type->is_signed = find(modifiers.begin(), modifiers.end(), "signed") != modifiers.end();
-    }
-    else if (primary_type == "int")
-    {
-        type->size = 2;
-        type->byte_layout = {"l", "h"};
-        type->word_layout = {"hl"};
-        if (find(modifiers.begin(), modifiers.end(), "unsigned") != modifiers.end())
+        if (find(seen.begin(), seen.end(), "short") != seen.end())
         {
-            type->is_signed = false;
+            kind = PrimitiveType::Short;
+            is_signed = true;
+        }
+        else if (find(seen.begin(), seen.end(), "signed") != seen.end())
+        {
+            kind = PrimitiveType::Int;
+            is_signed = true;
+        }
+        else if (find(seen.begin(), seen.end(), "unsigned") != seen.end())
+        {
+            kind = PrimitiveType::Int;
+            is_signed = false;
         }
     }
-    else if (primary_type->empty())
+    else
     {
-        throw runtime_error("type inference from modifiers not implemented");
+        if (find(seen.begin(), seen.end(), "short") != seen.end())
+        {
+            if (kind != PrimitiveType::Int)
+            {
+                throw runtime_error("invalid type specifier");
+            }
+            kind = PrimitiveType::Short;
+        }
+        else if (find(seen.begin(), seen.end(), "signed") != seen.end())
+        {
+            if (kind != PrimitiveType::Int)
+            {
+                throw runtime_error("invalid type specifier");
+            }
+            is_signed = true;
+        }
+        else if (find(seen.begin(), seen.end(), "unsigned") != seen.end())
+        {
+            if (kind != PrimitiveType::Int)
+            {
+                throw runtime_error("invalid type specifier");
+            }
+            is_signed = false;
+        }
     }
+
+    auto type = make_shared<PrimitiveType>();
+    type->kind = static_cast<PrimitiveType::Kind>(kind);
 
     return (ParsedType)type;
 }
