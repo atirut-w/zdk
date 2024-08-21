@@ -1,4 +1,5 @@
 #pragma once
+#include "types.hpp"
 #include <CBaseVisitor.h>
 #include <analyzer.hpp>
 #include <ostream>
@@ -10,9 +11,7 @@ typedef std::variant<int, float, char> ConstantValue;
 
 struct ExpressionCtx
 {
-    bool constant; // Used for constant folding
-    ConstantValue value;
-    std::string symbol;
+    ParsedType type;
 };
 
 struct PrimitiveLayout
