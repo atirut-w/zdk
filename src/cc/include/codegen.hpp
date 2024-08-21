@@ -4,6 +4,7 @@
 #include <ostream>
 #include <variant>
 #include <string>
+#include <vector>
 
 typedef std::variant<int, float, char> ConstantValue;
 
@@ -12,6 +13,14 @@ struct ExpressionCtx
     bool constant; // Used for constant folding
     ConstantValue value;
     std::string symbol;
+};
+
+struct PrimitiveLayout
+{
+    // Layout in 8-bit registers
+    std::vector<char> registers;
+    // Layout in 16-bit register pairs
+    std::vector<std::string> pairs;
 };
 
 class CodeGen : public CBaseVisitor

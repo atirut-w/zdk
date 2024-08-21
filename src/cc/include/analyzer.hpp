@@ -4,24 +4,10 @@
 #include <string>
 #include <types.hpp>
 
-struct Symbol
-{
-    int width = 0;
-    bool signedness = true;
-};
-
-struct Local
-{
-    Symbol symbol;
-    int offset;
-};
-
 struct Function
 {
-    Type *return_type;
-    // Offset into the local frame for local variables
-    std::map<std::string, Local> locals;
-    int local_alloc = 0;
+    ParsedType return_type;
+    std::map<std::string, ParsedType> locals;
     bool has_return = false; // TODO: Come up with a better name for this
 };
 
@@ -35,8 +21,11 @@ class Analyzer : public CBaseVisitor
     Module module;
     Function *current_function = nullptr;
 
+    ParsedType parse_type(CParser::DeclarationSpecifiersContext *ctx, bool no_initlist = false);
+
 public:
     virtual std::any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
     virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
     virtual std::any visitDeclaration(CParser::DeclarationContext *ctx) override;
+    virtual std::any visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx) override;
 };
