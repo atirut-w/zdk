@@ -117,7 +117,7 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         module.functions[name] = Function();
     }
     current_function = &module.functions[name];
-    current_function->return_type = any_cast<ParsedType>(visit(ctx->declarationSpecifiers()));
+    current_function->return_type = parse_type(ctx->declarationSpecifiers());
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
