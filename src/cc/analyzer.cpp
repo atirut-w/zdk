@@ -87,18 +87,10 @@ ParsedType Analyzer::parse_type(CParser::DeclarationSpecifiersContext *ctx, bool
         }
         else if (find(seen.begin(), seen.end(), "signed") != seen.end())
         {
-            if (kind != PrimitiveType::Int)
-            {
-                throw runtime_error("invalid type specifier");
-            }
             is_signed = true;
         }
         else if (find(seen.begin(), seen.end(), "unsigned") != seen.end())
         {
-            if (kind != PrimitiveType::Int)
-            {
-                throw runtime_error("invalid type specifier");
-            }
             is_signed = false;
         }
     }
