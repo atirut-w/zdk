@@ -97,6 +97,7 @@ ParsedType Analyzer::parse_type(CParser::DeclarationSpecifiersContext *ctx, bool
 
     auto type = make_shared<PrimitiveType>();
     type->kind = static_cast<PrimitiveType::Kind>(kind);
+    type->is_signed = is_signed;
 
     return type;
 }
