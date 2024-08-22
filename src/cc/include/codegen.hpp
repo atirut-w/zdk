@@ -26,7 +26,7 @@ extern const std::vector<PrimitiveLayout> primitive_layouts;
 
 class CodeGen : public CBaseVisitor
 {
-    Module &program_meta;
+    Module &module;
     Function *current_function = nullptr;
     std::ostream &output;
 
@@ -38,5 +38,5 @@ class CodeGen : public CBaseVisitor
     // All of these are for math expressions. Yes, all of them.
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
 public:
-    CodeGen(Module &program_meta, std::ostream &output);
+    CodeGen(Module &module, std::ostream &output);
 };
