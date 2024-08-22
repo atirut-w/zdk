@@ -30,7 +30,6 @@ class CodeGen : public CBaseVisitor
     Module &module;
 
     Function *current_function = nullptr;
-    int locals_alloc = 0;
     std::map<std::string, int> local_offsets;
 
     void teardown_frame();

@@ -51,7 +51,7 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
     current_function = &module.functions[name];
 
-    locals_alloc = 0;
+    int locals_alloc = 0;
     local_offsets.clear();
     for (auto &local : current_function->locals)
     {
