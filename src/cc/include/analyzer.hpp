@@ -8,7 +8,7 @@ struct Function
 {
     ParsedType return_type;
     std::map<std::string, ParsedType> locals;
-    bool has_trailing_return = false; // TODO: Come up with a better name for this
+    bool has_trailing_return = false;
 };
 
 struct Module
