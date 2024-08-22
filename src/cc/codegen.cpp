@@ -82,7 +82,7 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         }
     }
 
-    if (!current_function->has_return)
+    if (!current_function->has_trailing_return)
     {
         teardown_frame();
         output << "\tret\n";

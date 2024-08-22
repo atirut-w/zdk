@@ -121,21 +121,20 @@ any Analyzer::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
     if (auto *itemlist_ctx = ctx->compoundStatement()->blockItemList())
     {
-        for (auto *item_ctx : itemlist_ctx->blockItem())
+        auto *last_ctx = itemlist_ctx->blockItem().back();
+        if (auto *statement_ctx = last_ctx->statement())
         {
-            // We check for return statements here because we only want to check if this function *ends* with a return
-            // statement
-            if (auto *statement_ctx = item_ctx->statement())
+            if (auto *jump_ctx = statement_ctx->jumpStatement())
             {
-                if (auto *jump_statement_ctx = statement_ctx->jumpStatement())
+                if (jump_ctx->Return())
                 {
-                    if (jump_statement_ctx->Return())
-                    {
-                        current_function->has_return = true;
-                    }
+                    current_function->has_trailing_return = true;
                 }
             }
+        }
 
+        for (auto *item_ctx : itemlist_ctx->blockItem())
+        {
             visit(item_ctx);
         }
     }
