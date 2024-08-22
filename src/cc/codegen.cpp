@@ -95,7 +95,10 @@ any CodeGen::visitJumpStatement(CParser::JumpStatementContext *ctx)
 {
     if (ctx->Return())
     {
-        visit(ctx->expression());
+        if (ctx->expression())
+        {
+            visit(ctx->expression());
+        }
         teardown_frame();
         output << "\tret\n";
     }
