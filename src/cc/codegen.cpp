@@ -8,10 +8,23 @@ using namespace std;
 using namespace antlr4;
 
 vector<PrimitiveLayout> primitive_layouts = {
-    {{},{}},
-    {{'a'}, {}},
-    {{'l', 'h'}, {"hl"}},
-    {{'l', 'h'}, {"hl"}}
+    {
+        {},
+        {}
+    },
+    {
+            
+        {'a'},
+        {}
+    },
+    {
+        {'l', 'h'},
+        {"hl"}
+    },
+    {
+        {'l', 'h'},
+        {"hl"}
+    }
 };
 
 CodeGen::CodeGen(Module &program_meta, std::ostream &output) : program_meta(program_meta), output(output)
