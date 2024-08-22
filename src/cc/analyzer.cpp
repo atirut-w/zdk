@@ -19,7 +19,7 @@ ParsedType Analyzer::parse_type(CParser::DeclarationSpecifiersContext *ctx, bool
     {
         if (auto *typespec_ctx = specifier_ctx->typeSpecifier())
         {
-            if (no_initlist && specifier_ctx == ctx->declarationSpecifier().back())
+            if (specifier_ctx == ctx->declarationSpecifier().back() && typespec_ctx->typedefName() && no_initlist)
             {
                 break;
             }
