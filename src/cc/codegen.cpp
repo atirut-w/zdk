@@ -55,6 +55,11 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     local_offsets.clear();
     for (auto &local : current_function->locals)
     {
+        if (locals_alloc > 255)
+        {
+            throw runtime_error("too many locals");
+        }
+        
         if (auto *primitive = dynamic_cast<PrimitiveType *>(local.second.get()))
         {
             local_offsets[local.first] = locals_alloc;
