@@ -9,7 +9,8 @@ nav:
   - 'index.md'
   - Development:
     - 'development/compiler-debugging.md'
-  - 'calling-convention.md'
+  - ABI:
+    - 'abi/calling-convention.md'
 
 theme:
   name: material
