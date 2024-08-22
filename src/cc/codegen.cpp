@@ -51,14 +51,27 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
     string name = ctx->declarator()->directDeclarator()->directDeclarator()->Identifier()->getText();
     current_function = &module.functions[name];
 
+    for (auto &local : current_function->locals)
+    {
+        if (auto *primitive = dynamic_cast<PrimitiveType *>(local.second.get()))
+        {
+            local_offsets[local.first] = locals_alloc;
+            locals_alloc += primitive_layouts[primitive->kind].registers.size();
+        }
+        else
+        {
+            throw runtime_error("unsupported local type");
+        }
+    }
+
     output << "\t.global " << name << "\n";
     output << "\t.type " << name << ", @function\n";
     output << name << ":\n";
 
     // TODO: clause for arguments
-    if (!current_function->locals.empty() || false)
+    if (locals_alloc > 0 || false)
     {
-        if (!current_function->locals.empty())
+        if (locals_alloc > 0)
         {
             output << "\tpush iy\n";
         }
@@ -66,22 +79,9 @@ any CodeGen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
         output << "\tld ix, 0\n";
         output << "\tadd ix, sp\n";
 
-        if (!current_function->locals.empty())
+        if (locals_alloc > 0)
         {
-            int alloc_size = 0;
-            for (auto &local : current_function->locals)
-            {
-                if (auto *primitive = dynamic_cast<PrimitiveType *>(local.second.get()))
-                {
-                    alloc_size += primitive_layouts[primitive->kind].registers.size();
-                }
-                else
-                {
-                    throw runtime_error("unsupported local type");
-                }
-            }
-
-            output << "\tld iy, " << -alloc_size << "\n";
+            output << "\tld iy, " << -locals_alloc << "\n";
             output << "\tadd iy, sp\n";
             output << "\tld sp, iy\n";
         }
