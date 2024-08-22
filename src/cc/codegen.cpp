@@ -7,7 +7,7 @@
 using namespace std;
 using namespace antlr4;
 
-vector<PrimitiveLayout> primitive_layouts = {
+const vector<PrimitiveLayout> primitive_layouts = {
     {
         {},
         {}

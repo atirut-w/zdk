@@ -14,7 +14,17 @@ any CodeGen::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx)
         type->kind = PrimitiveType::Int;
         expr_ctx.type = type;
 
-        output << "\tld hl, " << const_ctx->getText() << "\n";
+        if (primitive_layouts[type->kind].registers.size() == 1)
+        {
+            output << "\tld " << primitive_layouts[type->kind].registers[0] << ", " << const_ctx->getText() << "\n";
+        }
+        else
+        {
+            for (auto &pair : primitive_layouts[type->kind].pairs)
+            {
+                output << "\tld " << pair << ", " << const_ctx->getText() << "\n";
+            }
+        }
     }
     else
     {

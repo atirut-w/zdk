@@ -22,6 +22,8 @@ struct PrimitiveLayout
     std::vector<std::string> pairs;
 };
 
+extern const std::vector<PrimitiveLayout> primitive_layouts;
+
 class CodeGen : public CBaseVisitor
 {
     Module &program_meta;
