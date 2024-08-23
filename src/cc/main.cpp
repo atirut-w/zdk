@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <config.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -78,10 +79,12 @@ int main(int argc, char *argv[])
         clang_preamble += "-I" + include.string() + " ";
     }
 
+#ifdef CLANG_VALIDATION_ENABLED
     if (system((clang_preamble + "-fsyntax-only " + source.string()).c_str()))
     {
         return 1;
     }
+#endif
     if (system(
             (clang_preamble + "-E " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
     {
