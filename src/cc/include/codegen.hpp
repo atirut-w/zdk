@@ -26,7 +26,7 @@ extern const std::vector<PrimitiveLayout> primitive_layouts;
 
 class CodeGen : public CBaseVisitor
 {
-    std::ostream &output;
+    std::ostream &os;
     Module &module;
 
     Function *current_function = nullptr;
