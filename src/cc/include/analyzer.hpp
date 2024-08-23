@@ -4,9 +4,13 @@
 #include <string>
 #include <types.hpp>
 
-struct Function
+struct Symbol
 {
-    ParsedType return_type;
+    ParsedType type;
+};
+
+struct Function : public Symbol
+{
     std::map<std::string, ParsedType> locals;
     bool has_trailing_return = false;
 };
