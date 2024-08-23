@@ -1,13 +1,12 @@
 #pragma once
-#include <map>
 #include <memory>
-#include <string>
-#include <vector>
 
 struct Type
 {
     virtual ~Type() = default; // Force polymorphism
 };
+
+typedef std::shared_ptr<Type> ParsedType;
 
 // TODO: Flesh this out
 struct PrimitiveType : public Type
@@ -23,5 +22,3 @@ struct PrimitiveType : public Type
 };
 
 // TODO: Structs
-
-typedef std::shared_ptr<Type> ParsedType;

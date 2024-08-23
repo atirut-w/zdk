@@ -3,7 +3,6 @@
 #include <analyzer.hpp>
 #include <any>
 #include <memory>
-#include <optional>
 #include <string>
 
 using namespace std;
