@@ -83,13 +83,13 @@ int main(int argc, char *argv[])
     {
         return 0;
     }
-
-    ifstream input(intermediate);
     
     vector<Token> tokens;
     unique_ptr<Program> program;
     try
     {
+        ifstream input(intermediate);
+        
         Lexer lexer(input);
         tokens = lexer.tokenize();
         Parser parser(tokens);
@@ -97,9 +97,11 @@ int main(int argc, char *argv[])
     }
     catch (const PositionalError &e)
     {
+        filesystem::remove(intermediate.replace_extension(".i"));
         cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
         return 1;
     }
+    filesystem::remove(intermediate.replace_extension(".i"));
 
     if (args->get<bool>("-S"))
     {
