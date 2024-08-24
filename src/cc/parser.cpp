@@ -4,7 +4,7 @@ using namespace std;
 
 Token *Parser::expect(Token::Type type)
 {
-    if (tokens.empty())
+    if (index >= tokens.size())
         throw PositionalError(*this, "Unexpected end of input");
 
     if (tokens[index].type != type)
@@ -15,7 +15,7 @@ Token *Parser::expect(Token::Type type)
 
 Token *Parser::expect(const string &text)
 {
-    if (tokens.empty())
+    if (index >= tokens.size())
         throw PositionalError(*this, "Unexpected end of input");
 
     if (tokens[index].text != text)
