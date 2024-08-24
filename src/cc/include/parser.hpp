@@ -30,13 +30,6 @@ struct Program : ASTNode
     FunctionDefinition *function = nullptr;
 };
 
-struct ParserError : std::runtime_error, Positional
-{
-    ParserError(Positional &ctx, const std::string &message) : std::runtime_error(message), Positional(ctx)
-    {
-    }
-};
-
 class Parser : Positional
 {
     std::vector<Token> &tokens;

@@ -45,7 +45,7 @@ bool Lexer::is_boundary(char c) const
 
 void Lexer::error(const string &message)
 {
-    throw LexerError(*this, message);
+    throw PositionalError(*this, message);
 }
 
 vector<Token> Lexer::tokenize()

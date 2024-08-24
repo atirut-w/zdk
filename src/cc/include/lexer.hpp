@@ -23,13 +23,6 @@ struct Token : Positional
     std::any value;
 };
 
-struct LexerError : std::runtime_error, Positional
-{
-    LexerError(Positional &ctx, const std::string &message) : std::runtime_error(message), Positional(ctx)
-    {
-    }
-};
-
 class Lexer : Positional
 {
     std::istream &input;

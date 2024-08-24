@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     {
         tokens = lexer.tokenize();
     }
-    catch (const LexerError &e)
+    catch (const PositionalError &e)
     {
         cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
         return 1;
