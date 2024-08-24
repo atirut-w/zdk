@@ -8,7 +8,8 @@ Token *Parser::expect(Token::Type type)
         throw PositionalError(*this, "Unexpected end of input");
 
     if (tokens[index].type != type)
-        throw PositionalError(tokens[index], "Unexpected token");
+        throw PositionalError(tokens[index], "Expected token type " + to_string(static_cast<int>(type)) + ", got " +
+                                                 to_string(static_cast<int>(tokens.front().type)));
 
     return &tokens[index++];
 }
