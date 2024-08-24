@@ -85,21 +85,21 @@ int main(int argc, char *argv[])
     }
 
     ifstream input(intermediate);
-    Lexer lexer(input);
-
+    
     vector<Token> tokens;
+    unique_ptr<Program> program;
     try
     {
+        Lexer lexer(input);
         tokens = lexer.tokenize();
+        Parser parser(tokens);
+        program = parser.parse();
     }
     catch (const PositionalError &e)
     {
         cerr << source.c_str() << ":" << e.line << ":" << e.col << ": " << e.what() << endl;
         return 1;
     }
-
-    Parser parser(tokens);
-    auto program = parser.parse();
 
     if (args->get<bool>("-S"))
     {
