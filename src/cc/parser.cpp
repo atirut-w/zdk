@@ -64,5 +64,7 @@ unique_ptr<Program> Parser::parse()
     program->function = parse_function();
     program->children.push_back(unique_ptr<FunctionDefinition>(program->function));
 
+    if (index < tokens.size())
+        throw PositionalError(tokens[index], "Unexpected token");
     return program;
 }
