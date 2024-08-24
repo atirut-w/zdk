@@ -27,17 +27,31 @@ struct FunctionDefinition : ASTNode
 
 struct Program : ASTNode
 {
-    FunctionDefinition *main = nullptr;
+    FunctionDefinition *function = nullptr;
 };
 
-class Parser
+struct ParserError : std::runtime_error, Positional
+{
+    ParserError(Positional &ctx, const std::string &message) : std::runtime_error(message), Positional(ctx)
+    {
+    }
+};
+
+class Parser : Positional
 {
     std::vector<Token> &tokens;
+    int index = 0;
 
 public:
     Parser(std::vector<Token> &tokens) : tokens(tokens)
     {
     }
 
+    Token *expect(Token::Type type);
+    Token *expect(const std::string &text);
+
     std::unique_ptr<Program> parse();
+    FunctionDefinition *parse_function();
+    Statement *parse_statement();
+    Expression *parse_expression();
 };
