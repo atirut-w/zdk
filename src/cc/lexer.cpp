@@ -39,6 +39,8 @@ bool Lexer::is_boundary(char c) const
         '{',
         '}',
         ';',
+        '~',
+        '-',
     };
     return isspace(c) || find(boundaries.begin(), boundaries.end(), c) != boundaries.end();
 }
@@ -118,6 +120,26 @@ vector<Token> Lexer::tokenize()
         {
             token.type = Token::Type::Semicolon;
             text = get();
+        }
+        else if (ch == '~')
+        {
+            token.type = Token::Type::Tilde;
+            text = get();
+        }
+        else if (ch == '-')
+        {
+            text = get();
+            ch = peek();
+
+            if (ch == '-')
+            {
+                token.type = Token::Type::MinusMinus;
+                text += get();
+            }
+            else
+            {
+                token.type = Token::Type::Minus;
+            }
         }
         else
         {

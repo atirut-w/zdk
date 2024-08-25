@@ -10,14 +10,22 @@ struct Token : Positional
 {
     enum class Type
     {
+        // Some important constructs
         Identifier,
         Constant,
         Keyword,
+
+        // Misc
         LParen,
         RParen,
         LBrace,
         RBrace,
         Semicolon,
+
+        // Idk what to call these
+        Tilde,
+        Minus,
+        MinusMinus,
     } type;
     std::string text;
     std::any value;
