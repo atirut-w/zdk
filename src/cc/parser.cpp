@@ -5,10 +5,10 @@ using namespace std;
 Token *Parser::expect(Token::Type type)
 {
     if (index >= tokens.size())
-        throw PositionalError(*this, "Unexpected end of input");
+        throw PositionalError(*this, "unexpected end of input");
 
     if (tokens[index].type != type)
-        throw PositionalError(tokens[index], "Expected token type " + to_string(static_cast<int>(type)) + ", got " +
+        throw PositionalError(tokens[index], "expected token type " + to_string(static_cast<int>(type)) + ", got " +
                                                  to_string(static_cast<int>(tokens[index].type)));
 
     return &tokens[index++];
@@ -17,10 +17,10 @@ Token *Parser::expect(Token::Type type)
 Token *Parser::expect(const string &text)
 {
     if (index >= tokens.size())
-        throw PositionalError(*this, "Unexpected end of input");
+        throw PositionalError(*this, "unexpected end of input");
 
     if (tokens[index].text != text)
-        throw PositionalError(tokens[index], "Expected '" + text + "', got '" + tokens[index].text + "'");
+        throw PositionalError(tokens[index], "expected '" + text + "', got '" + tokens[index].text + "'");
 
     return &tokens[index++];
 }
