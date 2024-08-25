@@ -1,3 +1,4 @@
+#include "codegen.hpp"
 #include <argparse/argparse.hpp>
 #include <filesystem>
 #include <fstream>
@@ -83,13 +84,13 @@ int main(int argc, char *argv[])
     {
         return 0;
     }
-    
+
     vector<Token> tokens;
     unique_ptr<Program> program;
     try
     {
         ifstream input(intermediate);
-        
+
         Lexer lexer(input);
         tokens = lexer.tokenize();
         Parser parser(tokens);
@@ -102,6 +103,10 @@ int main(int argc, char *argv[])
         return 1;
     }
     filesystem::remove(intermediate.replace_extension(".i"));
+
+    ofstream output(intermediate.replace_extension(".s"));
+    Codegen codegen(output);
+    codegen.visit(program.get());
 
     if (args->get<bool>("-S"))
     {
