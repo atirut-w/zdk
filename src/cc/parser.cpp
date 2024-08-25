@@ -9,7 +9,7 @@ Token *Parser::expect(Token::Type type)
 
     if (tokens[index].type != type)
         throw PositionalError(tokens[index], "Expected token type " + to_string(static_cast<int>(type)) + ", got " +
-                                                 to_string(static_cast<int>(tokens.front().type)));
+                                                 to_string(static_cast<int>(tokens[index].type)));
 
     return &tokens[index++];
 }
@@ -20,7 +20,7 @@ Token *Parser::expect(const string &text)
         throw PositionalError(*this, "Unexpected end of input");
 
     if (tokens[index].text != text)
-        throw PositionalError(tokens[index], "Expected '" + text + "', got '" + tokens.front().text + "'");
+        throw PositionalError(tokens[index], "Expected '" + text + "', got '" + tokens[index].text + "'");
 
     return &tokens[index++];
 }
