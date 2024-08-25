@@ -11,7 +11,10 @@ typedef std::variant<int, float, char> ConstantValue;
 
 struct ExpressionCtx
 {
+    std::string name;
     ParsedType type;
+    bool loaded = false;
+    int postfix = 0;
 };
 
 struct PrimitiveLayout
@@ -38,7 +41,8 @@ class CodeGen : public CBaseVisitor
     virtual std::any visitJumpStatement(CParser::JumpStatementContext *ctx) override;
 
     // All of these are for math expressions. Yes, all of them.
-    virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
+    // virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override; // Your pain starts here
+    virtual std::any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
 public:
     CodeGen(Module &module, std::ostream &output);
 };
