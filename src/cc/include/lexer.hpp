@@ -2,7 +2,6 @@
 #include <any>
 #include <istream>
 #include <positional.hpp>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -34,6 +33,7 @@ struct Token : Positional
 class Lexer : Positional
 {
     std::istream &input;
+    Token current;
 
     bool eof() const
     {

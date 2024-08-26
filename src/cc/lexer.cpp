@@ -56,8 +56,8 @@ vector<Token> Lexer::tokenize()
 
     while (peek() != EOF)
     {
-        Token token = {line, col};
-        string &text = token.text;
+        current = {line, col};
+        string &text = current.text;
         char ch = peek();
 
         if (isspace(ch))
@@ -78,9 +78,9 @@ vector<Token> Lexer::tokenize()
                 error("unexpected character: " + string(1, ch));
 
             if (text == "void" || text == "int" || text == "return")
-                token.type = Token::Type::Keyword;
+                current.type = Token::Type::Keyword;
             else
-                token.type = Token::Type::Identifier;
+                current.type = Token::Type::Identifier;
         }
         else if (isdigit(ch))
         {
@@ -93,60 +93,53 @@ vector<Token> Lexer::tokenize()
             if (!is_boundary(ch))
                 error("unexpected character: " + string(1, ch));
 
-            token.type = Token::Type::Constant;
-            token.value = stoi(text);
-        }
-        else if (ch == '(')
-        {
-            token.type = Token::Type::LParen;
-            text = get();
-        }
-        else if (ch == ')')
-        {
-            token.type = Token::Type::RParen;
-            text = get();
-        }
-        else if (ch == '{')
-        {
-            token.type = Token::Type::LBrace;
-            text = get();
-        }
-        else if (ch == '}')
-        {
-            token.type = Token::Type::RBrace;
-            text = get();
-        }
-        else if (ch == ';')
-        {
-            token.type = Token::Type::Semicolon;
-            text = get();
-        }
-        else if (ch == '~')
-        {
-            token.type = Token::Type::Tilde;
-            text = get();
-        }
-        else if (ch == '-')
-        {
-            text = get();
-            ch = peek();
-
-            if (ch == '-')
-            {
-                token.type = Token::Type::MinusMinus;
-                text += get();
-            }
-            else
-            {
-                token.type = Token::Type::Minus;
-            }
+            current.type = Token::Type::Constant;
+            current.value = stoi(text);
         }
         else
         {
-            error("unrecognized character: " + string(1, ch));
+            // Process punctuation
+            text = get();
+            
+            switch (ch)
+            {
+            default:
+                error("unexpected character: " + text);
+            case '(':
+                current.type = Token::Type::LParen;
+                break;
+            case ')':
+                current.type = Token::Type::RParen;
+                break;
+            case '{':
+                current.type = Token::Type::LBrace;
+                break;
+            case '}':
+                current.type = Token::Type::RBrace;
+                break;
+            case ';':
+                current.type = Token::Type::Semicolon;
+                break;
+            case '~':
+                current.type = Token::Type::Tilde;
+                break;
+            case '-':
+                ch = peek();
+
+                if (ch == '-')
+                {
+                    current.type = Token::Type::MinusMinus;
+                    text += get();
+                }
+                else
+                {
+                    current.type = Token::Type::Minus;
+                }
+                break;
+            }
         }
 
-        tokens.push_back(token);
+        tokens.push_back(current);
     }
 
     return tokens;
