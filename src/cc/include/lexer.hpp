@@ -1,6 +1,7 @@
 #pragma once
 #include <any>
 #include <istream>
+#include <optional>
 #include <positional.hpp>
 #include <string>
 #include <vector>
@@ -33,7 +34,6 @@ struct Token : Positional
 class Lexer : Positional
 {
     std::istream &input;
-    Token current;
 
     bool eof() const
     {
@@ -49,5 +49,6 @@ public:
     {
     }
 
+    std::optional<Token> next();
     std::vector<Token> tokenize();
 };
