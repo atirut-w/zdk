@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     }
 #endif
     if (system(
-            (clang_preamble + "-E " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
+            (clang_preamble + "-E -P " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
     {
         cerr << "BUG: clang -E failed despite syntax check passing" << endl;
         return 1;
