@@ -3,6 +3,7 @@
 #include <analyzer.hpp>
 #include <argparse/argparse.hpp>
 #include <codegen.hpp>
+#include <config.hpp>
 #include <cstdlib>
 #include <error.hpp>
 #include <filesystem>
@@ -10,7 +11,6 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <config.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -86,8 +86,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 #endif
-    if (system(
-            (clang_preamble + "-E -P " + source.string() + " > " + intermediate.replace_extension(".i").string()).c_str()))
+    if (system((clang_preamble + "-E -P " + source.string() + " > " + intermediate.replace_extension(".i").string())
+                   .c_str()))
     {
         cerr << "BUG: clang -E failed despite syntax check passing" << endl;
         return 1;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     ifstream input(intermediate.replace_extension(".i"));
     ANTLRInputStream input_stream(input);
     input_stream.name = source.string();
-    
+
     CLexer lexer(&input_stream);
     CommonTokenStream tokens(&lexer);
     CParser parser(&tokens);
