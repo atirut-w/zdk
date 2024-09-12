@@ -4,6 +4,7 @@
 #include <argparse/argparse.hpp>
 #include <codegen.hpp>
 #include <cstdlib>
+#include <error.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -98,9 +99,17 @@ int main(int argc, char *argv[])
 
     ifstream input(intermediate.replace_extension(".i"));
     ANTLRInputStream input_stream(input);
+    input_stream.name = source.string();
+    
     CLexer lexer(&input_stream);
     CommonTokenStream tokens(&lexer);
     CParser parser(&tokens);
+
+    lexer.removeErrorListeners();
+    parser.removeErrorListeners();
+    auto listener = make_unique<CCErrorListener>();
+    lexer.addErrorListener(listener.get());
+    parser.addErrorListener(listener.get());
 
     filesystem::remove(intermediate.replace_extension(".i"));
     tree::ParseTree *tree = parser.compilationUnit();
