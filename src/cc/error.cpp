@@ -24,7 +24,7 @@ void CCErrorListener::syntaxError(Recognizer *recognizer, Token *offendingSymbol
     for (size_t i = 0; i < line; i++)
         getline(file, lineText);
 
-    printf(CALLOUT_FMT, source.c_str(), line, charPositionInLine, 31, "error", msg.c_str());
+    printf(CALLOUT_FMT, source.c_str(), line, charPositionInLine + 1, 31, "error", msg.c_str());
     printf(CALLOUT_INFO_FMT, line, lineText.c_str());
     printf(CALLOUT_ARROW_FMT, 5, "", static_cast<int>(charPositionInLine), "", 31);
 }
