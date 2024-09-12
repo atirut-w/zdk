@@ -23,13 +23,13 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 
     // Source file
     parser->add_argument("source").help("Source file").action([](const string &value) {
-        return filesystem::absolute(value);
+        return filesystem::path(value);
     });
 
     // Include directories
     parser->add_argument("-I", "--include")
         .help("Add directory to include search path")
-        .action([](const string &value) { return filesystem::absolute(value); })
+        .action([](const string &value) { return filesystem::path(value); })
         .nargs(nargs_pattern::any);
 
     ArgumentParser::MutuallyExclusiveGroup &stage = parser->add_mutually_exclusive_group(false);
