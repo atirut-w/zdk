@@ -5,7 +5,17 @@
 
 namespace ZIR
 {
-typedef std::variant<int, std::string> Operand;
+struct Operand
+{
+    enum AddressingMode
+    {
+        IMMEDIATE,
+        DIRECT,
+    };
+    
+    std::variant<int, std::string> value;
+    AddressingMode mode;
+};
 
 struct Instruction
 {
@@ -25,14 +35,7 @@ struct Instruction
         SUBTRACT,
     };
 
-    enum AddressingMode
-    {
-        IMMEDIATE,
-        DIRECT,
-    };
-
     Operation operation;
-    AddressingMode addressing_mode;
     std::optional<Operand> operand;
 };
 } // namespace ZIR
