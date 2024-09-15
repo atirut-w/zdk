@@ -17,6 +17,7 @@ struct Module
     struct Function : public Symbol
     {
         std::vector<Instruction> instructions;
+        std::vector<std::unique_ptr<Symbol>> locals;
     };
 
     std::vector<std::unique_ptr<Symbol>> symbols;

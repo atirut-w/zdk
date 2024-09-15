@@ -13,6 +13,7 @@ struct Instruction
     {
         // Basic operations
         LOAD,
+        STORE,
         RETURN,
 
         // Unary operations
@@ -27,6 +28,7 @@ struct Instruction
     enum AddressingMode
     {
         IMMEDIATE,
+        DIRECT,
     };
 
     Operation operation;
