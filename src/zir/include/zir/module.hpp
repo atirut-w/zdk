@@ -1,5 +1,6 @@
 #pragma once
 #include "instruction.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -17,5 +18,7 @@ struct Module
     {
         std::vector<Instruction> instructions;
     };
+
+    std::vector<std::unique_ptr<Symbol>> symbols;
 };
 } // namespace ZIR
