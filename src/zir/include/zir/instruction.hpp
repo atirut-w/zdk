@@ -24,6 +24,8 @@ struct Instruction
         // Basic operations
         LOAD,
         STORE,
+        PUSH,
+        POP,
         RETURN,
 
         // Unary operations
