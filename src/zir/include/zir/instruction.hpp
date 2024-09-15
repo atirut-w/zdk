@@ -14,6 +14,10 @@ struct Instruction
         // Basic operations
         LOAD,
         RETURN,
+
+        // Unary operations
+        NEGATE,
+        COMPLEMENT,
     };
 
     enum AddressingMode
