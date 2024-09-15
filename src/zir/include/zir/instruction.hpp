@@ -5,10 +5,10 @@
 
 namespace ZIR
 {
+typedef std::variant<int, std::string> Operand;
+
 struct Instruction
 {
-    typedef std::variant<int, std::string> Operand;
-
     enum Operation
     {
         // Basic operations
