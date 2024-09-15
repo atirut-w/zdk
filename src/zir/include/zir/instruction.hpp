@@ -11,7 +11,9 @@ struct Instruction
 
     enum Operation
     {
+        // Basic operations
         LOAD,
+        RETURN,
     };
 
     enum AddressingMode
