@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
     if (system((clang_preamble + "-E -P " + source.string() + " > " + intermediate.replace_extension(".i").string())
                    .c_str()))
     {
+        filesystem::remove(intermediate.replace_extension(".i"));
         return 1;
     }
     if (args->get<bool>("-E"))
