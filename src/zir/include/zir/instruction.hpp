@@ -18,6 +18,10 @@ struct Instruction
         // Unary operations
         NEGATE,
         COMPLEMENT,
+
+        // Binary operations
+        ADD,
+        SUBTRACT,
     };
 
     enum AddressingMode
