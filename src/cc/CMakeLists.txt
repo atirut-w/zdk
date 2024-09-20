@@ -1,4 +1,4 @@
-set(CLANG_VALIDATION_ENABLED ON)
+set(CLANG_VALIDATION ON)
 configure_file(config.hpp.in include/config.hpp)
 
 add_custom_command(

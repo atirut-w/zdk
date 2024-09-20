@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
         clang_preamble += "-I" + include.string() + " ";
     }
 
-#ifdef CLANG_VALIDATION_ENABLED
+#ifdef CLANG_VALIDATION
     if (system((clang_preamble + "-fsyntax-only " + source.string()).c_str()))
     {
         return 1;
