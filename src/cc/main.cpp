@@ -1,8 +1,7 @@
+#include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
-#include <analyzer.hpp>
 #include <argparse/argparse.hpp>
-#include <codegen.hpp>
 #include <config.hpp>
 #include <cstdlib>
 #include <error.hpp>
@@ -115,7 +114,6 @@ int main(int argc, char *argv[])
     tree::ParseTree *tree = parser.compilationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
-        cerr << "BUG: ANTLR syntax error. mayhapes C version newer than C11?" << endl;
         return 1;
     }
     if (args->get<bool>("--dump-ast"))
@@ -124,12 +122,12 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    std::ofstream output(intermediate.replace_extension(".s"));
+    // std::ofstream output(intermediate.replace_extension(".s"));
 
-    Analyzer analyzer;
-    Module module = any_cast<Module>(analyzer.visit(tree));
-    CodeGen codegen(module, output);
-    codegen.visit(tree);
+    // Analyzer analyzer;
+    // Module module = any_cast<Module>(analyzer.visit(tree));
+    // CodeGen codegen(module, output);
+    // codegen.visit(tree);
 
     if (args->get<bool>("-S"))
     {
