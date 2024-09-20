@@ -1,3 +1,4 @@
+#include "ANTLRInputStream.h"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -9,11 +10,14 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <vector>
+#include <zir/module.hpp>
 
 using namespace std;
 using namespace argparse;
 using namespace antlr4;
+using namespace ZIR;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
 {
@@ -67,36 +71,28 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     return parser;
 }
 
-int main(int argc, char *argv[])
+bool validate(const string &preamble, const filesystem::path &source)
 {
-    auto args = parse_args(argc, argv);
-    const auto source = args->get<filesystem::path>("source");
-    filesystem::path intermediate = source;
-
-    string clang_preamble = "exec -a zdk-cc clang -nostdinc -nostdlib ";
-    for (auto &include : args->get<vector<filesystem::path>>("--include"))
-    {
-        clang_preamble += "-I" + include.string() + " ";
-    }
-
 #ifdef CLANG_VALIDATION
-    if (system((clang_preamble + "-fsyntax-only " + source.string()).c_str()))
-    {
-        return 1;
-    }
+    return system(("clang " + preamble + "-fsyntax-only " + source.string()).c_str()) == 0;
+#else
+    return true;
 #endif
-    if (system((clang_preamble + "-E -P " + source.string() + " > " + intermediate.replace_extension(".i").string())
-                   .c_str()))
-    {
-        filesystem::remove(intermediate.replace_extension(".i"));
-        return 1;
-    }
-    if (args->get<bool>("-E"))
-    {
-        return 0;
-    }
+}
 
-    ifstream input(intermediate.replace_extension(".i"));
+bool preprocess(const string &preamble, const filesystem::path source, const filesystem::path intermediate)
+{
+    if (system(("cpp -P " + preamble + source.string() + " > " + intermediate.string()).c_str()) != 0)
+    {
+        filesystem::remove(intermediate);
+        return false;
+    }
+    return true;
+}
+
+optional<Module> compile_ir(const filesystem::path &source, bool dump_ast)
+{
+    ifstream input(source);
     ANTLRInputStream input_stream(input);
     input_stream.name = source.string();
 
@@ -110,16 +106,66 @@ int main(int argc, char *argv[])
     lexer.addErrorListener(listener.get());
     parser.addErrorListener(listener.get());
 
-    filesystem::remove(intermediate.replace_extension(".i"));
     tree::ParseTree *tree = parser.compilationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
-        return 1;
+        return nullopt;
     }
-    if (args->get<bool>("--dump-ast"))
+    else if (dump_ast)
     {
         cout << tree->toStringTree(&parser, true) << endl;
+        return nullopt;
+    }
+
+    // TODO: Implement IR generation
+    return Module();
+}
+
+bool assemble(const filesystem::path source, const filesystem::path intermediate)
+{
+    return system(("z80-elf-as " + source.string() + " -o " + intermediate.string()).c_str()) == 0;
+}
+
+bool link(const filesystem::path source, const filesystem::path intermediate)
+{
+    return system(("z80-elf-ld " + source.string() + " -o " + intermediate.string()).c_str()) == 0;
+}
+
+int main(int argc, char *argv[])
+{
+    auto args = parse_args(argc, argv);
+    const auto source = args->get<filesystem::path>("source");
+    filesystem::path intermediate = source;
+
+    string cc_preamble = "-nostdinc -nostdlib ";
+    auto includes = args->get<vector<filesystem::path>>("--include");
+    for (auto &include : includes)
+    {
+        cc_preamble += "-I" + include.string() + " ";
+    }
+
+    if (!validate(cc_preamble, source))
+    {
+        return 1;
+    }
+    if (!preprocess(cc_preamble, source, intermediate.replace_extension(".i")))
+    {
+        return 1;
+    }
+    if (args->get<bool>("-E"))
+    {
         return 0;
+    }
+
+    auto module = compile_ir(intermediate.replace_extension(".i"), args->get<bool>("--dump-ast"));
+    filesystem::remove(intermediate.replace_extension(".i"));
+    if (!module)
+    {
+        if (args->get<bool>("--dump-ast"))
+        {
+            return 0;
+        }
+        return 1;
     }
 
     // std::ofstream output(intermediate.replace_extension(".s"));
@@ -133,9 +179,7 @@ int main(int argc, char *argv[])
     {
         return 0;
     }
-    if (system(("z80-elf-as " + intermediate.replace_extension(".s").string() + " -o " +
-                intermediate.replace_extension(".o").string())
-                   .c_str()))
+    if (!assemble(intermediate.replace_extension(".s"), intermediate.replace_extension(".o")))
     {
         return 1;
     }
@@ -145,7 +189,7 @@ int main(int argc, char *argv[])
     {
         return 0;
     }
-    if (system(("z80-elf-ld " + intermediate.replace_extension(".o").string() + " -o a.out").c_str()))
+    if (!link(intermediate.replace_extension(".o"), intermediate.replace_extension(".elf")))
     {
         return 1;
     }
