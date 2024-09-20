@@ -4,7 +4,6 @@ using namespace std;
 using namespace antlr4;
 using namespace ZIR;
 
-const Module &IRGen::get_module() const
+IRGen::IRGen(Module &module) : module(module)
 {
-    return module;
 }

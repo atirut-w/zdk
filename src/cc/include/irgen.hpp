@@ -4,8 +4,8 @@
 
 class IRGen : public CBaseVisitor
 {
-    ZIR::Module module;
+    ZIR::Module &module;
 
 public:
-    const ZIR::Module &get_module() const;
+    IRGen(ZIR::Module &module);
 };

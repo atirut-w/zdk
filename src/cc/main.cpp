@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 #include <zir/module.hpp>
 
@@ -91,7 +92,7 @@ bool preprocess(const string &preamble, const filesystem::path source, const fil
     return true;
 }
 
-optional<Module> compile_ir(const filesystem::path &source, bool dump_ast)
+optional<const Module> compile_ir(const filesystem::path &source, bool dump_ast)
 {
     ifstream input(source);
     ANTLRInputStream input_stream(input);
@@ -110,17 +111,18 @@ optional<Module> compile_ir(const filesystem::path &source, bool dump_ast)
     tree::ParseTree *tree = parser.compilationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
-        return nullopt;
+        return {};
     }
     else if (dump_ast)
     {
         cout << tree->toStringTree(&parser, true) << endl;
-        return nullopt;
+        return {};
     }
 
-    IRGen irgen;
+    Module module;
+    IRGen irgen(module);
     irgen.visit(tree);
-    return irgen.get_module();
+    return module;
 }
 
 bool assemble(const filesystem::path source, const filesystem::path intermediate)
