@@ -1,4 +1,4 @@
-set(CLANG_VALIDATION ON CACHE BOOL "Validate input with Clang")
+set(CLANG_VALIDATION OFF CACHE BOOL "Validate input with Clang")
 configure_file(config.hpp.in include/config.hpp)
 
 add_custom_command(
