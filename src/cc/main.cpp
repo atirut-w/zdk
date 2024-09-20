@@ -1,4 +1,5 @@
 #include "ANTLRInputStream.h"
+#include "codegen.hpp"
 #include "error.hpp"
 #include "irgen.hpp"
 #include <CLexer.h>
@@ -12,7 +13,6 @@
 #include <iostream>
 #include <memory>
 #include <optional>
-#include <utility>
 #include <vector>
 #include <zir/module.hpp>
 
@@ -172,12 +172,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // std::ofstream output(intermediate.replace_extension(".s"));
-
-    // Analyzer analyzer;
-    // Module module = any_cast<Module>(analyzer.visit(tree));
-    // CodeGen codegen(module, output);
-    // codegen.visit(tree);
+    std::ofstream output(intermediate.replace_extension(".s"));
+    Codegen codegen(output, *module);
+    codegen.generate();
 
     if (args->get<bool>("-S"))
     {
