@@ -12,5 +12,5 @@ C compiler and libraries for Z80 development.
 - Clang for validating input code.
 
 ## General Goals
-- [ ] C compiler. It won't implement the entire C standard, of course, but it should be just enough™ to write most programs.
-- [ ] Standard library.
+- [ ] C90 compiler.
+- [ ] A platform-agnostic implementation of the C90 standard library.
