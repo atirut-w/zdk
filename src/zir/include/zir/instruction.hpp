@@ -1,33 +1,15 @@
 #pragma once
-#include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace ZIR
 {
-struct Operand
-{
-    enum AddressingMode
-    {
-        IMMEDIATE,
-        DIRECT,
-    };
-    
-    std::variant<int, std::string> value;
-    AddressingMode mode;
-};
-
+// A three-address ZIR instruction
 struct Instruction
 {
     enum Operation
     {
-        // Basic operations
-        LOAD,
-        STORE,
-        PUSH,
-        POP,
-        RETURN,
-
         // Unary operations
         NEGATE,
         COMPLEMENT,
@@ -37,7 +19,10 @@ struct Instruction
         SUBTRACT,
     };
 
+    typedef std::variant<int, std::string> Operand;
+
     Operation operation;
-    std::optional<Operand> operand;
+    Operand result;
+    std::vector<Operand> operands;
 };
 } // namespace ZIR
