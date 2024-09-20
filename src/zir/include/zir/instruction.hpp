@@ -24,5 +24,7 @@ struct Instruction
     Operation operation;
     Operand result;
     std::vector<Operand> operands;
+
+    Instruction &operator+=(const Operand &operand);
 };
 } // namespace ZIR
