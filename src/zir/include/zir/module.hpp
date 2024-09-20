@@ -18,6 +18,8 @@ struct Module
     {
         std::vector<Instruction> instructions;
         std::vector<std::unique_ptr<Symbol>> locals;
+
+        Function &operator+=(const Instruction &instruction);
     };
 
     std::vector<std::unique_ptr<Symbol>> symbols;
