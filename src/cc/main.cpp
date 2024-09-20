@@ -1,5 +1,6 @@
 #include "ANTLRInputStream.h"
 #include "error.hpp"
+#include "irgen.hpp"
 #include <CLexer.h>
 #include <CParser.h>
 #include <argparse/argparse.hpp>
@@ -117,8 +118,9 @@ optional<Module> compile_ir(const filesystem::path &source, bool dump_ast)
         return nullopt;
     }
 
-    // TODO: Implement IR generation
-    return Module();
+    IRGen irgen;
+    irgen.visit(tree);
+    return irgen.get_module();
 }
 
 bool assemble(const filesystem::path source, const filesystem::path intermediate)
