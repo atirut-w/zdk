@@ -10,9 +10,7 @@ struct Instruction
 {
     enum Operation
     {
-        // Unary operations
-        NEGATE,
-        COMPLEMENT,
+        UNARY,
 
         // Binary operations
         ADD,
