@@ -29,7 +29,7 @@ any IRGen::visitStatement(CParser::StatementContext *ctx)
     if (auto *ret = ctx->Return())
     {
         auto operand = any_cast<Operand>(visit(ctx->expression()));
-        *current_function += Instruction(Instruction::RETURN, operand);
+        *current_function += (Instruction(Instruction::RETURN) += operand);
         return operand;
     }
     throw runtime_error("not implemented");
