@@ -5,6 +5,15 @@
 
 namespace ZIR
 {
+struct Operand
+{
+    typedef std::variant<std::string, int> Value;
+
+    const Value value;
+
+    Operand(const Value &value);
+};
+
 // A three-address ZIR instruction
 struct Instruction
 {
@@ -16,8 +25,6 @@ struct Instruction
         ADD,
         SUBTRACT,
     };
-
-    typedef std::variant<int, std::string> Operand;
 
     Operation operation;
     Operand result;

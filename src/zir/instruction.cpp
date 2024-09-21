@@ -4,6 +4,10 @@
 using namespace std;
 using namespace ZIR;
 
+Operand::Operand(const Value &value) : value(value)
+{
+}
+
 Instruction &Instruction::operator+=(const Operand &operand)
 {
     if (operands.size() == 2)
