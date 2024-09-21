@@ -1,7 +1,9 @@
 #pragma once
 #include "zir/instruction.hpp"
 #include "zir/module.hpp"
+#include <map>
 #include <ostream>
+#include <string>
 
 class Codegen
 {
@@ -10,8 +12,13 @@ class Codegen
 
 public:
     Codegen(std::ostream &out, const ZIR::Module &module);
+    struct
+    {
+        std::map<std::string, int> local_offsets;
+    } ctx;
 
     void load(const ZIR::Operand &operand);
+    void store(const ZIR::Operand &operand);
 
     void generate();
     void generate_function(const ZIR::Module::Function &function);

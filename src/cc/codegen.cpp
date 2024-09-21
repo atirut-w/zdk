@@ -14,6 +14,24 @@ void Codegen::load(const Operand &operand)
     {
         out << "\tld hl, " << get<int>(operand.value) << "\n";
     }
+    else if (holds_alternative<string>(operand.value))
+    {
+        out << "\tld l, (iy + " << ctx.local_offsets[get<string>(operand.value)] << ")\n";
+        out << "\tld h, (iy + " << ctx.local_offsets[get<string>(operand.value)] + 1 << ")\n";
+    }
+    else
+    {
+        throw runtime_error("not implemented");
+    }
+}
+
+void Codegen::store(const Operand &operand)
+{
+    if (holds_alternative<string>(operand.value))
+    {
+        out << "\tld (iy + " << ctx.local_offsets[get<string>(operand.value)] << "), l\n";
+        out << "\tld (iy + " << ctx.local_offsets[get<string>(operand.value)] + 1 << "), h\n";
+    }
     else
     {
         throw runtime_error("not implemented");
@@ -38,10 +56,36 @@ void Codegen::generate_function(const Module::Function &function)
     out << "\t.global " << function.name << "\n";
     out << "\t.type " << function.name << ", @function\n";
     out << function.name << ":\n";
+    ctx = {};
+
+    int offset = 0;
+    for (const auto &local : function.locals)
+    {
+        ctx.local_offsets[local->name] = offset;
+        offset += 2;
+    }
+
+    if (function.locals.size() > 0)
+    {
+        out << "\tpush iy\n";
+        out << "\tpush ix\n";
+        out << "\tld ix , 0\n";
+        out << "\tadd ix, sp\n";
+        out << "\tld iy, -" << function.locals.size() * 2 << "\n";
+        out << "\tadd iy, ix\n";
+        out << "\tld sp, iy\n";
+    }
 
     for (const auto &instruction : function.instructions)
     {
         generate_instruction(instruction);
+    }
+
+    if (function.locals.size() > 0)
+    {
+        out << "\tld sp, ix\n";
+        out << "\tpop ix\n";
+        out << "\tpop iy\n";
     }
 }
 
@@ -54,6 +98,33 @@ void Codegen::generate_instruction(const Instruction &instruction)
     case Instruction::RETURN:
         load(instruction.operands[0]);
         out << "\tret\n";
+        break;
+    case Instruction::UNARY:
+        load(instruction.operands[1]);
+
+        switch (get<char>(instruction.operands[0].value))
+        {
+        default:
+            throw runtime_error("not implemented");
+        case '-':
+            out << "\txor a\n";
+            out << "\tsub l\n";
+            out << "\tld l, a\n";
+            out << "\tsbc a, a\n";
+            out << "\tsub h\n";
+            out << "\tld h, a\n";
+            break;
+        case '~':
+            out << "\tld a, l\n";
+            out << "\tcpl\n";
+            out << "\tld l, a\n";
+            out << "\tld a, h\n";
+            out << "\tcpl\n";
+            out << "\tld h, a\n";
+            break;
+        }
+
+        store(instruction.result.value());
         break;
     }
 }
