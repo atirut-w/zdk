@@ -2,7 +2,8 @@ grammar C;
 
 compilationUnit: function;
 
-function: Int Identifier LParen Void RParen LBrace statement RBrace;
+function:
+	Int Identifier LParen Void RParen LBrace statement RBrace;
 
 statement: Return expression Semicolon;
 
