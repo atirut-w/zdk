@@ -7,9 +7,19 @@ function:
 
 statement: Return expression Semicolon;
 
-expression: Constant;
+expression: unaryExpression;
+
+unaryExpression: unaryOperator? primaryExpression;
+
+unaryOperator: Tilde | Minus;
+
+primaryExpression: LParen expression RParen | Constant;
 
 Whitespace: [ \t\r\n] -> skip;
+
+Tilde: '~';
+Minus: '-';
+MinusMinus: '--';
 
 LParen: '(';
 RParen: ')';

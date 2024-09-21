@@ -8,7 +8,7 @@ namespace ZIR
 {
 struct Operand
 {
-    typedef std::variant<std::string, int> Value;
+    typedef std::variant<std::string, char, int> Value;
 
     const Value value;
 
@@ -23,6 +23,7 @@ struct Instruction
         // Return a value
         RETURN,
         
+        // Perform unary operation `operands[0]` on `operands[1]` and store the result in `result`
         UNARY,
     };
 
