@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -19,17 +20,18 @@ struct Instruction
 {
     enum Operation
     {
+        // Return a value
+        RETURN,
+        
         UNARY,
-
-        // Binary operations
-        ADD,
-        SUBTRACT,
     };
 
     Operation operation;
-    Operand result;
+    std::optional<Operand> result;
     std::vector<Operand> operands;
 
+    Instruction(Operation operation);
+    Instruction(Operation operation, const Operand &result);
     Instruction &operator+=(const Operand &operand);
 };
 } // namespace ZIR
