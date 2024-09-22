@@ -17,8 +17,8 @@ void Codegen::load(const Operand &operand)
     }
     else if (holds_alternative<string>(operand.value))
     {
-        out << "\tld l, (iy + " << ctx.local_offsets[get<string>(operand.value)] << ")\n";
-        out << "\tld h, (iy + " << ctx.local_offsets[get<string>(operand.value)] + 1 << ")\n";
+        out << "\tld l, (iy + " << ctx.offsets[get<string>(operand.value)] << ")\n";
+        out << "\tld h, (iy + " << ctx.offsets[get<string>(operand.value)] + 1 << ")\n";
     }
     else
     {
@@ -31,8 +31,8 @@ void Codegen::store(const Operand &operand)
     // TODO: Tie this into the register allocator and make storing to memory implicit
     if (holds_alternative<string>(operand.value))
     {
-        out << "\tld (iy + " << ctx.local_offsets[get<string>(operand.value)] << "), l\n";
-        out << "\tld (iy + " << ctx.local_offsets[get<string>(operand.value)] + 1 << "), h\n";
+        out << "\tld (iy + " << ctx.offsets[get<string>(operand.value)] << "), l\n";
+        out << "\tld (iy + " << ctx.offsets[get<string>(operand.value)] + 1 << "), h\n";
     }
     else
     {
@@ -56,12 +56,12 @@ void Codegen::generate()
 void Codegen::generate_function(const Module::Function &function)
 {
     ctx = {};
-    ctx.current_function = &function;
+    ctx.function = &function;
 
     int offset = 0;
     for (const auto &local : function.locals)
     {
-        ctx.local_offsets[local->name] = offset;
+        ctx.offsets[local->name] = offset;
         offset += 2;
     }
 
@@ -94,7 +94,7 @@ void Codegen::generate_function(const Module::Function &function)
 
 void Codegen::generate_epilogue()
 {
-    if (ctx.current_function->locals.size() > 0)
+    if (ctx.function->locals.size() > 0)
     {
         out << "\tld sp, ix\n";
         out << "\tpop ix\n";
@@ -138,7 +138,7 @@ void Codegen::generate_instruction(const Instruction &instruction)
             break;
         }
 
-        store(instruction.result.value());
+        store(*instruction.result);
         break;
     }
 }
