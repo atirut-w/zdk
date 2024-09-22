@@ -167,6 +167,15 @@ void Codegen::generate_instruction(const Instruction &instruction)
             out << "\txor a\n"; // No plain SUB for 16-bit registers :(
             out << "\tsbc hl, de\n";
             break;
+        case '*':
+            out << "\tcall _mul16\n";
+            break;
+        case '/':
+            out << "\tcall _div16\n";
+            break;
+        case '%':
+            out << "\tcall _mod16\n";
+            break;
         }
 
         store(Z80::R16_HL, *instruction.result);

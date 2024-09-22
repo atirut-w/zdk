@@ -9,7 +9,9 @@ statement: Return expression Semicolon;
 
 expression: additiveExpression;
 
-additiveExpression: unaryExpression ((Plus | Minus) unaryExpression)*;
+additiveExpression: multiplicativeExpression ((Plus | Minus) multiplicativeExpression)*;
+
+multiplicativeExpression: unaryExpression ((Star | Slash | Percent) unaryExpression)*;
 
 unaryExpression: unaryOperator? primaryExpression;
 

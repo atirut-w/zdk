@@ -18,6 +18,7 @@ class IRGen : public CBaseVisitor
 
     virtual std::any visitExpression(CParser::ExpressionContext *ctx) override;
     virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+    virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
     virtual std::any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
     virtual std::any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
 
