@@ -22,13 +22,23 @@ primaryExpression: LParen expression RParen | Constant;
 Whitespace: [ \t\r\n] -> skip;
 
 PlusPlus: '++';
-Plus: '+';
 MinusMinus: '--';
+AndAnd: '&&';
+OrOr: '||';
+Equal: '==';
+NotEqual: '!=';
+
+Plus: '+';
 Minus: '-';
 Star: '*';
 Slash: '/';
 Percent: '%';
 Tilde: '~';
+Not: '!';
+Less: '<';
+LessEqual: '<=';
+Greater: '>';
+GreaterEqual: '>=';
 
 
 LParen: '(';
