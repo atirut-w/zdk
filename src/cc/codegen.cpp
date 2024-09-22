@@ -76,7 +76,7 @@ void Codegen::generate_function(const Module::Function &function)
         out << "\tld ix , 0\n";
         out << "\tadd ix, sp\n";
         out << "\tld iy, -" << function.locals.size() * 2 << "\n";
-        out << "\tadd iy, ix\n";
+        out << "\tadd iy, sp\n";
         out << "\tld sp, iy\n";
     }
 
