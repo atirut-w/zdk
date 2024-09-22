@@ -10,6 +10,7 @@ Codegen::Codegen(std::ostream &out, const Module &module) : out(out), module(mod
 
 void Codegen::load(const Operand &operand)
 {
+    // TODO: Implement linear scan register allocation
     if (holds_alternative<int>(operand.value))
     {
         out << "\tld hl, " << get<int>(operand.value) << "\n";
@@ -27,6 +28,7 @@ void Codegen::load(const Operand &operand)
 
 void Codegen::store(const Operand &operand)
 {
+    // TODO: Tie this into the register allocator and make storing to memory implicit
     if (holds_alternative<string>(operand.value))
     {
         out << "\tld (iy + " << ctx.local_offsets[get<string>(operand.value)] << "), l\n";
