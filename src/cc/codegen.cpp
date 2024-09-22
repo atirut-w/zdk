@@ -125,6 +125,7 @@ void Codegen::generate_instruction(const Instruction &instruction)
 
         load(instruction.operands[1], Z80::R16_HL);
 
+        // TODO: Emit calls to runtime functions for unary operations
         switch (get<char>(instruction.operands[0].value))
         {
         default:
@@ -151,7 +152,7 @@ void Codegen::generate_instruction(const Instruction &instruction)
         break;
     case Instruction::BINARY:
         out << "\t; BINARY\n";
-        
+
         load(instruction.operands[1], Z80::R16_HL);
         load(instruction.operands[2], Z80::R16_DE);
 
