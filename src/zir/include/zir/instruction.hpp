@@ -10,7 +10,7 @@ struct Operand
 {
     typedef std::variant<std::string, char, int> Value;
 
-    const Value value;
+    Value value;
 
     Operand(const Value &value);
 };
