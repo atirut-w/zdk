@@ -125,26 +125,15 @@ void Codegen::generate_instruction(const Instruction &instruction)
 
         load(instruction.operands[1], Z80::R16_HL);
 
-        // TODO: Emit calls to runtime functions for unary operations
         switch (get<char>(instruction.operands[0].value))
         {
         default:
             throw runtime_error("not implemented");
         case '-':
-            out << "\txor a\n";
-            out << "\tsub l\n";
-            out << "\tld l, a\n";
-            out << "\tsbc a, a\n";
-            out << "\tsub h\n";
-            out << "\tld h, a\n";
+            out << "\tcall _neg16\n";
             break;
         case '~':
-            out << "\tld a, l\n";
-            out << "\tcpl\n";
-            out << "\tld l, a\n";
-            out << "\tld a, h\n";
-            out << "\tcpl\n";
-            out << "\tld h, a\n";
+            out << "\tcall _not16\n";
             break;
         }
 
