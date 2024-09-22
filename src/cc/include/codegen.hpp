@@ -14,6 +14,7 @@ public:
     Codegen(std::ostream &out, const ZIR::Module &module);
     struct
     {
+        const ZIR::Module::Function *current_function;
         std::map<std::string, int> local_offsets;
     } ctx;
 
@@ -22,5 +23,6 @@ public:
 
     void generate();
     void generate_function(const ZIR::Module::Function &function);
+    void generate_epilogue();
     void generate_instruction(const ZIR::Instruction &instruction);
 };

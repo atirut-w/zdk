@@ -55,10 +55,8 @@ void Codegen::generate()
 
 void Codegen::generate_function(const Module::Function &function)
 {
-    out << "\t.global " << function.name << "\n";
-    out << "\t.type " << function.name << ", @function\n";
-    out << function.name << ":\n";
     ctx = {};
+    ctx.current_function = &function;
 
     int offset = 0;
     for (const auto &local : function.locals)
@@ -66,6 +64,10 @@ void Codegen::generate_function(const Module::Function &function)
         ctx.local_offsets[local->name] = offset;
         offset += 2;
     }
+
+    out << "\t.global " << function.name << "\n";
+    out << "\t.type " << function.name << ", @function\n";
+    out << function.name << ":\n";
 
     if (function.locals.size() > 0)
     {
@@ -83,7 +85,16 @@ void Codegen::generate_function(const Module::Function &function)
         generate_instruction(instruction);
     }
 
-    if (function.locals.size() > 0)
+    if (function.instructions.back().operation != Instruction::RETURN)
+    {
+        generate_epilogue();
+        out << "\tret\n";
+    }
+}
+
+void Codegen::generate_epilogue()
+{
+    if (ctx.current_function->locals.size() > 0)
     {
         out << "\tld sp, ix\n";
         out << "\tpop ix\n";
@@ -99,6 +110,7 @@ void Codegen::generate_instruction(const Instruction &instruction)
         throw runtime_error("not implemented");
     case Instruction::RETURN:
         load(instruction.operands[0]);
+        generate_epilogue();
         out << "\tret\n";
         break;
     case Instruction::UNARY:
