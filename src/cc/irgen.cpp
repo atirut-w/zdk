@@ -48,7 +48,35 @@ any IRGen::visitStatement(CParser::StatementContext *ctx)
 
 any IRGen::visitExpression(CParser::ExpressionContext *ctx)
 {
-    return visit(ctx->unaryExpression());
+    return visit(ctx->additiveExpression());
+}
+
+any IRGen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
+{
+    auto lhs = any_cast<Operand>(visit(ctx->unaryExpression(0)));
+    if (ctx->unaryExpression().size() == 1)
+    {
+        return lhs;
+    }
+
+    Operand current = lhs;
+
+    for (int i = 1; i < ctx->unaryExpression().size(); i++)
+    {
+        char op = ctx->children[2 * i - 1]->getText()[0];
+        auto rhs = any_cast<Operand>(visit(ctx->unaryExpression(i)));
+        Operand tmp = Operand(make_temporary());
+
+        Instruction instruction(Instruction::BINARY, tmp);
+        instruction += Operand(op);
+        instruction += current;
+        instruction += rhs;
+
+        *current_function += instruction;
+        current = tmp;
+    }
+
+    return current;
 }
 
 any IRGen::visitUnaryExpression(CParser::UnaryExpressionContext *ctx)

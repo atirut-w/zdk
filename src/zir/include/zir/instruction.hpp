@@ -20,11 +20,13 @@ struct Instruction
 {
     enum Operation
     {
-        // Return a value
+        // Return a value.
         RETURN,
         
-        // Perform unary operation `operands[0]` on `operands[1]` and store the result in `result`
+        // Perform unary operation.
         UNARY,
+        // Perform binary operation.
+        BINARY,
     };
 
     Operation operation;

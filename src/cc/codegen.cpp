@@ -114,11 +114,15 @@ void Codegen::generate_instruction(const Instruction &instruction)
     default:
         throw runtime_error("not implemented");
     case Instruction::RETURN:
+        out << "\t; RETURN\n";
+
         load(instruction.operands[0], Z80::R16_HL);
         generate_epilogue();
         out << "\tret\n";
         break;
     case Instruction::UNARY:
+        out << "\t; UNARY\n";
+
         load(instruction.operands[1], Z80::R16_HL);
 
         switch (get<char>(instruction.operands[0].value))
@@ -140,6 +144,27 @@ void Codegen::generate_instruction(const Instruction &instruction)
             out << "\tld a, h\n";
             out << "\tcpl\n";
             out << "\tld h, a\n";
+            break;
+        }
+
+        store(Z80::R16_HL, *instruction.result);
+        break;
+    case Instruction::BINARY:
+        out << "\t; BINARY\n";
+        
+        load(instruction.operands[1], Z80::R16_HL);
+        load(instruction.operands[2], Z80::R16_DE);
+
+        switch (get<char>(instruction.operands[0].value))
+        {
+        default:
+            throw runtime_error("not implemented");
+        case '+':
+            out << "\tadd hl, de\n";
+            break;
+        case '-':
+            out << "\txor a\n"; // No plain SUB for 16-bit registers :(
+            out << "\tsbc hl, de\n";
             break;
         }
 

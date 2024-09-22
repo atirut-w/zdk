@@ -7,7 +7,9 @@ function:
 
 statement: Return expression Semicolon;
 
-expression: unaryExpression;
+expression: additiveExpression;
+
+additiveExpression: unaryExpression ((Plus | Minus) unaryExpression)*;
 
 unaryExpression: unaryOperator? primaryExpression;
 
@@ -17,9 +19,15 @@ primaryExpression: LParen expression RParen | Constant;
 
 Whitespace: [ \t\r\n] -> skip;
 
-Tilde: '~';
-Minus: '-';
+PlusPlus: '++';
+Plus: '+';
 MinusMinus: '--';
+Minus: '-';
+Star: '*';
+Slash: '/';
+Percent: '%';
+Tilde: '~';
+
 
 LParen: '(';
 RParen: ')';
