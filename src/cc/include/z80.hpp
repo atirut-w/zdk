@@ -23,5 +23,5 @@ enum R16 : uint8_t
     R16_HL = R8_H | R8_L,
 };
 
-extern const std::map<uint8_t, std::string> register_names;
+extern std::map<uint8_t, std::string> register_names;
 } // namespace Z80

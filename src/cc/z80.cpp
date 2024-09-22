@@ -3,7 +3,7 @@
 using namespace std;
 using namespace Z80;
 
-const map<uint8_t, string> Z80::register_names = {
+map<uint8_t, string> Z80::register_names = {
     {R8_A, "a"},
     {R8_B, "b"},
     {R8_C, "c"},
