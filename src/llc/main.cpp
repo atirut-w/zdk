@@ -1,9 +1,14 @@
 #include "argparse/argparse.hpp"
 #include <filesystem>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/IRPrinter/IRPrintingPasses.h>
+#include <llvm/Support/SourceMgr.h>
 #include <memory>
 
 using namespace std;
 using namespace argparse;
+using namespace llvm;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char **argv) {
   auto parser = make_unique<ArgumentParser>("llc");
@@ -27,6 +32,10 @@ int main(int argc, char **argv) {
   if (!args) {
     return 1;
   }
+
+  LLVMContext context;
+  SMDiagnostic error;
+  auto module = parseIRFile(args->get<filesystem::path>("input").string(), error, context);
 
   return 0;
 }
