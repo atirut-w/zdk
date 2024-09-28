@@ -36,6 +36,10 @@ int main(int argc, char **argv) {
   LLVMContext context;
   SMDiagnostic error;
   auto module = parseIRFile(args->get<filesystem::path>("input").string(), error, context);
+  if (!module) {
+    error.print("zdk-llc", errs());
+    return 1;
+  }
 
   return 0;
 }
