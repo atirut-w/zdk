@@ -31,7 +31,7 @@ void Codegen::load(Value *value) {
     } else if (size <= 4) {
       for (size_t i = 0; i < size / 2; i++) {
         os << "\tld " << r16_order[i] << ", "
-           << (const_int->getZExtValue() >> (i * 16)) << "\n";
+           << ((const_int->getZExtValue() >> (i * 16)) & 0xffff) << "\n";
       }
     } else {
       throw runtime_error("Unsupported constant size");
