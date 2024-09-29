@@ -9,15 +9,17 @@ class Codegen {
   llvm::Module *module;
 
   struct {
-    std::map<llvm::Value *, int> allocs;
+    std::map<llvm::Value *, int> locals;
     int stack_size = 0;
   } ctx;
 
-  void load_imm(llvm::Value *value);
-  void map_allocs(llvm::Function &func);
+  void load(llvm::Value *value);
+  void pregen_function(llvm::Function &func);
+  void write_instruction(llvm::Instruction &inst);
 
   void generate_function(llvm::Function &func);
   void generate_store(llvm::StoreInst *store);
+  void generate_return(llvm::ReturnInst *ret);
 
 public:
   Codegen(std::ostream &os, llvm::Module *module);
