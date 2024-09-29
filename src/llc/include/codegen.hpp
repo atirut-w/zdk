@@ -18,6 +18,7 @@ class Codegen {
   void write_instruction(llvm::Instruction &inst);
 
   void generate_function(llvm::Function &func);
+  void generate_epilogue();
   void generate_store(llvm::StoreInst *store);
   void generate_return(llvm::ReturnInst *ret);
 

@@ -86,6 +86,17 @@ void Codegen::generate_function(Function &func) {
   ctx = {};
 
   pregen_function(func);
+  if (ctx.stack_size) {
+    os << "\tpush iy\n";
+    os << "\tpush ix\n";
+
+    os << "\tld ix, 0\n";
+    os << "\tadd ix, sp\n";
+    os << "\tld iy, -" << ctx.stack_size << "\n";
+    os << "\tadd iy, sp\n";
+    os << "\tld sp, iy\n";
+  }
+
   for (auto &block : func) {
     for (auto &inst : block) {
       write_instruction(inst);
@@ -100,6 +111,16 @@ void Codegen::generate_function(Function &func) {
         generate_store(store);
       }
     }
+  }
+
+  os << "\n\n";
+}
+
+void Codegen::generate_epilogue() {
+  if (ctx.stack_size) {
+    os << "\tld sp, ix\n";
+    os << "\tpop ix\n";
+    os << "\tpop iy\n";
   }
 }
 
@@ -130,6 +151,7 @@ void Codegen::generate_return(ReturnInst *ret) {
   if (auto *val = ret->getReturnValue()) {
     load(val);
   }
+  generate_epilogue();
   os << "\tret\n";
 }
 
