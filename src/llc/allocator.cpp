@@ -1,6 +1,7 @@
 #include "allocator.hpp"
 #include <cstdint>
 #include <map>
+#include <stdexcept>
 
 using namespace std;
 
@@ -16,7 +17,7 @@ uint8_t Allocator::allocate_r8() {
       return mask;
     }
   }
-  return 0;
+  throw runtime_error("out of registers");
 }
 
 uint8_t Allocator::allocate_r16() {
@@ -27,7 +28,7 @@ uint8_t Allocator::allocate_r16() {
       return mask;
     }
   }
-  return 0;
+  throw runtime_error("out of registers");
 }
 
 bool Allocator::allocate(uint8_t regs) {
