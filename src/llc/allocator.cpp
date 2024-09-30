@@ -17,7 +17,7 @@ uint8_t Allocator::allocate_r8() {
       return mask;
     }
   }
-  throw runtime_error("out of registers");
+  return 0;
 }
 
 uint8_t Allocator::allocate_r16() {
@@ -28,7 +28,7 @@ uint8_t Allocator::allocate_r16() {
       return mask;
     }
   }
-  throw runtime_error("out of registers");
+  return 0;
 }
 
 uint8_t Allocator::allocate(uint8_t regs) {
@@ -36,7 +36,7 @@ uint8_t Allocator::allocate(uint8_t regs) {
     state |= regs;
     return regs;
   }
-  throw runtime_error("out of registers");
+  return 0;
 }
 
 void Allocator::free(uint8_t regs) { state &= ~regs; }

@@ -20,7 +20,8 @@ class Codegen {
   void pregen_function(llvm::Function &func);
   void write_instruction(llvm::Instruction &inst);
   void load(llvm::Value *val);
-  void spill(uint8_t regs);
+  void vacate(uint8_t regs);
+  void assert_regs(uint8_t regs);
 
   void generate_function(llvm::Function &func);
   void generate_instruction(llvm::Instruction &inst);

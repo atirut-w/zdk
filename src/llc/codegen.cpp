@@ -1,5 +1,6 @@
 #include "codegen.hpp"
 #include "allocator.hpp"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -61,9 +62,12 @@ void Codegen::load(Value *val) {
       reg = ctx.allocator.allocate_r8();
     else if (size == 2)
       reg = ctx.allocator.allocate_r16();
-    else if (size == 4)
+    else if (size == 4) {
+      vacate(Allocator::R16_DE | Allocator::R16_HL);
       reg = ctx.allocator.allocate(Allocator::R16_DE | Allocator::R16_HL);
+    }
 
+    assert_regs(reg);
     for (int i = 0; i < size; i++) {
       os << "\tld " << Allocator::register_names[reg][size - i - 1] << ", (iy+"
          << ctx.locals[val] + i << ")\n";
@@ -80,14 +84,12 @@ void Codegen::load(Value *val) {
       throw runtime_error("unsupported constant size");
     case 1: {
       reg = ctx.allocator.allocate_r8();
-      os << "\tld " << Allocator::register_names[reg]
-         << ", " << value << "\n";
+      os << "\tld " << Allocator::register_names[reg] << ", " << value << "\n";
       break;
     }
     case 2: {
       reg = ctx.allocator.allocate_r16();
-      os << "\tld " << Allocator::register_names[reg]
-         << ", " << value << "\n";
+      os << "\tld " << Allocator::register_names[reg] << ", " << value << "\n";
       break;
     }
     case 4:
@@ -100,7 +102,7 @@ void Codegen::load(Value *val) {
   }
 }
 
-void Codegen::spill(uint8_t regs) {
+void Codegen::vacate(uint8_t regs) {
   vector<Value *> occupants;
   for (auto &pair : ctx.load_stat) {
     if (pair.second & regs) {
@@ -108,19 +110,49 @@ void Codegen::spill(uint8_t regs) {
     }
   }
 
+  ctx.allocator.state |= regs;
   for (auto *occupant : occupants) {
     Type *type = occupant->getType();
     uint64_t size = module->getDataLayout().getTypeAllocSize(type);
     int offset = ctx.locals[occupant];
 
-    for (int i = 0; i < size; i++) {
-      os << "\tld (iy+" << offset + i << "), "
-         << Allocator::register_names[ctx.load_stat[occupant]][size - i - 1]
-         << "\n";
+    uint8_t new_loc;
+    if (size == 1)
+      new_loc = ctx.allocator.allocate_r8();
+    else if (size == 2)
+      new_loc = ctx.allocator.allocate_r16();
+    else if (size == 4)
+      new_loc = ctx.allocator.allocate(Allocator::R16_DE | Allocator::R16_HL);
+
+    if (new_loc) {
+      for (int i = 0; i < size; i++) {
+        os << "\tld " << Allocator::register_names[new_loc][size - i - 1]
+           << ", "
+           << Allocator::register_names[ctx.load_stat[occupant]][size - i - 1]
+           << "\n";
+      }
+    } else {
+      // "He bought?" "He went all in." "Dump it."
+      for (int i = 0; i < size; i++) {
+        os << "\tld (iy+" << offset + i << "), "
+           << Allocator::register_names[ctx.load_stat[occupant]][size - i - 1]
+           << "\n";
+      }
     }
-    ctx.allocator.free(ctx.load_stat[occupant]);
-    ctx.load_stat[occupant] = 0;
+
+    if (new_loc)
+      ctx.load_stat[occupant] = new_loc;
+    else
+      ctx.load_stat[occupant] = 0;
   }
+
+  ctx.allocator.free(regs);
+}
+
+void Codegen::assert_regs(uint8_t regs) {
+  if (regs)
+    return;
+  throw runtime_error("register allocation failed");
 }
 
 void Codegen::generate_function(Function &func) {
@@ -173,14 +205,14 @@ void Codegen::generate_return(ReturnInst *ret) {
       throw runtime_error("unsupported return size");
     case 1:
       if (ctx.load_stat[val] != Allocator::R8_A) {
-        spill(Allocator::R8_A);
+        vacate(Allocator::R8_A);
         os << "\tld a, " << Allocator::register_names[ctx.load_stat[val]]
            << "\n";
       }
       break;
     case 2:
       if (ctx.load_stat[val] != Allocator::R16_HL) {
-        spill(Allocator::R16_HL);
+        vacate(Allocator::R16_HL);
         os << "\tld push " << Allocator::register_names[ctx.load_stat[val]]
            << "\n";
         os << "\tpop hl\n";
