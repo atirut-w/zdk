@@ -18,9 +18,10 @@ class Codegen {
   void write_instruction(llvm::Instruction &inst);
 
   void generate_function(llvm::Function &func);
+  void generate_instruction(llvm::Instruction &inst);
+  void generate_return(llvm::ReturnInst *ret);
   void generate_epilogue();
   void generate_store(llvm::StoreInst *store);
-  void generate_return(llvm::ReturnInst *ret);
 
 public:
   Codegen(std::ostream &os, llvm::Module *module);
