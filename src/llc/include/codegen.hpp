@@ -1,4 +1,6 @@
 #pragma once
+#include "allocator.hpp"
+#include <cstdint>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/Instructions.h>
 #include <map>
@@ -9,13 +11,15 @@ class Codegen {
   llvm::Module *module;
 
   struct {
+    Allocator allocator;
     std::map<llvm::Value *, int> locals;
+    std::map<llvm::Value *, uint8_t> loaded;
     int stack_size = 0;
   } ctx;
 
-  void load(llvm::Value *value);
   void pregen_function(llvm::Function &func);
   void write_instruction(llvm::Instruction &inst);
+  void spill_and_allocate(uint8_t regs);
 
   void generate_function(llvm::Function &func);
   void generate_instruction(llvm::Instruction &inst);
