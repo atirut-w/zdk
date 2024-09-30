@@ -70,6 +70,33 @@ void Codegen::load(Value *val) {
     }
 
     ctx.load_stat[val] = reg;
+  } else if (auto *constant = dyn_cast<ConstantInt>(val)) {
+    uint64_t value = constant->getZExtValue();
+    uint64_t size = module->getDataLayout().getTypeAllocSize(val->getType());
+    uint8_t reg;
+
+    switch (size) {
+    default:
+      throw runtime_error("unsupported constant size");
+    case 1: {
+      reg = ctx.allocator.allocate_r8();
+      os << "\tld " << Allocator::register_names[reg]
+         << ", " << value << "\n";
+      break;
+    }
+    case 2: {
+      reg = ctx.allocator.allocate_r16();
+      os << "\tld " << Allocator::register_names[reg]
+         << ", " << value << "\n";
+      break;
+    }
+    case 4:
+      reg = ctx.allocator.allocate(Allocator::R16_DE | Allocator::R16_HL);
+      os << "\tld hl, " << (value & 0xffff) << "\n";
+      os << "\tld de, " << (value >> 16) << "\n";
+    }
+
+    ctx.load_stat[val] = reg;
   }
 }
 
@@ -88,7 +115,8 @@ void Codegen::spill(uint8_t regs) {
 
     for (int i = 0; i < size; i++) {
       os << "\tld (iy+" << offset + i << "), "
-         << Allocator::register_names[ctx.load_stat[occupant]][size - i - 1] << "\n";
+         << Allocator::register_names[ctx.load_stat[occupant]][size - i - 1]
+         << "\n";
     }
     ctx.allocator.free(ctx.load_stat[occupant]);
     ctx.load_stat[occupant] = 0;
@@ -190,7 +218,7 @@ void Codegen::generate_load(LoadInst *load) {
 
   for (int i = 0; i < size; i++) {
     os << "\tld " << Allocator::register_names[regs][size - i - 1] << ", (iy+"
-        << offset + i << ")\n";
+       << offset + i << ")\n";
   }
   ctx.load_stat[load] = regs;
 }
