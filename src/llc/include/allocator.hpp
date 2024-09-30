@@ -25,6 +25,6 @@ struct Allocator {
 
   uint8_t allocate_r8();
   uint8_t allocate_r16();
-  bool allocate(uint8_t regs);
+  uint8_t allocate(uint8_t regs);
   void free(uint8_t regs);
 };

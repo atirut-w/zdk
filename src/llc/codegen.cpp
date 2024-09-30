@@ -34,7 +34,7 @@ void Codegen::pregen_function(Function &func) {
         ctx.stack_size += module->getDataLayout().getTypeAllocSize(type);
       } else if (!inst.getType()->isVoidTy()) {
         ctx.locals[&inst] = ctx.stack_size;
-        ctx.loaded[&inst] = 0;
+        ctx.load_stat[&inst] = 0;
 
         Type *type = inst.getType();
         ctx.stack_size += module->getDataLayout().getTypeAllocSize(type);
@@ -50,9 +50,32 @@ void Codegen::write_instruction(Instruction &inst) {
   os << "\t; " << rso.str() << "\n";
 }
 
-void Codegen::spill_and_allocate(uint8_t regs) {
+void Codegen::load(Value *val) {
+  if (ctx.locals.find(val) != ctx.locals.end()) {
+    if (ctx.load_stat[val])
+      return;
+
+    uint64_t size = module->getDataLayout().getTypeAllocSize(val->getType());
+    uint8_t reg;
+    if (size == 1)
+      reg = ctx.allocator.allocate_r8();
+    else if (size == 2)
+      reg = ctx.allocator.allocate_r16();
+    else if (size == 4)
+      reg = ctx.allocator.allocate(Allocator::R16_DE | Allocator::R16_HL);
+
+    for (int i = 0; i < size; i++) {
+      os << "\tld " << Allocator::register_names[reg][size - i - 1] << ", (iy+"
+         << ctx.locals[val] + i << ")\n";
+    }
+
+    ctx.load_stat[val] = reg;
+  }
+}
+
+void Codegen::spill(uint8_t regs) {
   vector<Value *> occupants;
-  for (auto &pair : ctx.loaded) {
+  for (auto &pair : ctx.load_stat) {
     if (pair.second & regs) {
       occupants.push_back(pair.first);
     }
@@ -61,17 +84,15 @@ void Codegen::spill_and_allocate(uint8_t regs) {
   for (auto *occupant : occupants) {
     Type *type = occupant->getType();
     uint64_t size = module->getDataLayout().getTypeAllocSize(type);
+    int offset = ctx.locals[occupant];
 
-    switch (size) {
-    default:
-      throw runtime_error("unsupported spill size");
+    for (int i = 0; i < size; i++) {
+      os << "\tld (iy+" << offset + i << "), "
+         << Allocator::register_names[ctx.load_stat[occupant]][size - i - 1] << "\n";
     }
-
-    ctx.allocator.free(ctx.loaded[occupant]);
-    ctx.loaded[occupant] = 0;
+    ctx.allocator.free(ctx.load_stat[occupant]);
+    ctx.load_stat[occupant] = 0;
   }
-
-  ctx.allocator.allocate(regs);
 }
 
 void Codegen::generate_function(Function &func) {
@@ -108,8 +129,7 @@ void Codegen::generate_instruction(Instruction &inst) {
   } else if (auto *ret = dyn_cast<ReturnInst>(&inst)) {
     generate_return(ret);
   } else if (auto *load = dyn_cast<LoadInst>(&inst)) {
-    // ctx.locals[load] = ctx.locals[load->getPointerOperand()];
-    // os << "\t;   (aliased to offset " << ctx.locals[load] << ")\n";
+    generate_load(load);
   } else if (auto *store = dyn_cast<StoreInst>(&inst)) {
     generate_store(store);
   }
@@ -117,7 +137,30 @@ void Codegen::generate_instruction(Instruction &inst) {
 
 void Codegen::generate_return(ReturnInst *ret) {
   if (auto *val = ret->getReturnValue()) {
-    // load(val);
+    load(val);
+    uint64_t size = module->getDataLayout().getTypeAllocSize(val->getType());
+
+    switch (size) {
+    default:
+      throw runtime_error("unsupported return size");
+    case 1:
+      if (ctx.load_stat[val] != Allocator::R8_A) {
+        spill(Allocator::R8_A);
+        os << "\tld a, " << Allocator::register_names[ctx.load_stat[val]]
+           << "\n";
+      }
+      break;
+    case 2:
+      if (ctx.load_stat[val] != Allocator::R16_HL) {
+        spill(Allocator::R16_HL);
+        os << "\tld push " << Allocator::register_names[ctx.load_stat[val]]
+           << "\n";
+        os << "\tpop hl\n";
+      }
+      break;
+    case 4:
+      break; // Should already be in DEHL
+    }
   }
   generate_epilogue();
   os << "\tret\n";
@@ -131,6 +174,27 @@ void Codegen::generate_epilogue() {
   }
 }
 
+void Codegen::generate_load(LoadInst *load) {
+  Value *ptr = load->getPointerOperand();
+  Type *type = load->getType();
+  uint64_t size = module->getDataLayout().getTypeAllocSize(type);
+  int offset = ctx.locals[ptr];
+
+  uint8_t regs;
+  if (size == 1)
+    regs = ctx.allocator.allocate_r8();
+  else if (size == 2)
+    regs = ctx.allocator.allocate_r16();
+  else if (size == 4)
+    regs = ctx.allocator.allocate(Allocator::R16_DE | Allocator::R16_HL);
+
+  for (int i = 0; i < size; i++) {
+    os << "\tld " << Allocator::register_names[regs][size - i - 1] << ", (iy+"
+        << offset + i << ")\n";
+  }
+  ctx.load_stat[load] = regs;
+}
+
 void Codegen::generate_store(StoreInst *store) {
   Value *src = store->getValueOperand();
   uint64_t size = module->getDataLayout().getTypeAllocSize(src->getType());
@@ -138,11 +202,22 @@ void Codegen::generate_store(StoreInst *store) {
   if (auto *constant = dyn_cast<ConstantInt>(src)) {
     int offset = ctx.locals[store->getPointerOperand()];
     uint64_t value = constant->getZExtValue();
-    
+
     for (int i = 0; i < size; i++) {
-      os << "\tld (iy+" << offset + i << "), " << ((value >> (i * 8)) & 0xff) << "\n";
+      os << "\tld (iy+" << offset + i << "), " << ((value >> (i * 8)) & 0xff)
+         << "\n";
     }
   } else {
+    load(src);
+    int offset = ctx.locals[store->getPointerOperand()];
+
+    for (int i = 0; i < size; i++) {
+      os << "\tld (iy+" << offset + i << "), "
+         << Allocator::register_names[ctx.load_stat[src]][size - i - 1] << "\n";
+    }
+
+    ctx.allocator.free(ctx.load_stat[src]);
+    ctx.load_stat[src] = 0;
   }
 }
 
