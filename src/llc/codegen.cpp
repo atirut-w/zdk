@@ -99,21 +99,33 @@ void Codegen::generate_function(Function &func) {
 
   for (auto &block : func) {
     for (auto &inst : block) {
-      write_instruction(inst);
-      if (auto *alloc = dyn_cast<AllocaInst>(&inst)) {
-        os << "\t;   (offset " << ctx.locals[alloc] << ")\n";
-      } else if (auto *ret = dyn_cast<ReturnInst>(&inst)) {
-        generate_return(ret);
-      } else if (auto *load = dyn_cast<LoadInst>(&inst)) {
-        ctx.locals[load] = ctx.locals[load->getPointerOperand()];
-        os << "\t;   (aliased to offset " << ctx.locals[load] << ")\n";
-      } else if (auto *store = dyn_cast<StoreInst>(&inst)) {
-        generate_store(store);
-      }
+      generate_instruction(inst);
     }
   }
 
   os << "\n\n";
+}
+
+void Codegen::generate_instruction(Instruction &inst) {
+  write_instruction(inst);
+  if (auto *alloc = dyn_cast<AllocaInst>(&inst)) {
+    os << "\t;   (offset " << ctx.locals[alloc] << ")\n";
+  } else if (auto *ret = dyn_cast<ReturnInst>(&inst)) {
+    generate_return(ret);
+  } else if (auto *load = dyn_cast<LoadInst>(&inst)) {
+    ctx.locals[load] = ctx.locals[load->getPointerOperand()];
+    os << "\t;   (aliased to offset " << ctx.locals[load] << ")\n";
+  } else if (auto *store = dyn_cast<StoreInst>(&inst)) {
+    generate_store(store);
+  }
+}
+
+void Codegen::generate_return(ReturnInst *ret) {
+  if (auto *val = ret->getReturnValue()) {
+    load(val);
+  }
+  generate_epilogue();
+  os << "\tret\n";
 }
 
 void Codegen::generate_epilogue() {
@@ -145,14 +157,6 @@ void Codegen::generate_store(StoreInst *store) {
   } else {
     throw runtime_error("Unsupported store");
   }
-}
-
-void Codegen::generate_return(ReturnInst *ret) {
-  if (auto *val = ret->getReturnValue()) {
-    load(val);
-  }
-  generate_epilogue();
-  os << "\tret\n";
 }
 
 void Codegen::generate() {
