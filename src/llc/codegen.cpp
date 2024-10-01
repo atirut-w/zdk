@@ -333,6 +333,12 @@ void Codegen::generate_sext(SExtInst *sext) {
        << "\n";
   }
 
+  if (ctx.allocator.get_register_name(ctx.loaded[val])[0] != 'a') {
+    vacate(R8_A);
+    os << "\tld a, "
+       << ctx.allocator.get_register_name(ctx.loaded[val])[0] << "\n";
+  }
+
   os << "\tadd a, a\n";
   os << "\tsbc a\n";
 
