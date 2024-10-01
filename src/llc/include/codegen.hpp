@@ -13,7 +13,7 @@ class Codegen {
   struct {
     Allocator allocator;
     std::map<llvm::Value *, int> locals;
-    std::map<llvm::Value *, uint8_t> load_stat;
+    std::map<llvm::Value *, int> loaded;
     int stack_size = 0;
   } ctx;
 

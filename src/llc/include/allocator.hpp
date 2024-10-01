@@ -2,29 +2,39 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
-struct Allocator {
-  enum R8 : uint8_t {
-    R8_A = 0b01000000,
-    R8_B = 0b00100000,
-    R8_C = 0b00010000,
-    R8_D = 0b00001000,
-    R8_E = 0b00000100,
-    R8_H = 0b00000010,
-    R8_L = 0b00000001
-  };
+struct RegisterDefinition {
+  // The name of the register.
+  std::string name;
+  // The size of the register, with 1 usually being the smallest size the target
+  // can address.
+  int size;
+  // The unique mask identifying the register and the space it occupies. Must be
+  // aligned to its size, and may overlap with other registers similar to how AH
+  // and AL forms AX, which then forms the lower half of EAX.
+  int mask;
+};
 
-  enum R16 : uint8_t{
-    R16_BC = R8_B | R8_C,
-    R16_DE = R8_D | R8_E,
-    R16_HL = R8_H | R8_L,
-  };
+class Allocator {
+  // Register definitions.
+  std::vector<RegisterDefinition> register_defs;
 
-  uint8_t state = 0;
-  static std::map<uint8_t, std::string> register_names;
+public:
+  Allocator(const std::vector<RegisterDefinition> &register_defs);
 
-  uint8_t allocate_r8();
-  uint8_t allocate_r16();
-  uint8_t allocate(uint8_t regs);
-  void free(uint8_t regs);
+  // Bitfield representing the usage of registers.
+  int usage = 0;
+
+  const std::string &get_register_name(int mask) const;
+
+  // Allocate a register of specified size.
+  int allocate(int size);
+  // Allocate a specific register.
+  int allocate_register(int mask);
+  // Free a register.
+  void free(int mask);
+  // Find new location for used registers in the given mask.
+  // std::vector<std::pair<int, int>> vacate(int mask);
 };
