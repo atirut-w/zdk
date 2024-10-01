@@ -29,6 +29,7 @@ class Codegen {
   void generate_epilogue();
   void generate_load(llvm::LoadInst *load);
   void generate_store(llvm::StoreInst *store);
+  void generate_sext(llvm::SExtInst *sext);
 
 public:
   Codegen(std::ostream &os, llvm::Module *module);

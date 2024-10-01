@@ -219,6 +219,8 @@ void Codegen::generate_instruction(Instruction &inst) {
     generate_load(load);
   } else if (auto *store = dyn_cast<StoreInst>(&inst)) {
     generate_store(store);
+  } else if (auto *sext = dyn_cast<SExtInst>(&inst)) {
+    generate_sext(sext);
   }
 }
 
@@ -308,6 +310,40 @@ void Codegen::generate_store(StoreInst *store) {
     ctx.allocator.free(ctx.loaded[src]);
     ctx.loaded[src] = 0;
   }
+}
+
+void Codegen::generate_sext(SExtInst *sext) {
+  Value *val = sext->getOperand(0);
+  uint64_t size = module->getDataLayout().getTypeAllocSize(val->getType());
+  uint64_t ext_size = module->getDataLayout().getTypeAllocSize(sext->getType());
+
+  if (ext_size == 2) {
+    vacate(R16_HL);
+    ctx.loaded[sext] = ctx.allocator.allocate(2);
+  } else if (ext_size == 4) {
+    vacate(R16_DE | R16_HL);
+    ctx.loaded[sext] = ctx.allocator.allocate_register(R16_DE | R16_HL);
+  }
+
+  load(val);
+  for (int i = 0; i < size; i++) {
+    os << "\tld "
+       << ctx.allocator.get_register_name(ctx.loaded[sext])[ext_size - i - 1]
+       << ", " << ctx.allocator.get_register_name(ctx.loaded[val])[size - i - 1]
+       << "\n";
+  }
+
+  os << "\tadd a, a\n";
+  os << "\tsbc a\n";
+
+  for (int i = size; i < ext_size; i++) {
+    os << "\tld "
+       << ctx.allocator.get_register_name(ctx.loaded[sext])[ext_size - i - 1]
+       << ", a\n";
+  }
+
+  ctx.allocator.free(ctx.loaded[val]);
+  ctx.loaded[val] = 0;
 }
 
 void Codegen::generate() {
