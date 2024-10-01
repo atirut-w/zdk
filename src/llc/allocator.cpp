@@ -5,38 +5,50 @@
 
 using namespace std;
 
-map<uint8_t, string> Allocator::register_names = {
-    {R8_A, "a"}, {R8_B, "b"}, {R8_C, "c"},    {R8_D, "d"},    {R8_E, "e"},
-    {R8_H, "h"}, {R8_L, "l"}, {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"}, {R16_DE | R16_HL, "dehl"}};
+Allocator::Allocator(const vector<RegisterDefinition> &register_defs)
+    : register_defs(register_defs) {}
 
-uint8_t Allocator::allocate_r8() {
-  for (uint8_t i = 0; i < 7; i++) {
-    uint8_t mask = 1 << i;
-    if ((state & mask) == 0) {
-      state |= mask;
-      return mask;
+const string &Allocator::get_register_name(int mask) const {
+  for (const RegisterDefinition &def : register_defs) {
+    if (def.mask == mask)
+      return def.name;
+  }
+  throw runtime_error("register not found");
+}
+
+int Allocator::allocate(int size) {
+  for (RegisterDefinition &def : register_defs) {
+    if (def.size != size)
+      continue;
+
+    if ((usage & def.mask) == 0) {
+      usage |= def.mask;
+      return def.mask;
     }
   }
   return 0;
 }
 
-uint8_t Allocator::allocate_r16() {
-  for (uint8_t i = 0; i < 3; i++) {
-    uint8_t mask = 0b11 << (i * 2);
-    if ((state & mask) == 0) {
-      state |= mask;
-      return mask;
-    }
+int Allocator::allocate_register(int mask) {
+  if ((usage & mask) == 0) {
+    usage |= mask;
+    return mask;
   }
   return 0;
 }
 
-uint8_t Allocator::allocate(uint8_t regs) {
-  if ((state & regs) == 0) {
-    state |= regs;
-    return regs;
-  }
-  return 0;
-}
+void Allocator::free(int mask) { usage &= ~mask; }
 
-void Allocator::free(uint8_t regs) { state &= ~regs; }
+// vector<pair<int, int>> Allocator::vacate(int mask) {
+//   vector<pair<int, int>> vacated;
+//   usage |= mask; // Prevent re-allocating the same registers.
+
+//   for (RegisterDefinition &def : register_defs) {
+//     if ((def.mask & usage) == mask) {
+//       vacated.push_back({def.mask, allocate(def.size)});
+//     }
+//   }
+
+//   usage &= ~mask;
+//   return vacated;
+// }
