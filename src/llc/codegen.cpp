@@ -310,7 +310,7 @@ void Codegen::generate_sext(SExtInst *sext) {
   ctx.loaded[val] = 0;
 }
 
-void Codegen::visit(Module &module) {
+void Codegen::visit_module(Module &module) {
   this->module = &module;
 
   for (auto &func : module) {
@@ -320,7 +320,7 @@ void Codegen::visit(Module &module) {
   }
 }
 
-void Codegen::visit(Function &func) {
+void Codegen::visit_function(Function &func) {
   os << "\t.global " << func.getName().str() << "\n";
   os << "\t.type " << func.getName().str() << ", @function\n";
   os << func.getName().str() << ":\n";
@@ -347,7 +347,7 @@ void Codegen::visit(Function &func) {
   os << "\n\n";
 }
 
-void Codegen::visit(Instruction &inst) {
+void Codegen::visit_instruction(Instruction &inst) {
   write_instruction(inst);
   if (auto *alloc = dyn_cast<AllocaInst>(&inst)) {
     os << "\t;   (offset " << ctx.locals[alloc] << ")\n";

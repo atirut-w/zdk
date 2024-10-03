@@ -3,8 +3,8 @@
 #include <llvm/IR/Module.h>
 
 struct IRVisitor {
-  virtual void visit(llvm::Module &module);
-  virtual void visit(llvm::Function &function);
-  virtual void visit(llvm::BasicBlock &block);
-  virtual void visit(llvm::Instruction &inst);
+  virtual std::any visit_module(llvm::Module &module);
+  virtual std::any visit_function(llvm::Function &function);
+  virtual std::any visit_block(llvm::BasicBlock &block);
+  virtual std::any visit_instruction(llvm::Instruction &inst);
 };
