@@ -3,22 +3,25 @@
 
 using namespace std;
 
-void IRVisitor::visit(llvm::Module &module) {
+std::any IRVisitor::visit_module(llvm::Module &module) {
   for (auto &func : module.functions()) {
-    visit(func);
+    visit_function(func);
   }
+  return {};
 }
 
-void IRVisitor::visit(llvm::Function &function) {
+std::any IRVisitor::visit_function(llvm::Function &function) {
   for (auto &block : function) {
-    visit(block);
+    visit_block(block);
   }
+  return {};
 }
 
-void IRVisitor::visit(llvm::BasicBlock &block) {
+std::any IRVisitor::visit_block(llvm::BasicBlock &block) {
   for (auto &inst : block) {
-    visit(inst);
+    visit_instruction(inst);
   }
+  return {};
 }
 
-void IRVisitor::visit(llvm::Instruction &inst) {}
+std::any IRVisitor::visit_instruction(llvm::Instruction &inst) { return {}; }

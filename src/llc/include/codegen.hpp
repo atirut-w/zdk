@@ -36,7 +36,7 @@ class Codegen : public IRVisitor {
 public:
   Codegen(std::ostream &os);
 
-  void visit(llvm::Module &module) override;
-  void visit(llvm::Function &function) override;
-  void visit(llvm::Instruction &inst) override;
+  std::any visit_module(llvm::Module &module) override;
+  std::any visit_function(llvm::Function &function) override;
+  std::any visit_instruction(llvm::Instruction &inst) override;
 };
