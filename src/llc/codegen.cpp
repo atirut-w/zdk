@@ -1,5 +1,6 @@
 #include "codegen.hpp"
 #include "allocator.hpp"
+#include <any>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -310,17 +311,19 @@ void Codegen::generate_sext(SExtInst *sext) {
   ctx.loaded[val] = 0;
 }
 
-void Codegen::visit_module(Module &module) {
+std::any Codegen::visit_module(Module &module) {
   this->module = &module;
 
   for (auto &func : module) {
     if (func.isDeclaration())
       continue;
-    visit(func);
+    visit_function(func);
   }
+
+  return {};
 }
 
-void Codegen::visit_function(Function &func) {
+std::any Codegen::visit_function(Function &func) {
   os << "\t.global " << func.getName().str() << "\n";
   os << "\t.type " << func.getName().str() << ", @function\n";
   os << func.getName().str() << ":\n";
@@ -340,14 +343,15 @@ void Codegen::visit_function(Function &func) {
 
   for (auto &block : func) {
     for (auto &inst : block) {
-      visit(inst);
+      visit_instruction(inst);
     }
   }
 
   os << "\n\n";
+  return {};
 }
 
-void Codegen::visit_instruction(Instruction &inst) {
+std::any Codegen::visit_instruction(Instruction &inst) {
   write_instruction(inst);
   if (auto *alloc = dyn_cast<AllocaInst>(&inst)) {
     os << "\t;   (offset " << ctx.locals[alloc] << ")\n";
@@ -360,4 +364,6 @@ void Codegen::visit_instruction(Instruction &inst) {
   } else if (auto *sext = dyn_cast<SExtInst>(&inst)) {
     generate_sext(sext);
   }
+
+  return {};
 }
