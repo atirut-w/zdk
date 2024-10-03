@@ -44,9 +44,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  ofstream os(input.replace_extension(".s"));
-  Codegen codegen(os);
-  codegen.visit(*module);
+  // ofstream os(input.replace_extension(".s"));
+  // Codegen codegen(os);
+  // codegen.visit(*module);
 
   return 0;
 }
