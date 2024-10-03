@@ -11,6 +11,7 @@ add_executable(zdk-llc
     main.cpp
     codegen.cpp
     allocator.cpp
+    ir_visitor.cpp
 )
 target_include_directories(zdk-llc PRIVATE include ${CMAKE_BINARY_DIR}/src/llc/include)
 target_compile_features(zdk-llc PRIVATE cxx_std_17)
