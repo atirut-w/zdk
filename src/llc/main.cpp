@@ -1,5 +1,6 @@
 #include "argparse/argparse.hpp"
 #include "codegen.hpp"
+#include "liveness_analyzer.hpp"
 #include <filesystem>
 #include <fstream>
 #include <llvm/IR/LLVMContext.h>
@@ -44,9 +45,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // ofstream os(input.replace_extension(".s"));
-  // Codegen codegen(os);
-  // codegen.visit(*module);
+  ofstream os(input.replace_extension(".s"));
+  Codegen codegen(os);
+  codegen.visit_module(*module);
 
   return 0;
 }
