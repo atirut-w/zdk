@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
   }
 
   ofstream os(input.replace_extension(".s"));
-  Codegen codegen(os, module.get());
-  codegen.generate();
+  Codegen codegen(os);
+  codegen.visit(*module);
 
   return 0;
 }

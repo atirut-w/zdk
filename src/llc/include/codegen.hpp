@@ -1,12 +1,14 @@
 #pragma once
 #include "allocator.hpp"
+#include "ir_visitor.hpp"
 #include <cstdint>
 #include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <map>
 #include <ostream>
 
-class Codegen {
+class Codegen : public IRVisitor {
   std::ostream &os;
   llvm::Module *module;
 
@@ -23,8 +25,8 @@ class Codegen {
   void vacate(uint8_t regs);
   void assert_regs(uint8_t regs);
 
-  void generate_function(llvm::Function &func);
-  void generate_instruction(llvm::Instruction &inst);
+  // void generate_function(llvm::Function &func);
+  // void generate_instruction(llvm::Instruction &inst);
   void generate_return(llvm::ReturnInst *ret);
   void generate_epilogue();
   void generate_load(llvm::LoadInst *load);
@@ -32,7 +34,9 @@ class Codegen {
   void generate_sext(llvm::SExtInst *sext);
 
 public:
-  Codegen(std::ostream &os, llvm::Module *module);
+  Codegen(std::ostream &os);
 
-  void generate();
+  void visit(llvm::Module &module) override;
+  void visit(llvm::Function &function) override;
+  void visit(llvm::Instruction &inst) override;
 };
