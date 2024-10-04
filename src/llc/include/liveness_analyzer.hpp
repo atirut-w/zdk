@@ -18,8 +18,9 @@ struct LivenessAnalyzer {
   };
 
   using IntervalList = std::vector<Interval>;
+  using FunctionIntervals = std::map<llvm::Value *, IntervalList>;
 
-  std::map<llvm::Value *, IntervalList> compute_intervals(llvm::Function &func);
+  FunctionIntervals compute_intervals(llvm::Function &func);
 
 // private:
 //   std::map<llvm::Value *, IntervalList> intervals;

@@ -10,25 +10,25 @@
 using namespace std;
 using namespace llvm;
 
-map<Value *, LivenessAnalyzer::IntervalList> LivenessAnalyzer::compute_intervals(Function &func) {
+LivenessAnalyzer::FunctionIntervals LivenessAnalyzer::compute_intervals(Function &func) {
   map<Value *, IntervalList> intervals;
   vector<Instruction *> instructions;
 
-  // Populate the map
-  int pos = 0;
-  for (auto &block : func) {
-    for (auto &inst : block) {
-      if (isa<AllocaInst>(inst) || inst.getType()->isVoidTy())
-        continue;
-      intervals[&inst] = {};
+  // // Populate the map
+  // int pos = 0;
+  // for (auto &block : func) {
+  //   for (auto &inst : block) {
+  //     if (isa<AllocaInst>(inst) || inst.getType()->isVoidTy())
+  //       continue;
+  //     intervals[&inst] = {};
 
-      auto &context = inst.getContext();
-      auto *posStr = MDString::get(context, to_string(pos));
-      auto *posNode = MDNode::get(context, {posStr});
-      inst.setMetadata("pos", posNode);
-      instructions.push_back(&inst);
-    }
-  }
+  //     auto &context = inst.getContext();
+  //     auto *posStr = MDString::get(context, to_string(pos));
+  //     auto *posNode = MDNode::get(context, {posStr});
+  //     inst.setMetadata("pos", posNode);
+  //     instructions.push_back(&inst);
+  //   }
+  // }
 
   // Compute the intervals
   map<Value *, Interval> current;
