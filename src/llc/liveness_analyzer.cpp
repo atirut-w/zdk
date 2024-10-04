@@ -14,21 +14,14 @@ LivenessAnalyzer::FunctionIntervals LivenessAnalyzer::compute_intervals(Function
   map<Value *, IntervalList> intervals;
   vector<Instruction *> instructions;
 
-  // // Populate the map
-  // int pos = 0;
-  // for (auto &block : func) {
-  //   for (auto &inst : block) {
-  //     if (isa<AllocaInst>(inst) || inst.getType()->isVoidTy())
-  //       continue;
-  //     intervals[&inst] = {};
-
-  //     auto &context = inst.getContext();
-  //     auto *posStr = MDString::get(context, to_string(pos));
-  //     auto *posNode = MDNode::get(context, {posStr});
-  //     inst.setMetadata("pos", posNode);
-  //     instructions.push_back(&inst);
-  //   }
-  // }
+  // Populate the map
+  for (auto &block : func) {
+    for (auto &inst : block) {
+      if (!isa<AllocaInst>(inst) && !inst.getType()->isVoidTy())
+        intervals[&inst] = {};
+      instructions.push_back(&inst);
+    }
+  }
 
   // Compute the intervals
   map<Value *, Interval> current;
@@ -41,18 +34,16 @@ LivenessAnalyzer::FunctionIntervals LivenessAnalyzer::compute_intervals(Function
           if (current.find(val) == current.end()) {
             current[val] = {i, i, -1};
           }
-          current[val].start = i;
+          current[val].end = i;
         }
       }
     }
 
     if (!inst->getType()->isVoidTy()) {
       if (current.find(inst) != current.end()) {
-        current[inst].end = i;
+        current[inst].start = i;
         intervals[inst].push_back(current[inst]);
         current.erase(inst);
-      } else {
-        intervals[inst].push_back({i, i, -1});
       }
     }
   }
