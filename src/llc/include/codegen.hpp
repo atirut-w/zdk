@@ -1,6 +1,7 @@
 #pragma once
 #include "allocator.hpp"
 #include "ir_visitor.hpp"
+#include "liveness_analyzer.hpp"
 #include <cstdint>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/Instruction.h>
@@ -14,6 +15,7 @@ class Codegen : public IRVisitor {
 
   struct {
     Allocator allocator;
+    LivenessAnalyzer::FunctionIntervals intervals;
     std::map<llvm::Value *, int> locals;
     std::map<llvm::Value *, int> loaded;
     int stack_size = 0;

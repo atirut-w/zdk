@@ -330,7 +330,7 @@ std::any Codegen::visit_function(Function &func) {
   ctx = {Allocator(register_defs)};
 
   LivenessAnalyzer analyzer;
-  auto intervals = analyzer.compute_intervals(func);
+  ctx.intervals = analyzer.compute_intervals(func);
 
   pregen_function(func);
   if (ctx.stack_size) {
