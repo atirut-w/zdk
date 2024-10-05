@@ -5,25 +5,14 @@
 
 using namespace std;
 
-Allocator::Allocator(const vector<RegisterDefinition> &register_defs)
-    : register_defs(register_defs) {}
-
-const string &Allocator::get_register_name(int mask) const {
-  for (const RegisterDefinition &def : register_defs) {
-    if (def.mask == mask)
-      return def.name;
-  }
-  throw runtime_error("register not found");
-}
-
 int Allocator::allocate(int size) {
-  for (RegisterDefinition &def : register_defs) {
-    if (def.size != size)
-      continue;
-
-    if ((usage & def.mask) == 0) {
-      usage |= def.mask;
-      return def.mask;
+  int mask = (1 << size) - 1;
+  for (int i = 0; i < 7; i++) {
+    if (usage & mask) {
+      mask <<= size;
+    } else {
+      usage |= mask;
+      return mask;
     }
   }
   return 0;
