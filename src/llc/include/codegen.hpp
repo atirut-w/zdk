@@ -8,6 +8,7 @@
 #include <llvm/IR/Instructions.h>
 #include <map>
 #include <ostream>
+#include <vector>
 
 class Codegen : public IRVisitor {
   std::ostream &os;
@@ -15,7 +16,7 @@ class Codegen : public IRVisitor {
 
   struct {
     Allocator allocator;
-    LivenessAnalyzer::FunctionIntervals intervals;
+    std::vector<LivenessAnalyzer::Interval> intervals;
     std::map<llvm::Value *, int> locals;
     std::map<llvm::Value *, int> loaded;
     int stack_size = 0;
