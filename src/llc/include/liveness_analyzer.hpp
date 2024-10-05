@@ -8,9 +8,12 @@
 
 struct LivenessAnalyzer {
   struct Interval {
+    llvm::Value *val;
     int start = -1;
     int end = -1;
+    
     int reg = -1;
+    bool spilled = false;
 
     bool operator==(const Interval &other) const {
       return start == other.start && end == other.end && reg == other.reg;
@@ -18,9 +21,8 @@ struct LivenessAnalyzer {
   };
 
   using IntervalList = std::vector<Interval>;
-  using FunctionIntervals = std::map<llvm::Value *, IntervalList>;
 
-  FunctionIntervals compute_intervals(llvm::Function &func);
+  IntervalList compute_intervals(llvm::Function &func);
 
 // private:
 //   std::map<llvm::Value *, IntervalList> intervals;
