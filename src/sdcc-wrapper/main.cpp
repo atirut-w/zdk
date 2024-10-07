@@ -1,6 +1,7 @@
 #include "argparse/argparse.hpp"
 #include <cstdlib>
 #include <filesystem>
+#include <iostream>
 #include <memory>
 #include <sched.h>
 #include <stdexcept>
@@ -19,6 +20,8 @@ parse_args(int argc, char *argv[]) {
       make_unique<ArgumentParser>("zdk-sdcc", "1.0", default_arguments::none);
 
   parser->add_argument("filename");
+  parser->add_argument("-o").action(
+      [](const string &value) { return filesystem::path(value); });
   parser->add_argument("-S").flag();
   parser->add_argument("-c", "--compile-only").flag();
   parser->add_argument("-E", "--preprocessonly")
@@ -29,6 +32,12 @@ parse_args(int argc, char *argv[]) {
 }
 
 int run(string program, vector<string> args) {
+  cout << "# " << program << " ";
+  for (auto &arg : args) {
+    cout << arg << " ";
+  }
+  cout << endl;
+
   pid_t pid = fork();
 
   if (pid < 0) {
@@ -53,37 +62,51 @@ int run(string program, vector<string> args) {
 int main(int argc, char *argv[]) {
   auto [args, unknown] = parse_args(argc, argv);
   filesystem::path filename = args->get<string>("filename");
+  filesystem::path intermediate = filename;
+  int status;
 
-  vector<string> sdcc_args = {"-mz80", "-S", filename};
+  vector<string> sdcc_args = {"-mz80", "-S", filename.string(), "-o", intermediate.replace_extension(".asm")};
   if (args->get<bool>("-E")) {
     sdcc_args.push_back("-E");
   }
-
   if (argc > 1) {
     sdcc_args.insert(sdcc_args.end(), unknown.begin(), unknown.end());
   }
-  int status = run("sdcc-sdcc", sdcc_args);
+  
+  status = run("sdcc-sdcc", sdcc_args);
   if (status != 0) {
     return status;
   }
 
   if (args->get<bool>("-S") || args->get<bool>("-E")) {
+    if (args->is_used("-o")) {
+      filesystem::rename(intermediate, args->get<filesystem::path>("-o"));
+    }
     return 0;
   }
 
-  system(("z80-elf-as -sdcc " + filename.replace_extension(".asm").string() +
-          " -o " + filename.replace_extension(".o").string())
-             .c_str());
-  filesystem::remove(filename.replace_extension(".asm"));
+  status = run("z80-elf-as", {"-sdcc", "-o", intermediate.replace_extension(".o"), intermediate});
+  if (status != 0) {
+    return status;
+  }
 
   if (args->get<bool>("-c")) {
+    if (args->is_used("-o")) {
+      filesystem::rename(intermediate.replace_extension(".o"), args->get<filesystem::path>("-o"));
+    }
     return 0;
   }
 
-  system(
-      ("z80-elf-ld " + filename.replace_extension(".o").string() + " -o a.out")
-          .c_str());
-  filesystem::remove(filename.replace_extension(".o"));
+  status = run("z80-elf-ld", {"-o", "a.out", intermediate.replace_extension(".o")});
+  if (status != 0) {
+    return status;
+  }
+  if (args->is_used("-o")) {
+    filesystem::rename("a.out", args->get<filesystem::path>("-o"));
+  }
+
+  // Clean up the object file
+  filesystem::remove(intermediate.replace_extension(".o"));
 
   return 0;
 }
