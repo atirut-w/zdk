@@ -1,3 +1,3 @@
-add_library(c OBJECT
+add_library(c
     stubs.s
 )
