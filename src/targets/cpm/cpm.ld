@@ -1,4 +1,3 @@
-OUTPUT_FORMAT("binary")
 ENTRY(_start)
 
 MEMORY
@@ -9,6 +8,7 @@ MEMORY
 SECTIONS
 {
     .text : {
+        *(.startup)
         *(.text)
         *(_CODE)
     } > TPA

@@ -1,3 +1,4 @@
+    .section .startup, "ax"
     .equ BDOS, 5
     .global _main
 
