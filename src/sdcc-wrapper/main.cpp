@@ -90,6 +90,7 @@ int main(int argc, char *argv[]) {
     return status;
   }
 
+  filesystem::remove(intermediate.replace_extension(".asm"));
   if (args->get<bool>("-c")) {
     if (args->is_used("-o")) {
       filesystem::rename(intermediate.replace_extension(".o"), args->get<filesystem::path>("-o"));
@@ -101,12 +102,11 @@ int main(int argc, char *argv[]) {
   if (status != 0) {
     return status;
   }
+
+  filesystem::remove(intermediate.replace_extension(".o"));
   if (args->is_used("-o")) {
     filesystem::rename("a.out", args->get<filesystem::path>("-o"));
   }
-
-  // Clean up the object file
-  filesystem::remove(intermediate.replace_extension(".o"));
 
   return 0;
 }
