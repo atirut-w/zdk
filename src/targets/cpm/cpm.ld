@@ -9,18 +9,7 @@ MEMORY
 SECTIONS
 {
     .text : {
-        _start = .;
         *(.text)
-        *(.rodata)
-    } > TPA
-
-    .data : {
-        *(.data)
-    } > TPA
-
-    .bss : {
-        __bss_start = .;
-        *(.bss)
-        __bss_end = .;
+        *(_CODE)
     } > TPA
 }
