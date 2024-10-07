@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  status = run("z80-elf-as", {"-sdcc", "-o", intermediate.replace_extension(".o"), intermediate});
+  status = run("z80-elf-as", {"-sdcc", "-o", intermediate.replace_extension(".o"), intermediate.replace_extension(".asm")});
   if (status != 0) {
     return status;
   }
