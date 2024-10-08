@@ -51,10 +51,10 @@ void Codegen::compute_offsets(Function &func) {
     throw runtime_error("too many locals");
   }
 
-  cout << "Stack layout for " << func.getName().str() << ":\n";
-  for (auto [val, offset] : ctx.stack_offsets) {
-    printf("  %p: %d\n", val, offset);
-  }
+  // cout << "Stack layout for " << func.getName().str() << ":\n";
+  // for (auto [val, offset] : ctx.stack_offsets) {
+  //   printf("  %p: %d\n", val, offset);
+  // }
 }
 
 void Codegen::write_instruction(Instruction &inst) {
