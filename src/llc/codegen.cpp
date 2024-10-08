@@ -37,23 +37,48 @@ std::any Codegen::visit_module(Module &module) {
   return {};
 }
 
+void Codegen::compute_offsets(Function &func) {
+  for (auto &block : func) {
+    for (auto &inst : block) {
+      if (auto *alloca = dyn_cast<AllocaInst>(&inst)) {
+        ctx.stack_offsets[alloca] = ctx.stack_size;
+        ctx.stack_size += module->getDataLayout().getTypeAllocSize(
+            alloca->getAllocatedType());
+      } else if (!inst.getType()->isVoidTy()) {
+        ctx.stack_offsets[&inst] = ctx.stack_size;
+        ctx.stack_size +=
+            module->getDataLayout().getTypeAllocSize(inst.getType());
+      }
+    }
+  }
+
+  cout << "Stack layout for " << func.getName().str() << ":\n";
+  for (auto [val, offset] : ctx.stack_offsets) {
+    printf("  %p: %d\n", val, offset);
+  }
+}
+
 std::any Codegen::visit_function(Function &func) {
   os << "\t.global " << func.getName().str() << "\n";
   os << "\t.type " << func.getName().str() << ", @function\n";
   os << func.getName().str() << ":\n";
+  ctx = {};
 
   LivenessAnalyzer analyzer;
   ctx.intervals = analyzer.compute_intervals(func);
 
   LinearScanAllocator allocator(module);
   allocator.allocate(ctx.intervals);
+  compute_offsets(func);
 
-  for (auto &interval : ctx.intervals) {
-    printf("%p: %d -> %d in %s\n", interval.val, interval.start, interval.end,
-           interval.spilled ? "(spilled)" : register_names[interval.reg].c_str());
+  if (ctx.stack_size) {
+    os << "push ix\n";
+    os << "ld ix, 0\n";
+    os << "add ix, sp\n";
+
+    os << "ld hl, -" << ctx.stack_size << "\n";
+    os << "add hl, sp\n";
   }
-
-  return {};
 
   // pregen_function(func);
   // if (ctx.stack_size) {
