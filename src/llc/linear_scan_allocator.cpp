@@ -9,46 +9,42 @@ void LinearScanAllocator::allocate(LivenessAnalyzer::IntervalList &intervals) {
     this->intervals.push_back(&interval);
   }
 
-  std::sort(this->intervals.begin(), this->intervals.end(), [](auto *a, auto *b) {
-    return a->start < b->start;
-  });
+  std::sort(this->intervals.begin(), this->intervals.end(),
+            [](auto *a, auto *b) { return a->start < b->start; });
 
   for (auto *interval : this->intervals) {
+    Type *type = interval->val->getType();
+    uint64_t size = module->getDataLayout().getTypeAllocSize(type);
 
     expire(interval);
-    if (get_usage() >= 7) {
+    if (get_usage() + size > 7) {
       spill(interval);
     } else {
-      Type *type = interval->val->getType();
-      uint64_t size = module->getDataLayout().getTypeAllocSize(type);
-      int reg = allocator.allocate(size);
+      int reg = allocate_reg(size);
       interval->reg = reg;
-      
+
       if (active.empty()) {
         active.push_back(interval);
       } else {
-        for (int i = 0; i < active.size(); i++) {
-          if (active[i]->end > interval->end) {
-            active.insert(active.begin() + i, interval);
-            break;
-          }
+        // Sort by increasing end point
+        auto it = active.begin();
+        while (it != active.end() && (*it)->end < interval->end) {
+          it++;
         }
+        active.insert(it, interval);
       }
     }
   }
 }
 
 void LinearScanAllocator::expire(LivenessAnalyzer::Interval *interval) {
-  auto sorted = active;
-  std::sort(sorted.begin(), sorted.end(), [](auto *a, auto *b) {
-    return a->end < b->end;
-  });
-
-  for (auto active_interval : sorted) {
-    if (active_interval->end < interval->start) {
-      active_interval->spilled = true;
-      allocator.free(active_interval->reg);
-      active.erase(remove(active.begin(), active.end(), active_interval), active.end());
+  auto it = active.begin();
+  while (it != active.end()) {
+    if ((*it)->end < interval->start) {
+      free_reg((*it)->reg);
+      it = active.erase(it);
+    } else {
+      ++it;
     }
   }
 }
@@ -58,33 +54,65 @@ void LinearScanAllocator::spill(LivenessAnalyzer::Interval *interval) {
     throw runtime_error("No active intervals to spill");
   }
 
-  // // Get last interval to expire
-  // auto spill = active.back();
-
-  // if (spill->end > interval->end) {
-  //   interval->reg = spill->reg;
-  //   active.erase(remove(active.begin(), active.end(), spill), active.end());
-  //   active.push_back(interval);
-  // }
-
-  Type *type = interval->val->getType();
-  uint64_t required_size = module->getDataLayout().getTypeAllocSize(type);
-
-  while (required_size - get_usage() > 0) {
-    LivenessAnalyzer::Interval *spill_interval = active.back();
-    allocator.free(spill_interval->reg);
+  auto spill_candidate = active.back();
+  if (spill_candidate->end > interval->end) {
+    spill_candidate->spilled = true;
+    free_reg(spill_candidate->reg);
     active.pop_back();
-  }
+    interval->reg = spill_candidate->reg;
 
-  interval->reg = allocator.allocate(required_size);
+    auto it = active.begin();
+    while (it != active.end() && (*it)->end < interval->end) {
+      it++;
+    }
+    active.insert(it, interval);
+  } else {
+    interval->spilled = true;
+  }
 }
 
 int LinearScanAllocator::get_usage() {
   int total = 0;
   for (int i = 0; i < 32; i++) {
-    if (allocator.usage & (1 << i)) {
+    if (regs & (1 << i)) {
       total++;
     }
   }
   return total;
 }
+
+int LinearScanAllocator::allocate_reg(int size) {
+  switch (size) {
+  default:
+    throw runtime_error("invalid register allocation size");
+  case 1:
+    for (int i = 0; i < 7; i++) {
+      int mask = 1 << i;
+      if (!(regs & mask)) {
+        regs |= mask;
+        return mask;
+      }
+    }
+    throw runtime_error("out of registers");
+  case 2:
+    for (int i = 0; i < 3; i++) {
+      int mask = 3 << (i * 2);
+      if (!(regs & mask)) {
+        regs |= mask;
+        return mask;
+      }
+    }
+    throw runtime_error("out of registers");
+  case 4:
+    for (int i = 0; i < 2; i++) {
+      int mask = 15 << (i * 2); // It's either BCDE or DEHL
+      if (!(regs & mask)) {
+        regs |= mask;
+        return mask;
+      }
+    }
+    throw runtime_error("out of registers");
+  }
+}
+
+void LinearScanAllocator::free_reg(int reg) { regs &= ~reg; }
