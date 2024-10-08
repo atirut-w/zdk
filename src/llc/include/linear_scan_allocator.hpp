@@ -10,14 +10,18 @@ struct LinearScanAllocator {
   llvm::Module *module;
   std::vector<LivenessAnalyzer::Interval *> intervals;
   std::vector<LivenessAnalyzer::Interval *> active;
-  Allocator allocator;
 
   LinearScanAllocator(llvm::Module *module) : module(module) {}
 
   void allocate(LivenessAnalyzer::IntervalList &intervals);
 
 private:
+  int regs = 0;
+
   void expire(LivenessAnalyzer::Interval *interval);
   void spill(LivenessAnalyzer::Interval *interval);
   int get_usage();
+
+  int allocate_reg(int size);
+  void free_reg(int reg);
 };

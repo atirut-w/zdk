@@ -15,5 +15,6 @@ map<int, string> Z80::register_names = {
     {R16_BC, "bc"},
     {R16_DE, "de"},
     {R16_HL, "hl"},
+    {R16_BC | R16_DE, "bcde"},
     {R16_DE | R16_HL, "dehl"},
 };
