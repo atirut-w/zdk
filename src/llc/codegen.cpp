@@ -47,6 +47,10 @@ void Codegen::compute_offsets(Function &func) {
     }
   }
 
+  if (ctx.stack_size > 128) {
+    throw runtime_error("too many locals");
+  }
+
   cout << "Stack layout for " << func.getName().str() << ":\n";
   for (auto [val, offset] : ctx.stack_offsets) {
     printf("  %p: %d\n", val, offset);
