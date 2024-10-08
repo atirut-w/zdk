@@ -1,5 +1,4 @@
 #pragma once
-#include "allocator.hpp"
 #include "liveness_analyzer.hpp"
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
