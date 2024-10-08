@@ -21,10 +21,12 @@ class Codegen : public IRVisitor {
   } ctx;
 
   void compute_offsets(llvm::Function &func);
+  void write_instruction(llvm::Instruction &inst);
 
 public:
   Codegen(std::ostream &os);
 
   std::any visit_module(llvm::Module &module) override;
   std::any visit_function(llvm::Function &function) override;
+  std::any visit_instruction(llvm::Instruction &inst) override;
 };

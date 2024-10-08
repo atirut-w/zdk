@@ -57,6 +57,13 @@ void Codegen::compute_offsets(Function &func) {
   }
 }
 
+void Codegen::write_instruction(Instruction &inst) {
+  string str;
+  raw_string_ostream rso(str);
+  inst.print(rso);
+  os << "\t; " << rso.str() << "\n";
+}
+
 std::any Codegen::visit_function(Function &func) {
   os << "\t.global " << func.getName().str() << "\n";
   os << "\t.type " << func.getName().str() << ", @function\n";
@@ -71,32 +78,29 @@ std::any Codegen::visit_function(Function &func) {
   compute_offsets(func);
 
   if (ctx.stack_size) {
-    os << "push ix\n";
-    os << "ld ix, 0\n";
-    os << "add ix, sp\n";
+    os << "\t; Allocate stack for " << ctx.stack_offsets.size() << " locals\n";
+    os << "\tpush ix\n";
+    os << "\tld ix, 0\n";
+    os << "\tadd ix, sp\n";
 
-    os << "ld hl, -" << ctx.stack_size << "\n";
-    os << "add hl, sp\n";
+    os << "\tld hl, -" << ctx.stack_size << "\n";
+    os << "\tadd hl, sp\n";
   }
 
-  // pregen_function(func);
-  // if (ctx.stack_size) {
-  //   os << "\tpush iy\n";
-  //   os << "\tpush ix\n";
+  for (auto &block : func) {
+    visit_block(block);
+  }
 
-  //   os << "\tld ix, 0\n";
-  //   os << "\tadd ix, sp\n";
-  //   os << "\tld iy, -" << ctx.stack_size << "\n";
-  //   os << "\tadd iy, sp\n";
-  //   os << "\tld sp, iy\n";
-  // }
+  if (ctx.stack_size) {
+    os << "\t; Deallocate stack\n";
+    os << "\tld sp, ix\n";
+    os << "\tpop ix\n";
+  }
 
-  // for (auto &block : func) {
-  //   for (auto &inst : block) {
-  //     visit_instruction(inst);
-  //   }
-  // }
+  return {};
+}
 
-  os << "\n\n";
+std::any Codegen::visit_instruction(Instruction &inst) {
+  write_instruction(inst);
   return {};
 }
