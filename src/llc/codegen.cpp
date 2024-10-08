@@ -1,20 +1,15 @@
 #include "codegen.hpp"
-#include "allocator.hpp"
 #include "linear_scan_allocator.hpp"
 #include "liveness_analyzer.hpp"
 #include "z80.hpp"
 #include <any>
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 using namespace std;

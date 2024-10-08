@@ -1,5 +1,4 @@
 #pragma once
-#include "allocator.hpp"
 #include "ir_visitor.hpp"
 #include "liveness_analyzer.hpp"
 #include <cstdint>

@@ -10,7 +10,6 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES
 add_executable(zdk-llc
     main.cpp
     codegen.cpp
-    allocator.cpp
     ir_visitor.cpp
     liveness_analyzer.cpp
     linear_scan_allocator.cpp
