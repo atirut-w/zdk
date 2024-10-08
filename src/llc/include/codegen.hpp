@@ -16,10 +16,12 @@ class Codegen : public IRVisitor {
 
   struct {
     std::vector<LivenessAnalyzer::Interval> intervals;
-    std::map<llvm::Value *, int> locals;
-    std::map<llvm::Value *, int> loaded;
+    std::map<llvm::Value *, int> stack_offsets;
     int stack_size = 0;
+    int pos = 0;
   } ctx;
+
+  void compute_offsets(llvm::Function &func);
 
 public:
   Codegen(std::ostream &os);
