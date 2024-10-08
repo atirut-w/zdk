@@ -8,4 +8,5 @@
     ret
 .endm
 
+    STUB _putchar
     STUB _puts
