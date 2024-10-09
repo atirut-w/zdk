@@ -23,6 +23,7 @@ class Codegen : public IRVisitor {
   void compute_offsets(llvm::Function &func);
   void write_instruction(llvm::Instruction &inst);
 
+  void visit_store(llvm::StoreInst *inst);
   void visit_return(llvm::ReturnInst *inst);
 
 public:

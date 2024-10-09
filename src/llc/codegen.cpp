@@ -99,11 +99,33 @@ std::any Codegen::visit_instruction(Instruction &inst) {
   write_instruction(inst);
 
   switch (inst.getOpcode()) {
+  case Instruction::Store:
+    visit_store(cast<StoreInst>(&inst));
+    break;
   case Instruction::Ret:
     visit_return(cast<ReturnInst>(&inst));
+    break;
   }
 
   return {};
+}
+
+void Codegen::visit_store(StoreInst *inst) {
+  auto *val = inst->getValueOperand();
+  auto *ptr = inst->getPointerOperand();
+
+  Type *val_type = val->getType();
+  TypeSize size = module->getDataLayout().getTypeAllocSize(val_type);
+
+  if (auto *const_int = dyn_cast<ConstantInt>(val)) {
+    int value = const_int->getSExtValue();
+    for (int i = 0; i < size; i++) {
+      os << "\tld (ix-" << ctx.stack_offsets[ptr] + i << "), "
+         << ((value >> (i * 8)) & 0xff) << "\n";
+    }
+  } else {
+    throw runtime_error("unsupported store");
+  }
 }
 
 void Codegen::visit_return(ReturnInst *inst) {
