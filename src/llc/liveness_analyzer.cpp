@@ -35,9 +35,8 @@ LivenessAnalyzer::compute_intervals(Function &func) {
 
       if (auto *val = dyn_cast<Value>(&op)) {
         if (current.find(val) == current.end()) {
-          current[val] = {val, -1, -1, -1, false};
+          current[val] = {val, -1, i};
         }
-        current[val].end = i;
       }
     }
 
