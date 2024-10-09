@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <iostream>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
@@ -91,16 +92,25 @@ std::any Codegen::visit_function(Function &func) {
     visit_block(block);
   }
 
-  if (ctx.stack_size) {
-    os << "\t; Deallocate stack\n";
-    os << "\tld sp, ix\n";
-    os << "\tpop ix\n";
-  }
-
   return {};
 }
 
 std::any Codegen::visit_instruction(Instruction &inst) {
   write_instruction(inst);
+
+  switch (inst.getOpcode()) {
+  case Instruction::Ret:
+    visit_return(cast<ReturnInst>(&inst));
+  }
+
   return {};
+}
+
+void Codegen::visit_return(ReturnInst *inst) {
+  if (ctx.stack_size) {
+    os << "\t; Deallocate stack\n";
+    os << "\tld sp, ix\n";
+    os << "\tpop ix\n";
+  }
+  os << "\tret\n";
 }
