@@ -106,13 +106,17 @@ std::any Codegen::visit_instruction(Instruction &inst) {
     if (ctx.intervals.front().start == ctx.pos) {
       auto interval = ctx.intervals.front();
       ctx.intervals.erase(ctx.intervals.begin());
-      auto it = std::upper_bound(ctx.active.begin(), ctx.active.end(), interval,
-                     [](const auto &a, const auto &b) { return a.end < b.end; });
+      auto it = std::upper_bound(
+          ctx.active.begin(), ctx.active.end(), interval,
+          [](const auto &a, const auto &b) { return a.end < b.end; });
       ctx.active.insert(it, interval);
     }
   }
 
   switch (inst.getOpcode()) {
+  case Instruction::Load:
+    visit_load(cast<LoadInst>(&inst));
+    break;
   case Instruction::Store:
     visit_store(cast<StoreInst>(&inst));
     break;
@@ -130,6 +134,26 @@ std::any Codegen::visit_instruction(Instruction &inst) {
 
   ctx.pos++;
   return {};
+}
+
+void Codegen::visit_load(LoadInst *inst) {
+  auto *ptr = inst->getPointerOperand();
+  Type *val_type = inst->getType();
+  TypeSize size = module->getDataLayout().getTypeAllocSize(val_type);
+
+  if (auto *const_int = dyn_cast<ConstantInt>(ptr)) {
+
+  } else {
+    auto interval =
+        find_if(ctx.active.begin(), ctx.active.end(),
+                [inst](auto &interval) { return interval.val == inst; });
+    int offset = ctx.stack_offsets[ptr];
+
+    for (int i = 0; i < size; i++) {
+      os << "\tld " << register_names[interval->reg][size - 1 - i] << ", "
+         << "(ix-" << offset + i << ")\n";
+    }
+  }
 }
 
 void Codegen::visit_store(StoreInst *inst) {
