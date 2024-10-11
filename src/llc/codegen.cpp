@@ -107,6 +107,7 @@ std::any Codegen::visit_instruction(Instruction &inst) {
     break;
   }
 
+  ctx.pos++;
   return {};
 }
 
