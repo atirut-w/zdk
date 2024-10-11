@@ -2,6 +2,7 @@
 #include "linear_scan_allocator.hpp"
 #include "liveness_analyzer.hpp"
 #include "z80.hpp"
+#include <algorithm>
 #include <any>
 #include <cassert>
 #include <cstdio>
@@ -76,6 +77,9 @@ std::any Codegen::visit_function(Function &func) {
 
   LinearScanAllocator allocator(module);
   allocator.allocate(ctx.intervals);
+  std::sort(ctx.intervals.begin(), ctx.intervals.end(),
+            [](auto &a, auto &b) { return a.start < b.start; });
+
   compute_offsets(func);
 
   if (ctx.stack_size) {
@@ -98,6 +102,16 @@ std::any Codegen::visit_function(Function &func) {
 std::any Codegen::visit_instruction(Instruction &inst) {
   write_instruction(inst);
 
+  if (!ctx.intervals.empty()) {
+    if (ctx.intervals.front().start == ctx.pos) {
+      auto interval = ctx.intervals.front();
+      ctx.intervals.erase(ctx.intervals.begin());
+      auto it = std::upper_bound(ctx.active.begin(), ctx.active.end(), interval,
+                     [](const auto &a, const auto &b) { return a.end < b.end; });
+      ctx.active.insert(it, interval);
+    }
+  }
+
   switch (inst.getOpcode()) {
   case Instruction::Store:
     visit_store(cast<StoreInst>(&inst));
@@ -105,6 +119,13 @@ std::any Codegen::visit_instruction(Instruction &inst) {
   case Instruction::Ret:
     visit_return(cast<ReturnInst>(&inst));
     break;
+  }
+
+  if (!ctx.active.empty()) {
+    if (ctx.active.front().end == ctx.pos) {
+      // Buh-bye
+      ctx.active.erase(ctx.active.begin());
+    }
   }
 
   ctx.pos++;
