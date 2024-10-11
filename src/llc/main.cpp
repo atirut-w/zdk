@@ -1,5 +1,6 @@
 #include "argparse/argparse.hpp"
 #include "codegen.hpp"
+#include "legalizer.hpp"
 #include "liveness_analyzer.hpp"
 #include <filesystem>
 #include <fstream>
@@ -7,7 +8,9 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/IRPrinter/IRPrintingPasses.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_ostream.h>
 #include <memory>
+#include <system_error>
 
 using namespace std;
 using namespace argparse;
@@ -44,6 +47,13 @@ int main(int argc, char **argv) {
     error.print("zdk-llc", errs());
     return 1;
   }
+
+  Legalizer legalizer;
+  legalizer.visit_module(*module);
+  error_code ec;
+  raw_fd_ostream dump(input.replace_extension("legalized.ll").string(), ec);
+  module->print(dump, nullptr);
+  return 0;
 
   ofstream os(input.replace_extension(".s"));
   Codegen codegen(os);
