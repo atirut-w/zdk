@@ -15,6 +15,7 @@ class Codegen : public IRVisitor {
 
   struct {
     std::vector<LivenessAnalyzer::Interval> intervals;
+    std::vector<LivenessAnalyzer::Interval> active;
     std::map<llvm::Value *, int> stack_offsets;
     int stack_size = 0;
     int pos = 0;
