@@ -65,15 +65,15 @@ int main(int argc, char *argv[]) {
   filesystem::path intermediate = filename;
   int status;
 
-  vector<string> sdcc_args = {"-mz80", "-S", filename.string(), "-o", intermediate.replace_extension(".asm")};
+  vector<string> clang_args = {"-target", "z80-unknown-elf", "-S", filename.string(), "-o", intermediate.replace_extension(".asm")};
   if (args->get<bool>("-E")) {
-    sdcc_args.push_back("-E");
+    clang_args.push_back("-E");
   }
   if (argc > 1) {
-    sdcc_args.insert(sdcc_args.end(), unknown.begin(), unknown.end());
+    clang_args.insert(clang_args.end(), unknown.begin(), unknown.end());
   }
   
-  status = run("sdcc-sdcc", sdcc_args);
+  status = run("ez80-clang", clang_args);
   if (status != 0) {
     return status;
   }
