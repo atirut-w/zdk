@@ -78,6 +78,9 @@ int main(int argc, char *argv[]) {
     return status;
   }
 
+  run("sed", {"-i", "s/public/\\.global/g", intermediate});
+  run("sed", {"-i", "s/assume/\\; assume/g", intermediate});
+
   if (args->get<bool>("-S") || args->get<bool>("-E")) {
     if (args->is_used("-o")) {
       filesystem::rename(intermediate, args->get<filesystem::path>("-o"));
