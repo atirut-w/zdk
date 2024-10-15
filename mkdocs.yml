@@ -7,9 +7,9 @@ edit_uri: edit/main/docs/
 
 nav:
   - 'index.md'
+  - 'abi.md'
   - Development:
     - 'development/compiler-debugging.md'
-  - 'calling-convention.md'
 
 theme:
   name: material
