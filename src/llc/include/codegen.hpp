@@ -7,6 +7,7 @@
 #include <llvm/IR/Value.h>
 #include <map>
 #include <ostream>
+#include <string>
 
 class Codegen : public IRVisitor {
   std::ostream &os;
@@ -18,8 +19,10 @@ class Codegen : public IRVisitor {
 
   void generate_prologue(llvm::Function &function);
   void comment_instruction(llvm::Instruction &inst);
+  std::string get_ix_offset(llvm::Value *value, int offset = 0);
 
   void visit_return(llvm::ReturnInst *inst);
+  void visit_store(llvm::StoreInst *inst);
 
 public:
   Codegen(std::ostream &os);
