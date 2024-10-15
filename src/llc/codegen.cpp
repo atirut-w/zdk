@@ -1,11 +1,13 @@
 #include "codegen.hpp"
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/TypeSize.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace std;
@@ -49,6 +51,9 @@ std::any Codegen::visit_instruction(Instruction &inst) {
   case Instruction::Load:
     os << "\t;   (Aliased to offset " << ctx.offsets[&inst] << ")\n";
     break;
+  case Instruction::Store:
+    visit_store(cast<StoreInst>(&inst));
+    break;
   case Instruction::Ret:
     visit_return(cast<ReturnInst>(&inst));
     break;
@@ -76,6 +81,7 @@ void Codegen::generate_prologue(Function &function) {
     }
   }
 
+  // TODO: Clause for arguments
   if (local_offset) {
     os << "\tpush ix\n";
     os << " \tld ix, 0\n";
@@ -96,6 +102,19 @@ void Codegen::comment_instruction(Instruction &inst) {
   os << "\t; " << str << "\n";
 }
 
+string Codegen::get_ix_offset(Value *value, int offset) {
+  string str = "(ix";
+
+  int ix_offset = ctx.offsets[value];
+  if (ix_offset < 0)
+    str += '-';
+  else
+    str += '+';
+  str += to_string(abs(ix_offset) + offset) + ')';
+
+  return str;
+}
+
 void Codegen::visit_return(ReturnInst *inst) {
   // TODO: Load return value
   if (!ctx.offsets.empty()) {
@@ -103,4 +122,22 @@ void Codegen::visit_return(ReturnInst *inst) {
     os << "\tpop ix\n";
   }
   os << "\tret\n";
+}
+
+void Codegen::visit_store(StoreInst *inst) {
+  auto *src = inst->getValueOperand();
+  auto *dst = inst->getPointerOperand();
+  Type *type = src->getType();
+  TypeSize size = module->getDataLayout().getTypeAllocSize(type);
+
+  if (auto *constant = dyn_cast<ConstantInt>(src)) {
+    int64_t value = constant->getSExtValue();
+    for (uint64_t i = 0; i < size; i++) {
+      os << "\tld " << get_ix_offset(dst, i) << ", "
+         << ((value >> (i * 8)) & 0xff) << "\n";
+    }
+  } else {
+    // TODO: Implement
+    throw runtime_error("store not implemented");
+  }
 }
