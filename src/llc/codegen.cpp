@@ -33,7 +33,26 @@ std::any Codegen::visit_function(Function &function) {
 
   generate_prologue(function);
 
-  // TODO: Generate function body
+  for (auto &block : function) {
+    for (auto &inst : block) {
+      visit_instruction(inst);
+    }
+  }
+
+  return {};
+}
+
+std::any Codegen::visit_instruction(Instruction &inst) {
+  comment_instruction(inst);
+
+  switch (inst.getOpcode()) {
+  case Instruction::Load:
+    os << "\t;   (Aliased to offset " << ctx.offsets[&inst] << ")\n";
+    break;
+  case Instruction::Ret:
+    visit_return(cast<ReturnInst>(&inst));
+    break;
+  }
 
   return {};
 }
@@ -68,4 +87,20 @@ void Codegen::generate_prologue(Function &function) {
   }
 
   return;
+}
+
+void Codegen::comment_instruction(Instruction &inst) {
+  string str;
+  raw_string_ostream rso(str);
+  inst.print(rso);
+  os << "\t; " << str << "\n";
+}
+
+void Codegen::visit_return(ReturnInst *inst) {
+  // TODO: Load return value
+  if (!ctx.offsets.empty()) {
+    os << "\tld sp, ix\n";
+    os << "\tpop ix\n";
+  }
+  os << "\tret\n";
 }

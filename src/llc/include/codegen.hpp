@@ -17,11 +17,14 @@ class Codegen : public IRVisitor {
   } ctx;
 
   void generate_prologue(llvm::Function &function);
-  void generate_epilogue();
+  void comment_instruction(llvm::Instruction &inst);
+
+  void visit_return(llvm::ReturnInst *inst);
 
 public:
   Codegen(std::ostream &os);
 
   virtual std::any visit_module(llvm::Module &module) override;
   virtual std::any visit_function(llvm::Function &function) override;
+  virtual std::any visit_instruction(llvm::Instruction &inst) override;
 };
