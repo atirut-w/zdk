@@ -46,13 +46,13 @@ void Codegen::generate_prologue(Function &function) {
     for (auto &inst : block) {
       if (auto *alloca = dyn_cast<AllocaInst>(&inst)) {
         ctx.offsets[alloca] = local_offset;
-        local_offset += module->getDataLayout().getTypeAllocSize(alloca->getAllocatedType());
+        local_offset -= module->getDataLayout().getTypeAllocSize(alloca->getAllocatedType());
       } else if (auto *load = dyn_cast<LoadInst>(&inst)) {
         auto *ptr = load->getPointerOperand();
         ctx.offsets[&inst] = ctx.offsets[ptr];
       } else if (!inst.getType()->isVoidTy()) {
         ctx.offsets[&inst] = local_offset;
-        local_offset += module->getDataLayout().getTypeAllocSize(inst.getType());
+        local_offset -= module->getDataLayout().getTypeAllocSize(inst.getType());
       }
     }
   }
@@ -62,7 +62,7 @@ void Codegen::generate_prologue(Function &function) {
     os << " \tld ix, 0\n";
     os << " \tadd ix, sp\n";
 
-    os << " \tld hl, " << -local_offset << "\n";
+    os << " \tld hl, " << local_offset << "\n";
     os << " \tadd hl, sp\n";
     os << " \tld sp, hl\n";
   }
