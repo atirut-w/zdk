@@ -105,12 +105,12 @@ void Codegen::comment_instruction(Instruction &inst) {
 string Codegen::get_ix_offset(Value *value, int offset) {
   string str = "(ix";
 
-  int ix_offset = ctx.offsets[value];
-  if (ix_offset < 0)
+  int origin = ctx.offsets[value];
+  if (origin <= 0)
     str += '-';
   else
     str += '+';
-  str += to_string(abs(ix_offset) + offset) + ')';
+  str += to_string(abs(origin) + offset) + ')';
 
   return str;
 }
