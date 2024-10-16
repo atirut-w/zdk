@@ -2,7 +2,7 @@ set(CLANG_VALIDATION OFF CACHE BOOL "Validate input with Clang")
 configure_file(config.hpp.in include/config.hpp)
 
 add_custom_command(
-    COMMENT "Generating parser"
+    COMMENT "Generating C parser"
     MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/src/cc/C.g4
     OUTPUT
         parser/CBaseListener.h
