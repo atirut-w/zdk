@@ -16,6 +16,17 @@
                 "-S",
                 // "-c",
             ]
+        },
+        {
+            "name": "Debug: zpc",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "CMake: build",
+            "program": "${workspaceFolder}/build/src/zpc/zdk-zpc",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "test.pas"
+            ]
         }
     ]
 }
