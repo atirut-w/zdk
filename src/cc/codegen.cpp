@@ -12,7 +12,7 @@ std::any Codegen::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
 }
 
 std::any Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
-  string name = ctx->declarator()->functionDeclarator()->Identifier()->getText();
+  string name = dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())->Identifier()->getText();
   os << "\t.global " << name << "\n";
   os << "\t.type " << name << ", @function\n";
   os << name << ":\n";

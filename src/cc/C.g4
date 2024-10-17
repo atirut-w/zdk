@@ -14,9 +14,9 @@ specifier: typeSpecifier;
 
 typeSpecifier: 'void' | 'int';
 
-declarator: Identifier | functionDeclarator;
-
-functionDeclarator: Identifier '(' parameters? ')';
+declarator:
+	Identifier							# IdentifierDeclarator
+	| Identifier '(' parameters? ')'	# FunctionDeclarator;
 
 parameters: parameter (',' parameter)* (',' '...')? | 'void';
 
