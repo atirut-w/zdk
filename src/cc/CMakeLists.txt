@@ -1,5 +1,5 @@
-set(CLANG_VALIDATION OFF CACHE BOOL "Validate input with Clang")
-configure_file(config.hpp.in include/config.hpp)
+# set(CLANG_VALIDATION OFF CACHE BOOL "Validate input with Clang")
+# configure_file(config.hpp.in include/config.hpp)
 
 add_custom_command(
     COMMENT "Generating C parser"
@@ -27,11 +27,7 @@ add_custom_command(
 
 add_executable(zdk-cc
     main.cpp
-    types.cpp
     error.cpp
-    irgen.cpp
-    codegen.cpp
-    z80.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp

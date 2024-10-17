@@ -1,18 +1,15 @@
 #include "ANTLRInputStream.h"
-#include "codegen.hpp"
 #include "error.hpp"
-#include "irgen.hpp"
 #include <CLexer.h>
 #include <CParser.h>
 #include <argparse/argparse.hpp>
-#include <config.hpp>
+// #include <config.hpp>
 #include <cstdlib>
 #include <error.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <vector>
 #include <zir/module.hpp>
 
@@ -35,7 +32,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     parser->add_argument("-I", "--include")
         .help("Add directory to include search path")
         .action([](const string &value) { return filesystem::path(value); })
-        .nargs(nargs_pattern::any);
+        .append();
 
     ArgumentParser::MutuallyExclusiveGroup &stage = parser->add_mutually_exclusive_group(false);
 
@@ -73,14 +70,14 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[])
     return parser;
 }
 
-bool validate(const string &preamble, const filesystem::path &source)
-{
-#ifdef CLANG_VALIDATION
-    return system(("clang " + preamble + "-fsyntax-only " + source.string()).c_str()) == 0;
-#else
-    return true;
-#endif
-}
+// bool validate(const string &preamble, const filesystem::path &source)
+// {
+// #ifdef CLANG_VALIDATION
+//     return system(("clang " + preamble + "-fsyntax-only " + source.string()).c_str()) == 0;
+// #else
+//     return true;
+// #endif
+// }
 
 bool preprocess(const string &preamble, const filesystem::path source, const filesystem::path intermediate)
 {
@@ -90,39 +87,6 @@ bool preprocess(const string &preamble, const filesystem::path source, const fil
         return false;
     }
     return true;
-}
-
-optional<const Module> compile_ir(const filesystem::path &source, bool dump_ast)
-{
-    ifstream input(source);
-    ANTLRInputStream input_stream(input);
-    input_stream.name = source.string();
-
-    CLexer lexer(&input_stream);
-    CommonTokenStream tokens(&lexer);
-    CParser parser(&tokens);
-
-    lexer.removeErrorListeners();
-    parser.removeErrorListeners();
-    auto listener = make_unique<CCErrorListener>();
-    lexer.addErrorListener(listener.get());
-    parser.addErrorListener(listener.get());
-
-    tree::ParseTree *tree = parser.compilationUnit();
-    if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
-    {
-        return {};
-    }
-    else if (dump_ast)
-    {
-        cout << tree->toStringTree(&parser, true) << endl;
-        return {};
-    }
-
-    Module module;
-    IRGen irgen(module);
-    irgen.visit(tree);
-    return module;
 }
 
 bool assemble(const filesystem::path source, const filesystem::path intermediate)
@@ -148,10 +112,10 @@ int main(int argc, char *argv[])
         cc_preamble += "-I" + include.string() + " ";
     }
 
-    if (!validate(cc_preamble, source))
-    {
-        return 1;
-    }
+    // if (!validate(cc_preamble, source))
+    // {
+    //     return 1;
+    // }
     if (!preprocess(cc_preamble, source, intermediate.replace_extension(".i")))
     {
         return 1;
@@ -161,20 +125,34 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    auto module = compile_ir(intermediate.replace_extension(".i"), args->get<bool>("--dump-ast"));
-    filesystem::remove(intermediate.replace_extension(".i"));
-    if (!module)
+    ifstream input(intermediate.replace_extension(".i"));
+    ANTLRInputStream input_stream(input);
+    input_stream.name = source;
+
+    CLexer lexer(&input_stream);
+    CommonTokenStream tokens(&lexer);
+    CParser parser(&tokens);
+
+    lexer.removeErrorListeners();
+    parser.removeErrorListeners();
+    auto listener = make_unique<CCErrorListener>();
+    lexer.addErrorListener(listener.get());
+    parser.addErrorListener(listener.get());
+
+    tree::ParseTree *tree = parser.compilationUnit();
+    if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
-        if (args->get<bool>("--dump-ast"))
-        {
-            return 0;
-        }
-        return 1;
+        return {};
+    }
+    else if (args->get<bool>("--dump-ast"))
+    {
+        cout << tree->toStringTree(&parser, true) << endl;
+        return {};
     }
 
-    std::ofstream output(intermediate.replace_extension(".s"));
-    Codegen codegen(output, *module);
-    codegen.generate();
+    // std::ofstream output(intermediate.replace_extension(".s"));
+    // Codegen codegen(output, *module);
+    // codegen.generate();
 
     if (args->get<bool>("-S"))
     {
