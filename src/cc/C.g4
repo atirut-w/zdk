@@ -28,10 +28,12 @@ statement: 'return' expression? ';' # ReturnStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
-	IntegerConstant			# IntegerConstantExpression
-	| '-' expression		# NegationExpression
-	| '~' expression		# BitwiseNotExpression
-	| '(' expression ')'	# ParenthesizedExpression;
+	IntegerConstant										# IntegerConstantExpression
+	| '-' expression									# NegationExpression
+	| '~' expression									# BitwiseNotExpression
+	| expression (Star | Slash | Percent) expression	# MultiplicativeExpression
+	| expression (Plus | Minus) expression				# AdditiveExpression
+	| '(' expression ')'								# ParenthesizedExpression;
 
 // === Lexer rules ===
 
@@ -52,7 +54,11 @@ Int: 'int';
 
 // Arithmetic operators
 MinusMinus: '--';
+Plus: '+';
 Minus: '-';
+Star: '*';
+Slash: '/';
+Percent: '%';
 
 // Bitwise operators
 Tilde: '~';
