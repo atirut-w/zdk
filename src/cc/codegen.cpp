@@ -34,6 +34,14 @@ std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
 std::any Codegen::visitExpression(CParser::ExpressionContext *ctx) {
   if (ctx->IntegerConstant()) {
     os << "\tld hl, " << ctx->IntegerConstant()->getText() << "\n";
+  } else if (ctx->negate) {
+    visit(ctx->expression());
+    os << "\txor a\n";
+    os << "\tsub l\n";
+    os << "\tld l,a\n";
+    os << "\tsbc a,a\n";
+    os << "\tsub h\n";
+    os << "\tld h,a\n";
   }
 
   return {};

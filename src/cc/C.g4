@@ -7,7 +7,8 @@ translationUnit: externalDeclaration+;
 
 externalDeclaration: functionDefinition;
 
-functionDefinition: specifier* declarator declaration* '{' declaration* statement* '}';
+functionDefinition:
+	specifier* declarator declaration* '{' declaration* statement* '}';
 
 specifier: typeSpecifier;
 
@@ -17,9 +18,7 @@ declarator: Identifier | functionDeclarator;
 
 functionDeclarator: Identifier '(' parameters? ')';
 
-parameters:
-	(parameter ',')* moreParameters
-	| 'void';
+parameters: (parameter ',')* moreParameters | 'void';
 
 parameter: specifier* declarator;
 
@@ -33,7 +32,7 @@ statement: returnStatement;
 
 returnStatement: 'return' expression? ';';
 
-expression: IntegerConstant;
+expression: IntegerConstant | negate = '-' expression;
 
 // Lexer rules
 
