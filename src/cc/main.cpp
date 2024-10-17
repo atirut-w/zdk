@@ -1,4 +1,5 @@
 #include "ANTLRInputStream.h"
+#include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -148,9 +149,9 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  // std::ofstream output(intermediate.replace_extension(".s"));
-  // Codegen codegen(output, *module);
-  // codegen.generate();
+  std::ofstream output(intermediate.replace_extension(".s"));
+  Codegen codegen(output);
+  codegen.visit(tree);
 
   if (args->get<bool>("-S")) {
     return 0;
