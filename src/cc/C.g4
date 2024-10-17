@@ -18,11 +18,9 @@ declarator: Identifier | functionDeclarator;
 
 functionDeclarator: Identifier '(' parameters? ')';
 
-parameters: (parameter ',')* moreParameters | 'void';
+parameters: parameter (',' parameter)* (',' '...')? | 'void';
 
 parameter: specifier* declarator;
-
-moreParameters: ',' | '...';
 
 declaration: declarationWithoutInit;
 
