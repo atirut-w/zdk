@@ -17,6 +17,8 @@ class Codegen : public CBaseVisitor {
   virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
   virtual std::any visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
   virtual std::any visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
+  virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
+  virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
 
 public:
   Codegen(std::ostream &os) : os(os) {}

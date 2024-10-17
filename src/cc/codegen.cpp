@@ -36,31 +36,70 @@ std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   return {};
 }
 
-std::any Codegen::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
+std::any Codegen::visitIntegerConstantExpression(
+    CParser::IntegerConstantExpressionContext *ctx) {
   os << "\tld hl, " << ctx->IntegerConstant()->getText() << "\n";
   return {};
 }
 
-std::any Codegen::visitNegationExpression(CParser::NegationExpressionContext *ctx) {
+std::any
+Codegen::visitNegationExpression(CParser::NegationExpressionContext *ctx) {
   visit(ctx->expression());
   os << "\txor a\n";
   os << "\tsub l\n";
-  os << "\tld l,a\n";
-  os << "\tsbc a,a\n";
+  os << "\tld l, a\n";
+  os << "\tsbc a, a\n";
   os << "\tsub h\n";
-  os << "\tld h,a\n";
+  os << "\tld h, a\n";
 
   return {};
 }
 
-std::any Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) {
+std::any
+Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) {
   visit(ctx->expression());
-  os << "\tld a,h\n";
+  os << "\tld a, h\n";
   os << "\tcpl\n";
-  os << "\tld h,a\n";
-  os << "\tld a,l\n";
+  os << "\tld h, a\n";
+  os << "\tld a, l\n";
   os << "\tcpl\n";
-  os << "\tld l,a\n";
+  os << "\tld l, a\n";
+
+  return {};
+}
+
+std::any Codegen::visitMultiplicativeExpression(
+    CParser::MultiplicativeExpressionContext *ctx) {
+  visit(ctx->expression(1));
+  os << "\tpush hl\n";
+  os << "\tpop de\n";
+  visit(ctx->expression(0));
+
+  if (ctx->Star()) {
+    os << "\tcall __mulsi3\n";
+  } else if (ctx->Slash()) {
+    os << "\tcall __divsi3\n";
+  } else if (ctx->Percent()) {
+    os << "\tcall __modsi3\n";
+  }
+
+  return {};
+}
+
+std::any
+Codegen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+  visit(ctx->expression(1));
+  os << "\tpush hl\n";
+  os << "\tpop de\n";
+
+  if (ctx->Plus()) {
+    visit(ctx->expression(0));
+    os << "\tadd hl, de\n";
+  } else if (ctx->Minus()) {
+    visit(ctx->expression(0));
+    os << "\txor a\n";
+    os << "\tsbc hl, de\n";
+  }
 
   return {};
 }
