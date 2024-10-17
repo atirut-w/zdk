@@ -1,7 +1,7 @@
 // C90 grammar, based on https://slebok.github.io/zoo/c/c90/rascal/extracted/index.html and https://slebok.github.io/zoo/c/c90/sdf/extracted/index.html
 grammar C;
 
-// Parser rules
+// === Parser rules ===
 
 translationUnit: externalDeclaration+;
 
@@ -32,8 +32,26 @@ returnStatement: 'return' expression? ';';
 
 expression: IntegerConstant | negate = '-' expression;
 
-// Lexer rules
+// === Lexer rules ===
 
 Whitespace: [ \t\r\n] -> skip;
+
+// Punctuations
+LParen: '(';
+RParen: ')';
+LBrace: '{';
+RBrace: '}';
+Comma: ',';
+Semicolon: ';';
+
+// Keywords
+Return: 'return';
+Void: 'void';
+Int: 'int';
+
+// Arithmetic operators
+MinusMinus: '--';
+Minus: '-';
+
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 IntegerConstant: '0' | [1-9][0-9]*;
