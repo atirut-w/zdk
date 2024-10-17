@@ -7,7 +7,9 @@ class Codegen : public CBaseVisitor {
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
   virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
-  virtual std::any visitExpression(CParser::ExpressionContext *ctx) override;
+
+  virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
+  virtual std::any visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
 
 public:
   Codegen(std::ostream &os) : os(os) {}

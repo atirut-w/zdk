@@ -30,7 +30,10 @@ statement: returnStatement;
 
 returnStatement: 'return' expression? ';';
 
-expression: IntegerConstant | negate = '-' expression;
+expression:
+	IntegerConstant			# IntegerConstantExpression
+	| '-' expression		# NegationExpression
+	| '(' expression ')'	# ParenthesizedExpression;
 
 // === Lexer rules ===
 
