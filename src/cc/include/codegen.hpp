@@ -1,8 +1,13 @@
 #pragma once
 #include "CBaseVisitor.h"
+#include <string>
 
 class Codegen : public CBaseVisitor {
   std::ostream &os;
+
+  static std::string prefix(const std::string &name) {
+    return "_" + name;
+  }
 
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
