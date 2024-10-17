@@ -1,55 +1,42 @@
+// C90 grammar, based on https://slebok.github.io/zoo/c/c90/rascal/extracted/index.html and https://slebok.github.io/zoo/c/c90/sdf/extracted/index.html
 grammar C;
 
-compilationUnit: function;
+// Parser rules
 
-function:
-	Int Identifier LParen Void RParen LBrace statement RBrace;
+translationUnit: externalDeclaration+;
 
-statement: Return expression Semicolon;
+externalDeclaration: functionDefinition;
 
-expression: additiveExpression;
+functionDefinition: specifier* declarator declaration* '{' declaration* statement* '}';
 
-additiveExpression: multiplicativeExpression ((Plus | Minus) multiplicativeExpression)*;
+specifier: typeSpecifier;
 
-multiplicativeExpression: unaryExpression ((Star | Slash | Percent) unaryExpression)*;
+typeSpecifier: 'void' | 'int';
 
-unaryExpression: unaryOperator? primaryExpression;
+declarator: Identifier | functionDeclarator;
 
-unaryOperator: Tilde | Minus;
+functionDeclarator: Identifier '(' parameters? ')';
 
-primaryExpression: LParen expression RParen | Constant;
+parameters:
+	(parameter ',')* moreParameters
+	| 'void';
+
+parameter: specifier* declarator;
+
+moreParameters: ',' | '...';
+
+declaration: declarationWithoutInit;
+
+declarationWithoutInit: specifier+ ';';
+
+statement: returnStatement;
+
+returnStatement: 'return' expression? ';';
+
+expression: IntegerConstant;
+
+// Lexer rules
 
 Whitespace: [ \t\r\n] -> skip;
-
-PlusPlus: '++';
-MinusMinus: '--';
-AndAnd: '&&';
-OrOr: '||';
-Equal: '==';
-NotEqual: '!=';
-
-Plus: '+';
-Minus: '-';
-Star: '*';
-Slash: '/';
-Percent: '%';
-Tilde: '~';
-Not: '!';
-Less: '<';
-LessEqual: '<=';
-Greater: '>';
-GreaterEqual: '>=';
-
-
-LParen: '(';
-RParen: ')';
-LBrace: '{';
-RBrace: '}';
-Semicolon: ';';
-
-Void: 'void';
-Int: 'int';
-Return: 'return';
-
-Identifier: [a-zA-Z_] [a-zA-Z_0-9]*;
-Constant: '0' | [1-9] [0-9]*;
+Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
+IntegerConstant: '0' | [1-9][0-9]*;

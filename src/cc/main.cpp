@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
     lexer.addErrorListener(listener.get());
     parser.addErrorListener(listener.get());
 
-    tree::ParseTree *tree = parser.compilationUnit();
+    tree::ParseTree *tree = parser.translationUnit();
     if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0)
     {
         return {};
