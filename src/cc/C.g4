@@ -22,13 +22,9 @@ parameters: parameter (',' parameter)* (',' '...')? | 'void';
 
 parameter: specifier* declarator;
 
-declaration: declarationWithoutInit;
+declaration: specifier+ ';' # DeclarationWithoutInit;
 
-declarationWithoutInit: specifier+ ';';
-
-statement: returnStatement;
-
-returnStatement: 'return' expression? ';';
+statement: 'return' expression? ';' # ReturnStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
