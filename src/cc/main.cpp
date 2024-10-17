@@ -141,6 +141,9 @@ int main(int argc, char *argv[]) {
   parser.addErrorListener(listener.get());
 
   tree::ParseTree *tree = parser.translationUnit();
+  input.close();
+  filesystem::remove(intermediate.replace_extension(".i"));
+
   if (lexer.getNumberOfSyntaxErrors() > 0 ||
       parser.getNumberOfSyntaxErrors() > 0) {
     return {};
