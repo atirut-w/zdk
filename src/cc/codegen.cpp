@@ -47,3 +47,15 @@ std::any Codegen::visitNegationExpression(CParser::NegationExpressionContext *ct
 
   return {};
 }
+
+std::any Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) {
+  visit(ctx->expression());
+  os << "\tld a,h\n";
+  os << "\tcpl\n";
+  os << "\tld h,a\n";
+  os << "\tld a,l\n";
+  os << "\tcpl\n";
+  os << "\tld l,a\n";
+
+  return {};
+}

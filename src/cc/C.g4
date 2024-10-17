@@ -30,9 +30,11 @@ statement: returnStatement;
 
 returnStatement: 'return' expression? ';';
 
+// For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
 	IntegerConstant			# IntegerConstantExpression
 	| '-' expression		# NegationExpression
+	| '~' expression		# BitwiseNotExpression
 	| '(' expression ')'	# ParenthesizedExpression;
 
 // === Lexer rules ===
@@ -55,6 +57,9 @@ Int: 'int';
 // Arithmetic operators
 MinusMinus: '--';
 Minus: '-';
+
+// Bitwise operators
+Tilde: '~';
 
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 IntegerConstant: '0' | [1-9][0-9]*;
