@@ -40,28 +40,28 @@ expression:
 Whitespace: [ \t\r\n] -> skip;
 
 // Punctuations
-LParen: '(';
-RParen: ')';
-LBrace: '{';
-RBrace: '}';
+LeftParen: '(';
+RightParen: ')';
+LeftBrace: '{';
+RightBrace: '}';
 Comma: ',';
 Semicolon: ';';
 
 // Keywords
-Return: 'return';
-Void: 'void';
-Int: 'int';
+KeywordReturn: 'return';
+KeywordVoid: 'void';
+KeywordInt: 'int';
 
 // Arithmetic operators
-MinusMinus: '--';
+Decrement: '--';
 Plus: '+';
 Minus: '-';
-Star: '*';
-Slash: '/';
-Percent: '%';
+Multiply: '*';
+Divide: '/';
+Modulo: '%';
 
 // Bitwise operators
-Tilde: '~';
+BitwiseNot: '~';
 
 // Logical operators
 Not: '!';
