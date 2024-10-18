@@ -38,6 +38,5 @@ add_executable(zdk-cc
     parser/CVisitor.cpp
 )
 target_include_directories(zdk-cc PRIVATE include ${CMAKE_SOURCE_DIR}/3rd/antlr4-cpp-runtime/runtime/src ${CMAKE_BINARY_DIR}/src/cc/parser ${CMAKE_BINARY_DIR}/src/cc/include)
-target_compile_features(zdk-cc PRIVATE cxx_std_17)
 target_link_libraries(zdk-cc PRIVATE argparse antlr4_static zir)
 install(TARGETS zdk-cc RUNTIME DESTINATION bin)
