@@ -63,5 +63,16 @@ Percent: '%';
 // Bitwise operators
 Tilde: '~';
 
+// Logical operators
+Not: '!';
+And: '&&';
+Or: '||';
+Equal: '==';
+NotEqual: '!=';
+Less: '<';
+LessEqual: '<=';
+Greater: '>';
+GreaterEqual: '>=';
+
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 IntegerConstant: '0' | [1-9][0-9]*;
