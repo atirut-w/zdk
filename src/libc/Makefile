@@ -51,7 +51,6 @@ $(TARGET): $(OBJECTS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR) $(C_INCLUDES)
 	$(CC) $(CFLAGS) -S -o $(OBJ_DIR)/$*.s $<
-	sed -i 's/_\(.*\)/\1/g' $(OBJ_DIR)/$*.s
 	sed -i 's/public/\.global/g' $(OBJ_DIR)/$*.s
 	sed -i 's/or\ta, a/or a/g' $(OBJ_DIR)/$*.s
 	$(AS) $(ASFLAGS) -o $@ $(OBJ_DIR)/$*.s

@@ -3,6 +3,6 @@
     .section .startup
     .global _start
 _start:
-    call main
+    call _main
     ld c, 0
     call BDOS
