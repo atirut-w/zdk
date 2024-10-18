@@ -28,12 +28,17 @@ statement: 'return' expression? ';' # ReturnStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
-	IntegerConstant								# IntegerConstantExpression
-	| '-' expression							# NegationExpression
-	| '~' expression							# BitwiseNotExpression
-	| expression ('*' | '/' | '%') expression	# MultiplicativeExpression
-	| expression ('+' | '-') expression			# AdditiveExpression
-	| '(' expression ')'						# ParenthesizedExpression;
+	IntegerConstant										# IntegerConstantExpression
+	| '-' expression									# NegationExpression
+	| '!' expression									# LogicalNotExpression
+	| '~' expression									# BitwiseNotExpression
+	| expression ('*' | '/' | '%') expression			# MultiplicativeExpression
+	| expression ('+' | '-') expression					# AdditiveExpression
+	| expression ('<' | '<=' | '>' | '>=') expression	# RelationalExpression
+	| expression ('==' | '!=') expression				# EqualityExpression
+	| expression '&&' expression						# LogicalAndExpression
+	| expression '||' expression						# LogicalOrExpression
+	| '(' expression ')'								# ParenthesizedExpression;
 
 // === Lexer rules ===
 
