@@ -122,3 +122,25 @@ Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
 
   return {};
 }
+
+std::any
+Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
+  int nz = reserve_label();
+  int skip = reserve_label();
+  
+  visit(ctx->expression(0));
+  os << "\tld a, h\n";
+  os << "\tor l\n";
+  os << "\tjr nz, " << forward_label(nz) << "\n";
+  visit(ctx->expression(1));
+  os << "\tld a, h\n";
+  os << "\tor l\n";
+  os << "\tjr nz, " << forward_label(nz) << "\n";
+  os << "\tld hl, 0\n";
+  os << "\tjr " << label(skip) << "\n";
+  os << label(nz) << "\n";
+  os << "\tld hl, 1\n";
+  os << label(skip) << "\n";
+
+  return {};
+}

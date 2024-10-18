@@ -24,6 +24,7 @@ class Codegen : public CBaseVisitor {
   virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
   virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
   virtual std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
+  virtual std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
 public:
   Codegen(std::ostream &os) : os(os) {}
