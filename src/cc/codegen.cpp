@@ -15,10 +15,10 @@ std::any Codegen::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
 
 std::any
 Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
-  string name =
-      dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())
-          ->Identifier()
-          ->getText();
+  string name = "_" + dynamic_cast<CParser::FunctionDeclaratorContext *>(
+                          ctx->declarator())
+                          ->Identifier()
+                          ->getText();
   os << "\t.global " << name << "\n";
   os << "\t.type " << name << ", @function\n";
   os << name << ":\n";
@@ -127,7 +127,7 @@ std::any
 Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
   int nz = reserve_label();
   int skip = reserve_label();
-  
+
   visit(ctx->expression(0));
   os << "\tld a, h\n";
   os << "\tor l\n";
