@@ -1,8 +1,17 @@
 #pragma once
 #include "CBaseVisitor.h"
+#include <string>
 
 class Codegen : public CBaseVisitor {
   std::ostream &os;
+
+  struct {
+    int label = 0;
+  } ctx;
+
+  int reserve_label() { return ctx.label++; }
+  std::string label(int n) { return std::to_string(n) + ":"; }
+  std::string forward_label(int n) { return std::to_string(n) + "f"; }
 
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
@@ -14,6 +23,7 @@ class Codegen : public CBaseVisitor {
   virtual std::any visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
   virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
   virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+  virtual std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
 
 public:
   Codegen(std::ostream &os) : os(os) {}
