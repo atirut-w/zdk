@@ -70,11 +70,11 @@ std::any Codegen::visitMultiplicativeExpression(
   os << "\tpop de\n";
   visit(ctx->expression(0));
 
-  if (ctx->Star()) {
+  if (ctx->Multiply()) {
     os << "\tcall __mulsi3\n";
-  } else if (ctx->Slash()) {
+  } else if (ctx->Divide()) {
     os << "\tcall __divsi3\n";
-  } else if (ctx->Percent()) {
+  } else if (ctx->Modulo()) {
     os << "\tcall __modsi3\n";
   }
 
