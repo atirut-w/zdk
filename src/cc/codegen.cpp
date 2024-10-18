@@ -108,11 +108,16 @@ Codegen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
 std::any
 Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
   int skip = reserve_label();
+
   visit(ctx->expression(0));
   os << "\tld a, h\n";
   os << "\tor l\n";
-  os << "\tjp z, " << forward_label(skip) << "\n";
+  os << "\tjr z, " << forward_label(skip) << "\n";
   visit(ctx->expression(1));
+  os << "\tld a, h\n";
+  os << "\tor l\n";
+  os << "\tjr z, " << forward_label(skip) << "\n";
+  os << "\tld hl, 1\n";
   os << label(skip) << "\n";
 
   return {};
