@@ -12,7 +12,7 @@ AS = z80-elf-as
 AR = z80-elf-ar
 
 # Flags
-CFLAGS = -target z80-elf -nostdinc
+CFLAGS = -target z80-elf -nostdinc --std=c90
 ASFLAGS =
 ARFLAGS = rcs
 

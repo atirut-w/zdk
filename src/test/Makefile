@@ -13,7 +13,7 @@ LD = z80-elf-ld
 OBJCOPY = z80-elf-objcopy
 
 # Flags
-CFLAGS = -target z80-elf -nostdinc -I$(PREFIX)/include
+CFLAGS = -target z80-elf -nostdinc -I$(PREFIX)/include --std=c90
 ASFLAGS =
 LDFLAGS = -Tlink.ld
 LIBS = -lc
