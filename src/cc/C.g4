@@ -39,6 +39,11 @@ expression:
 
 Whitespace: [ \t\r\n] -> skip;
 
+// Keywords
+KeywordReturn: 'return';
+KeywordVoid: 'void';
+KeywordInt: 'int';
+
 // Punctuations
 LeftParen: '(';
 RightParen: ')';
@@ -47,14 +52,9 @@ RightBrace: '}';
 Comma: ',';
 Semicolon: ';';
 
-// Keywords
-KeywordReturn: 'return';
-KeywordVoid: 'void';
-KeywordInt: 'int';
-
 // Arithmetic operators
-Decrement: '--';
 Plus: '+';
+Decrement: '--';
 Minus: '-';
 Multiply: '*';
 Divide: '/';
@@ -74,5 +74,6 @@ LessEqual: '<=';
 Greater: '>';
 GreaterEqual: '>=';
 
+// Identifiers and constants
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
 IntegerConstant: '0' | [1-9][0-9]*;
