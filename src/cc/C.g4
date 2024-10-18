@@ -62,11 +62,14 @@ Modulo: '%';
 
 // Bitwise operators
 BitwiseNot: '~';
+BitwiseAnd: '&';
+BitwiseOr: '|';
+BitwiseXor: '^';
 
 // Logical operators
-Not: '!';
-And: '&&';
-Or: '||';
+LogicalNot: '!';
+LogicalAnd: '&&';
+LogicalOr: '||';
 Equal: '==';
 NotEqual: '!=';
 Less: '<';
