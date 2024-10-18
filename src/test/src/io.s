@@ -1,8 +1,8 @@
     .equ BDOS, 5
 
-    .global putchar
-    .type putchar, @function
-putchar:
+    .global _putchar
+    .type _putchar, @function
+_putchar:
     push ix
     ld ix, 0
     add ix, sp
