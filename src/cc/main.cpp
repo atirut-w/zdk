@@ -10,6 +10,9 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <vector>
 #include <zir/module.hpp>
 
@@ -52,9 +55,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
       .flag();
 
   // Dump AST
-  parser->add_argument("--dump-ast")
-      .help("Dump AST to stdout")
-      .flag();
+  parser->add_argument("--dump-ast").help("Dump AST to stdout").flag();
 
   try {
     parser->parse_args(argc, argv);
@@ -64,6 +65,28 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
     exit(1);
   }
   return parser;
+}
+
+int run(string program, vector<string> args) {
+  pid_t pid = fork();
+
+  if (pid < 0) {
+    throw runtime_error("failed to fork");
+  } else if (pid == 0) {
+    vector<char *> c_args;
+    c_args.push_back(const_cast<char *>(program.c_str()));
+    for (auto &arg : args) {
+      c_args.push_back(const_cast<char *>(arg.c_str()));
+    }
+    c_args.push_back(nullptr);
+
+    execvp(program.c_str(), c_args.data());
+    _exit(EXIT_FAILURE);
+  } else {
+    int status;
+    waitpid(pid, &status, 0);
+    return WEXITSTATUS(status);
+  }
 }
 
 // bool validate(const string &preamble, const filesystem::path &source)
@@ -76,11 +99,15 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
 // #endif
 // }
 
-bool preprocess(const string &preamble, const filesystem::path source,
-                const filesystem::path intermediate) {
-  if (system(("cpp -P " + preamble + source.string() + " > " +
-              intermediate.string())
-                 .c_str()) != 0) {
+bool preprocess(const vector<string> &preamble, const filesystem::path &source,
+                const filesystem::path &intermediate) {
+  vector<string> args = preamble;
+  args.push_back("-P"); // No line markers please
+  args.push_back(source);
+  args.push_back("-o");
+  args.push_back(intermediate);
+
+  if (run("cpp", args) != 0) {
     filesystem::remove(intermediate);
     return false;
   }
@@ -89,15 +116,11 @@ bool preprocess(const string &preamble, const filesystem::path source,
 
 bool assemble(const filesystem::path source,
               const filesystem::path intermediate) {
-  return system(
-             ("z80-elf-as " + source.string() + " -o " + intermediate.string())
-                 .c_str()) == 0;
+  return run("z80-elf-as", {source, "-o", intermediate}) == 0;
 }
 
 bool link(const filesystem::path source, const filesystem::path intermediate) {
-  return system(
-             ("z80-elf-ld " + source.string() + " -o " + intermediate.string())
-                 .c_str()) == 0;
+  return run("z80-elf-ld", {source, "-o", intermediate}) == 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -105,10 +128,10 @@ int main(int argc, char *argv[]) {
   const auto source = args->get<filesystem::path>("source");
   filesystem::path intermediate = source;
 
-  string cc_preamble = "-nostdinc -nostdlib ";
+  vector<string> cc_preamble = {"-nostdinc", "-nostdlib"};
   auto includes = args->get<vector<filesystem::path>>("--include");
   for (auto &include : includes) {
-    cc_preamble += "-I" + include.string() + " ";
+    cc_preamble.push_back("-I" + include.string());
   }
 
   // if (!validate(cc_preamble, source))
