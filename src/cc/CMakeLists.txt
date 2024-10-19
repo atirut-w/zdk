@@ -1,5 +1,7 @@
 # set(CLANG_VALIDATION OFF CACHE BOOL "Validate input with Clang")
 # configure_file(config.hpp.in include/config.hpp)
+find_package(LLVM REQUIRED CONFIG)
+llvm_map_components_to_libnames(LLVM_LIBS support core irreader)
 
 add_custom_command(
     COMMENT "Generating C parser"
@@ -37,6 +39,6 @@ add_executable(zdk-cc
     parser/CParser.cpp
     parser/CVisitor.cpp
 )
-target_include_directories(zdk-cc PRIVATE include ${CMAKE_SOURCE_DIR}/3rd/antlr4-cpp-runtime/runtime/src ${CMAKE_BINARY_DIR}/src/cc/parser ${CMAKE_BINARY_DIR}/src/cc/include)
-target_link_libraries(zdk-cc PRIVATE argparse antlr4_static zir)
+target_include_directories(zdk-cc PRIVATE include ${CMAKE_SOURCE_DIR}/3rd/antlr4-cpp-runtime/runtime/src ${CMAKE_BINARY_DIR}/src/cc/parser ${LLVM_INCLUDE_DIRS})
+target_link_libraries(zdk-cc PRIVATE argparse antlr4_static zir ${LLVM_LIBS})
 install(TARGETS zdk-cc RUNTIME DESTINATION bin)
