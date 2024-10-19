@@ -9,6 +9,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <memory>
 #include <string>
 #include <sys/wait.h>
@@ -19,7 +21,7 @@
 using namespace std;
 using namespace argparse;
 using namespace antlr4;
-using namespace ZIR;
+using namespace llvm;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
   auto parser = make_unique<ArgumentParser>("cc");
@@ -56,6 +58,11 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
 
   // Dump AST
   parser->add_argument("--dump-ast").help("Dump AST to stdout").flag();
+    
+  // Emit LLVM IR
+  parser->add_argument("-emit-llvm")
+      .help("Emit LLVM IR")
+      .flag();
 
   try {
     parser->parse_args(argc, argv);
@@ -171,9 +178,18 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  std::ofstream output(intermediate.replace_extension(".s"));
-  Codegen codegen(output);
-  codegen.visit(tree);
+  LLVMContext context;
+  Module module("main", context);
+
+  if (args->get<bool>("-S") && args->get<bool>("-emit-llvm")) {
+    module.print(outs(), nullptr);
+    return 0;
+  }
+
+  return 0;
+  // std::ofstream output(intermediate.replace_extension(".s"));
+  // Codegen codegen(output);
+  // codegen.visit(tree);
 
   if (args->get<bool>("-S")) {
     return 0;
