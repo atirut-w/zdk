@@ -1,11 +1,33 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifndef EOL
+#define EOL '\r'
+#endif
+#ifndef NEWLINE
+#define NEWLINE '\n'
+#endif
+
+char *gets(char *s) {
+  char *p = s;
+  int ch = 0;
+  while (ch != EOL && ch != EOF) {
+    ch = getchar();
+    if (ch == EOL || ch == EOF) {
+      putchar(NEWLINE);
+      break;
+    }
+    *p++ = ch;
+  }
+  *p = '\0';
+  return s;
+}
+
 int puts(const char *s) {
   while (*s) {
     putchar(*s++);
   }
-  putchar('\n');
+  putchar(NEWLINE);
   return 0;
 }
 

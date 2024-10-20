@@ -3,17 +3,8 @@
 int main() {
   printf("Enter something: ");
 
-  char buf[128] = {0};
-  char *s = buf;
-  int ch = 0;
-  while (ch != '\r' || ch != -1) {
-    ch = getchar();
-    if (ch == '\r' || ch == -1) {
-      putchar('\n');
-      break;
-    }
-    *s++ = ch;
-  }
+  char buf[128];
+  gets(buf);
 
   printf("You entered: %s\n", buf);
 
