@@ -6,4 +6,5 @@
     ret
 .endm
 
+    STUB getchar
     STUB putchar
