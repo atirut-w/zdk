@@ -12,7 +12,7 @@ AS = z80-elf-as
 AR = z80-elf-ar
 
 # Flags
-CFLAGS = -mz80 --codeseg .text --constseg .rodata --dataseg .data
+CFLAGS = -mz80 --nostdinc -I$(SRC_DIR) --codeseg .text --constseg .rodata --dataseg .data
 ASFLAGS = -sdcc
 ARFLAGS = rcs
 
@@ -43,8 +43,8 @@ clean:
 install: $(TARGET)
 	mkdir -p $(PREFIX)/lib
 	cp $(TARGET) $(PREFIX)/lib
-	# mkdir -p $(PREFIX)/include
-	# cp $(C_INCLUDES) $(PREFIX)/include
+	mkdir -p $(PREFIX)/include
+	cp $(C_INCLUDES) $(PREFIX)/include
 
 $(TARGET): $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $^
