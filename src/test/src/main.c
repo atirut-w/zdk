@@ -1,5 +1,7 @@
 #include <stdio.h>
 
 int main() {
-  puts("Hello, world!");
+  printf("Hello, %s!\n", "world");
+  printf("0x%x\n", 0xdead);
+  printf("0x%X\n", 0xbeef);
 }

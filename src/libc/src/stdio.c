@@ -13,10 +13,19 @@ int printf(const char *format, ...) {
   va_list args;
   va_start(args, format);
 
+  int len = 0;
   while (*format) {
     if (*format == '%') {
       format++;
       switch (*format) {
+      case 's': {
+        const char *s = va_arg(args, const char *);
+        while (*s) {
+          putchar(*s++);
+          len++;
+        }
+        break;
+      }
       case 'x':
       case 'X': {
         const char *lut =
@@ -24,16 +33,18 @@ int printf(const char *format, ...) {
         unsigned int n = va_arg(args, unsigned int);
         for (int i = 7; i >= 0; i--) {
           putchar(lut[(n >> (i * 4)) & 0xf]);
+          len++;
         }
         break;
       }
       }
     } else {
       putchar(*format);
+      len++;
     }
     format++;
   }
 
   va_end(args);
-  return 0;
+  return len;
 }
