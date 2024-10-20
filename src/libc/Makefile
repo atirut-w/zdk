@@ -12,7 +12,7 @@ AS = z80-elf-as
 AR = z80-elf-ar
 
 # Flags
-CFLAGS = -mz80
+CFLAGS = -mz80 --codeseg .text --constseg .rodata --dataseg .data
 ASFLAGS = -sdcc
 ARFLAGS = rcs
 

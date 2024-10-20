@@ -13,7 +13,7 @@ LD = z80-elf-ld
 OBJCOPY = z80-elf-objcopy
 
 # Flags
-CFLAGS = -mz80 -I$(PREFIX)/include
+CFLAGS = -mz80 -I$(PREFIX)/include --codeseg .text --constseg .rodata --dataseg .data
 ASFLAGS = -sdcc
 LDFLAGS = -Tlink.ld
 LIBS = -lc

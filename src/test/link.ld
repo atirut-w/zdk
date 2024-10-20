@@ -10,6 +10,5 @@ SECTIONS
     .text : {
         *(.startup)
         *(.text)
-        *(CODE)
     } > TPA
 }
