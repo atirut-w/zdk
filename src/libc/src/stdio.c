@@ -31,8 +31,8 @@ int printf(const char *format, ...) {
         const char *lut =
             *format == 'x' ? "0123456789abcdef" : "0123456789ABCDEF";
         unsigned int n = va_arg(args, unsigned int);
-        for (int i = 7; i >= 0; i--) {
-          putchar(lut[(n >> (i * 4)) & 0xf]);
+        for (int i = 0; i < 4; i++) {
+          putchar(lut[(n >> (12 - i * 4)) & 0xf]);
           len++;
         }
         break;
