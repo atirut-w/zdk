@@ -7,14 +7,14 @@ OBJ_DIR = $(BUILD_DIR)/obj
 PREFIX = /usr/z80-elf
 
 # Compiler and tools
-CC = ez80-clang
+CC = sdcc-sdcc
 AS = z80-elf-as
 LD = z80-elf-ld
 OBJCOPY = z80-elf-objcopy
 
 # Flags
-CFLAGS = -target z80-elf -nostdinc -I$(PREFIX)/include --std=c90
-ASFLAGS =
+CFLAGS = -mz80 -I$(PREFIX)/include
+ASFLAGS = -sdcc
 LDFLAGS = -Tlink.ld
 LIBS = -lc
 
@@ -48,14 +48,12 @@ $(TARGET): $(BUILD_DIR)/test.elf
 $(BUILD_DIR)/test.elf: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(OBJ_DIR)/%.s | $(OBJ_DIR)
+	$(AS) $(ASFLAGS) -o $@ $<
+
+$(OBJ_DIR)/%.s: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -S -o $(OBJ_DIR)/$*.s $<
 	sed -i 's/_\(.*\)/\1/g' $(OBJ_DIR)/$*.s
-	sed -i 's/public/\.global/g' $(OBJ_DIR)/$*.s
-	sed -i 's/private/\; /g' $(OBJ_DIR)/$*.s
-	sed -i 's/or\ta, a/or a/g' $(OBJ_DIR)/$*.s
-	$(AS) $(ASFLAGS) -o $@ $(OBJ_DIR)/$*.s
-	rm $(OBJ_DIR)/$*.s
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s | $(OBJ_DIR)
 	$(AS) $(ASFLAGS) -o $@ $<
