@@ -1,8 +1,10 @@
 #pragma once
 #include "CBaseVisitor.h"
+#include "zir/module.hpp"
 #include <string>
 
 class Codegen : public CBaseVisitor {
+  ZIR::Module module;
   // std::ostream &os;
 
   // struct {
