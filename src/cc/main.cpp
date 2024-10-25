@@ -171,9 +171,9 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  std::ofstream output(intermediate.replace_extension(".s"));
-  Codegen codegen(output);
-  codegen.visit(tree);
+  // std::ofstream output(intermediate.replace_extension(".s"));
+  // Codegen codegen(output);
+  // codegen.visit(tree);
 
   if (args->get<bool>("-S")) {
     return 0;
