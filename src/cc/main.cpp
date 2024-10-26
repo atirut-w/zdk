@@ -1,4 +1,5 @@
 #include "ANTLRInputStream.h"
+#include "asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
@@ -171,9 +172,11 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  // std::ofstream output(intermediate.replace_extension(".s"));
   Codegen codegen;
   codegen.visit(tree);
+
+  std::ofstream output(intermediate.replace_extension(".s"));
+  AsmPrinter(codegen.get_module(), output).print();
 
   if (args->get<bool>("-S")) {
     return 0;

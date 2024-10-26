@@ -21,7 +21,8 @@ class Codegen : public CBaseVisitor {
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
   // virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
 
-  // // Expressions in order of precedence
+  // Expressions in order of precedence
+  virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
   virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
   virtual std::any visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
   virtual std::any visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
@@ -32,4 +33,6 @@ class Codegen : public CBaseVisitor {
 
 public:
   // Codegen(std::ostream &os) : os(os) {}
+
+  ZIR::Module &get_module() { return module; }
 };

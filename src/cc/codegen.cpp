@@ -26,7 +26,7 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
 
   module.functions.push_back(function);
   this->ctx.current_function = &module.functions.back();
-  return {};
+  return visitChildren(ctx);
 }
 
 // std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
@@ -37,6 +37,11 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
 
 //   return {};
 // }
+
+std::any Codegen::visitParenthesizedExpression(
+    CParser::ParenthesizedExpressionContext *ctx) {
+  return visit(ctx->expression());
+}
 
 std::any Codegen::visitIntegerConstantExpression(
     CParser::IntegerConstantExpressionContext *ctx) {
