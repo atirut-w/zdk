@@ -6,14 +6,8 @@
 
 namespace ZIR
 {
-struct Operand
-{
-    typedef std::variant<std::string, char, int> Value;
 
-    Value value;
-
-    Operand(const Value &value);
-};
+typedef std::variant<std::string, char, int> Value;
 
 // A three-address ZIR instruction
 struct Instruction
@@ -30,11 +24,11 @@ struct Instruction
     };
 
     Operation operation;
-    std::optional<Operand> result;
-    std::vector<Operand> operands;
+    std::optional<Value> result;
+    std::vector<Value> operands;
 
     Instruction(Operation operation);
-    Instruction(Operation operation, const Operand &result);
-    Instruction &operator+=(const Operand &operand);
+    Instruction(Operation operation, const Value &result);
+    Instruction &operator+=(const Value &operand);
 };
 } // namespace ZIR
