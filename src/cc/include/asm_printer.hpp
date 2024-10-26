@@ -22,4 +22,5 @@ public:
   AsmPrinter(ZIR::Module &module, std::ostream &os) : module(module), os(os) {}
 
   void print();
+  void print_instruction(const ZIR::Instruction &instruction);
 };

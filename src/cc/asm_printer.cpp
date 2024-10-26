@@ -58,39 +58,43 @@ void AsmPrinter::print() {
     os << function.name << ":\n";
 
     for (auto &instruction : function.instructions) {
-      switch (instruction.operation) {
-      case Instruction::RETURN:
-        if (!ctx.offsets.empty()) {
-          os << "\tld sp, ix\n";
-          os << "\tpop ix\n";
-        }
-        os << "\tret\n";
-        break;
-      case Instruction::COMPLEMENT:
-      case Instruction::NEGATE:
-        load(instruction.operands[0]);
-
-        if (instruction.operation == Instruction::COMPLEMENT) {
-          os << "\tld a, h\n";
-          os << "\tcpl\n";
-          os << "\tld h, a\n";
-          os << "\tld a, l\n";
-          os << "\tcpl\n";
-          os << "\tld l, a\n";
-        } else if (instruction.operation == Instruction::NEGATE) {
-          os << "\txor a\n";
-          os << "\tsub l\n";
-          os << "\tld l, a\n";
-          os << "\tsbc a, a\n";
-          os << "\tsub h\n";
-          os << "\tld h, a\n";
-        }
-
-        if (instruction.result) {
-          store(*instruction.result);
-        }
-        break;
-      }
+      print_instruction(instruction);
     }
+  }
+}
+
+void AsmPrinter::print_instruction(const Instruction &instruction) {
+  switch (instruction.operation) {
+  case Instruction::RETURN:
+    if (!ctx.offsets.empty()) {
+      os << "\tld sp, ix\n";
+      os << "\tpop ix\n";
+    }
+    os << "\tret\n";
+    break;
+  case Instruction::COMPLEMENT:
+  case Instruction::NEGATE:
+    load(instruction.operands[0]);
+
+    if (instruction.operation == Instruction::COMPLEMENT) {
+      os << "\tld a, h\n";
+      os << "\tcpl\n";
+      os << "\tld h, a\n";
+      os << "\tld a, l\n";
+      os << "\tcpl\n";
+      os << "\tld l, a\n";
+    } else if (instruction.operation == Instruction::NEGATE) {
+      os << "\txor a\n";
+      os << "\tsub l\n";
+      os << "\tld l, a\n";
+      os << "\tsbc a, a\n";
+      os << "\tsub h\n";
+      os << "\tld h, a\n";
+    }
+
+    if (instruction.result) {
+      store(*instruction.result);
+    }
+    break;
   }
 }
