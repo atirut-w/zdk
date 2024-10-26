@@ -14,7 +14,7 @@ class AsmPrinter {
   } ctx;
   
   void generate_prologue();
-  std::string get_ix(int offset);
+  std::string get_ix(int base, int offset = 0);
   void load(const ZIR::Value &value);
   void store(const ZIR::Value &value);
 

@@ -1,5 +1,6 @@
 #include "asm_printer.hpp"
 #include "zir/instruction.hpp"
+#include <cstdlib>
 #include <string>
 
 using namespace std;
@@ -15,11 +16,11 @@ void AsmPrinter::generate_prologue() {
   }
 }
 
-string AsmPrinter::get_ix(int offset) {
-  if (offset <= 0) {
-    return "(ix-" + to_string(-offset) + ")";
+string AsmPrinter::get_ix(int base, int offset) {
+  if (base <= 0) {
+    return "(ix-" + to_string(abs(base) + offset) + ")";
   } else {
-    return "(ix+" + to_string(offset) + ")";
+    return "(ix+" + to_string(base + offset) + ")";
   }
 }
 
@@ -29,7 +30,7 @@ void AsmPrinter::load(const Value &value) {
     int offset = ctx.offsets[name];
     
     os << "\tld l, " << get_ix(offset) << "\n";
-    os << "\tld h, " << get_ix(offset + 1) << "\n";
+    os << "\tld h, " << get_ix(offset, 1) << "\n";
   } else if (holds_alternative<int>(value)) {
     auto immediate = get<int>(value);
     os << "\tld hl, " << immediate << "\n";
@@ -42,7 +43,7 @@ void AsmPrinter::store(const Value &value) {
     int offset = ctx.offsets[name];
     
     os << "\tld " << get_ix(offset) << ", l\n";
-    os << "\tld " << get_ix(offset + 1) << ", h\n";
+    os << "\tld " << get_ix(offset, 1) << ", h\n";
   }
 }
 
