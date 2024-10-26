@@ -10,15 +10,15 @@ typedef std::variant<std::string, char, int> Value;
 
 // A three-address ZIR instruction
 struct Instruction {
-  enum Operation {
+enum Operation {
     // Return a value.
     RETURN,
 
-    // Perform unary operation.
-    UNARY,
-    // Perform binary operation.
-    BINARY,
-  };
+    // Complement a value.
+    COMPLEMENT,
+    // Negate a value.
+    NEGATE,
+};
 
   Operation operation;
   std::optional<Value> result;
