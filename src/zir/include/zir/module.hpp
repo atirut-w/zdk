@@ -4,24 +4,22 @@
 #include <string>
 #include <vector>
 
-namespace ZIR
-{
-struct Module
-{
-    struct Symbol
-    {
-        std::string name;
-        virtual ~Symbol() = default;
-    };
+namespace ZIR {
 
-    struct Function : public Symbol
-    {
-        std::vector<Instruction> instructions;
-        std::vector<std::unique_ptr<Symbol>> locals;
+struct Module {
+  struct Symbol {
+    std::string name;
+    virtual ~Symbol() = default;
+  };
 
-        Function &operator+=(const Instruction &instruction);
-    };
+  struct Function : public Symbol {
+    std::vector<Instruction> instructions;
+    std::vector<std::unique_ptr<Symbol>> locals;
 
-    std::vector<std::unique_ptr<Symbol>> symbols;
+    Function &operator+=(const Instruction &instruction);
+  };
+
+  std::vector<std::unique_ptr<Symbol>> symbols;
 };
+
 } // namespace ZIR
