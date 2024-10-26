@@ -14,6 +14,13 @@ void AsmPrinter::generate_prologue() {
       offset -= 2;
     }
   }
+
+  if (offset < 0) {
+    os << "\tpush ix\n";
+    os << "\tld ix, " << offset << "\n";
+    os << "\tadd ix, sp\n";
+    os << "\tld sp, ix\n";
+  }
 }
 
 string AsmPrinter::get_ix(int base, int offset) {
@@ -53,10 +60,10 @@ void AsmPrinter::print() {
   for (auto &function : module.functions) {
     ctx = {};
     ctx.current_function = &function;
-    generate_prologue();
 
     os << "\t.global " << function.name << "\n";
     os << function.name << ":\n";
+    generate_prologue();
 
     for (auto &instruction : function.instructions) {
       print_instruction(instruction);
