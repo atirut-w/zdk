@@ -13,7 +13,8 @@ class AsmPrinter {
     std::map<std::string, int> offsets;
   } ctx;
   
-  void compute_offsets();
+  void generate_prologue();
+  std::string get_ix(int offset);
   void load(const ZIR::Value &value);
   void store(const ZIR::Value &value);
 
