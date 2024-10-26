@@ -1,4 +1,3 @@
-#include <stdexcept>
 #include <zir/instruction.hpp>
 
 using namespace std;
