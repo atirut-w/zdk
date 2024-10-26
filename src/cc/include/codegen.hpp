@@ -19,7 +19,7 @@ class Codegen : public CBaseVisitor {
 
   // virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
-  // virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
+  virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
 
   // Expressions in order of precedence
   virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;

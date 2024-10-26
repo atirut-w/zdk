@@ -29,14 +29,15 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
   return visitChildren(ctx);
 }
 
-// std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
-//   if (ctx->expression()) {
-//     visit(ctx->expression());
-//   }
-//   os << "\tret\n";
+std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
+  Instruction instruction(Instruction::RETURN);
+  if (ctx->expression()) {
+    instruction += any_cast<Value>(visit(ctx->expression()));
+  }
+  this->ctx.current_function->instructions.push_back(instruction);
 
-//   return {};
-// }
+  return {};
+}
 
 std::any Codegen::visitParenthesizedExpression(
     CParser::ParenthesizedExpressionContext *ctx) {

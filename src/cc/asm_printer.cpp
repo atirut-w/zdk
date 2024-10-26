@@ -74,6 +74,9 @@ void AsmPrinter::print() {
 void AsmPrinter::print_instruction(const Instruction &instruction) {
   switch (instruction.operation) {
   case Instruction::RETURN:
+    if (!instruction.operands.empty()) {
+      load(instruction.operands[0]);
+    }
     if (!ctx.offsets.empty()) {
       os << "\tld sp, ix\n";
       os << "\tpop ix\n";
