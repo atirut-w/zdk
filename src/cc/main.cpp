@@ -1,6 +1,6 @@
 #include "ANTLRInputStream.h"
-#include "asm_printer.hpp"
-#include "codegen.hpp"
+// #include "asm_printer.hpp"
+// #include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -15,12 +15,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
-#include <zir/module.hpp>
+// #include <zir/module.hpp>
 
 using namespace std;
 using namespace argparse;
 using namespace antlr4;
-using namespace ZIR;
+// using namespace ZIR;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
   auto parser = make_unique<ArgumentParser>("cc");
@@ -172,11 +172,11 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  Codegen codegen;
-  codegen.visit(tree);
+  // Codegen codegen;
+  // codegen.visit(tree);
 
-  std::ofstream output(intermediate.replace_extension(".s"));
-  AsmPrinter(codegen.get_module(), output).print();
+  // std::ofstream output(intermediate.replace_extension(".s"));
+  // AsmPrinter(codegen.get_module(), output).print();
 
   if (args->get<bool>("-S")) {
     return 0;
