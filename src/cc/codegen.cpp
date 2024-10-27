@@ -46,3 +46,15 @@ std::any Codegen::visitParenthesizedExpression(
     CParser::ParenthesizedExpressionContext *ctx) {
   return visit(ctx->expression());
 }
+
+std::any
+Codegen::visitNegationExpression(CParser::NegationExpressionContext *ctx) {
+  Value *value = any_cast<Value *>(visit(ctx->expression()));
+  return builder.CreateNeg(value);
+}
+
+std::any
+Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) {
+  Value *value = any_cast<Value *>(visit(ctx->expression()));
+  return builder.CreateNot(value);
+}

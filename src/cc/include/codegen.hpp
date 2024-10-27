@@ -21,6 +21,10 @@ class Codegen : public CBaseVisitor {
       CParser::IntegerConstantExpressionContext *ctx) override;
   virtual std::any visitParenthesizedExpression(
       CParser::ParenthesizedExpressionContext *ctx) override;
+  virtual std::any
+  visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
+  virtual std::any
+  visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
 
 public:
   Codegen(llvm::Module &module)
