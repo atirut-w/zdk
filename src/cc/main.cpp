@@ -1,6 +1,6 @@
 #include "ANTLRInputStream.h"
 // #include "asm_printer.hpp"
-// #include "codegen.hpp"
+#include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -12,6 +12,7 @@
 #include <iostream>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/raw_ostream.h>
 #include <memory>
 #include <string>
 #include <sys/wait.h>
@@ -60,6 +61,9 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
 
   // Dump AST
   parser->add_argument("--dump-ast").help("Dump AST to stdout").flag();
+
+  // Emit LLVM IR
+  parser->add_argument("--emit-llvm").help("Emit LLVM IR").flag();
 
   try {
     parser->parse_args(argc, argv);
@@ -178,8 +182,20 @@ int main(int argc, char *argv[]) {
   LLVMContext context;
   Module module("cc", context);
 
-  // Codegen codegen;
-  // codegen.visit(tree);
+  Codegen codegen(module);
+  codegen.visit(tree);
+
+  if (args->get<bool>("-S") && args->get<bool>("--emit-llvm")) {
+    auto path = intermediate.replace_extension(".ll");
+    std::error_code EC;
+    raw_fd_ostream output(path.string(), EC);
+    if (EC) {
+      cerr << "Could not open file: " << EC.message() << endl;
+      return 1;
+    }
+    module.print(output, nullptr);
+    return 0;
+  }
 
   // std::ofstream output(intermediate.replace_extension(".s"));
   // AsmPrinter(codegen.get_module(), output).print();
