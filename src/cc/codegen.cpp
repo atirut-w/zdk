@@ -41,3 +41,8 @@ std::any Codegen::visitIntegerConstantExpression(
   return static_cast<Value *>(ConstantInt::get(
       Type::getInt16Ty(module.getContext()), stoi(ctx->getText())));
 }
+
+std::any Codegen::visitParenthesizedExpression(
+    CParser::ParenthesizedExpressionContext *ctx) {
+  return visit(ctx->expression());
+}

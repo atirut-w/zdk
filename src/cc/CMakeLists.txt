@@ -32,7 +32,7 @@ add_executable(zdk-cc
     main.cpp
     error.cpp
     codegen.cpp
-    # asm_printer.cpp
+    asm_printer.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp

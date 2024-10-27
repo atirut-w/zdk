@@ -19,10 +19,12 @@ class Codegen : public CBaseVisitor {
   // Expressions in order of precedence
   virtual std::any visitIntegerConstantExpression(
       CParser::IntegerConstantExpressionContext *ctx) override;
+  virtual std::any visitParenthesizedExpression(
+      CParser::ParenthesizedExpressionContext *ctx) override;
 
 public:
   Codegen(llvm::Module &module)
       : module(module), builder(module.getContext()) {}
 
-  // ZIR::Module &get_module() { return module; }
+  llvm::Module &get_module() { return module; }
 };

@@ -1,5 +1,5 @@
 #include "ANTLRInputStream.h"
-// #include "asm_printer.hpp"
+#include "asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
@@ -19,7 +19,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
-// #include <zir/module.hpp>
 
 using namespace std;
 using namespace argparse;
@@ -203,8 +202,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  // std::ofstream output(intermediate.replace_extension(".s"));
-  // AsmPrinter(codegen.get_module(), output).print();
+  std::ofstream output(intermediate.replace_extension(".s"));
+  AsmPrinter(codegen.get_module(), output).print();
 
   if (args->get<bool>("-S")) {
     return 0;
