@@ -27,8 +27,12 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
 }
 
 std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
-  Value *value = any_cast<Value *>(visit(ctx->expression()));
-  builder.CreateRet(value);
+  if (ctx->expression()) {
+    Value *value = any_cast<Value *>(visit(ctx->expression()));
+    builder.CreateRet(value);
+  } else {
+    builder.CreateRetVoid();
+  }
   return {};
 }
 
