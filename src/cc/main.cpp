@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <memory>
 #include <string>
 #include <sys/wait.h>
@@ -20,6 +22,7 @@
 using namespace std;
 using namespace argparse;
 using namespace antlr4;
+using namespace llvm;
 // using namespace ZIR;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
@@ -171,6 +174,9 @@ int main(int argc, char *argv[]) {
     cout << tree->toStringTree(&parser, true) << endl;
     return {};
   }
+
+  LLVMContext context;
+  Module module("cc", context);
 
   // Codegen codegen;
   // codegen.visit(tree);
