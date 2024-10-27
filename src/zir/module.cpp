@@ -2,8 +2,7 @@
 
 using namespace ZIR;
 
-Module::Function &Module::Function::operator+=(const Instruction &instruction)
-{
-    instructions.push_back(instruction);
-    return *this;
+Module::Function &Module::Function::operator+=(const Instruction &instruction) {
+  instructions.push_back(instruction);
+  return *this;
 }

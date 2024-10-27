@@ -4,37 +4,28 @@
 #include <variant>
 #include <vector>
 
-namespace ZIR
-{
-struct Operand
-{
-    typedef std::variant<std::string, char, int> Value;
+namespace ZIR {
 
-    Value value;
-
-    Operand(const Value &value);
-};
+typedef std::variant<std::string, char, int> Value;
 
 // A three-address ZIR instruction
-struct Instruction
-{
-    enum Operation
-    {
-        // Return a value.
-        RETURN,
-        
-        // Perform unary operation.
-        UNARY,
-        // Perform binary operation.
-        BINARY,
-    };
+struct Instruction {
+enum Operation {
+    // Return a value.
+    RETURN,
 
-    Operation operation;
-    std::optional<Operand> result;
-    std::vector<Operand> operands;
+    // Complement a value.
+    COMPLEMENT,
+    // Negate a value.
+    NEGATE,
+};
 
-    Instruction(Operation operation);
-    Instruction(Operation operation, const Operand &result);
-    Instruction &operator+=(const Operand &operand);
+  Operation operation;
+  std::optional<Value> result;
+  std::vector<Value> operands;
+
+  Instruction(Operation operation);
+  Instruction(Operation operation, const Value &result);
+  Instruction &operator+=(const Value &operand);
 };
 } // namespace ZIR
