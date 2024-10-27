@@ -34,6 +34,6 @@ std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
 
 std::any Codegen::visitIntegerConstantExpression(
     CParser::IntegerConstantExpressionContext *ctx) {
-  return (Value *)ConstantInt::get(Type::getInt16Ty(module.getContext()),
-                                   stoi(ctx->getText()));
+  return static_cast<Value *>(ConstantInt::get(
+      Type::getInt16Ty(module.getContext()), stoi(ctx->getText())));
 }
