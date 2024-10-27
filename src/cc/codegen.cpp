@@ -3,6 +3,7 @@
 // #include "zir/instruction.hpp"
 #include <any>
 #include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Value.h>
 
 using namespace std;
 using namespace antlr4;
@@ -15,129 +16,24 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
           ->Identifier()
           ->getText();
 
-  FunctionType *function_type = FunctionType::get(Type::getInt32Ty(module.getContext()), false);
-  current_function = Function::Create(function_type, Function::ExternalLinkage, name, &module);
+  FunctionType *function_type =
+      FunctionType::get(Type::getInt16Ty(module.getContext()), false);
+  current_function =
+      Function::Create(function_type, Function::ExternalLinkage, name, &module);
   current_block = BasicBlock::Create(module.getContext(), "", current_function);
 
   builder.SetInsertPoint(current_block);
+  return visitChildren(ctx);
+}
+
+std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
+  Value *value = any_cast<Value *>(visit(ctx->expression()));
+  builder.CreateRet(value);
   return {};
 }
 
-// std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx)
-// {
-//   Instruction instruction(Instruction::RETURN);
-//   if (ctx->expression()) {
-//     instruction += any_cast<Value>(visit(ctx->expression()));
-//   }
-//   this->ctx.current_function->instructions.push_back(instruction);
-
-//   return {};
-// }
-
-// std::any Codegen::visitParenthesizedExpression(
-//     CParser::ParenthesizedExpressionContext *ctx) {
-//   return visit(ctx->expression());
-// }
-
-// std::any Codegen::visitIntegerConstantExpression(
-//     CParser::IntegerConstantExpressionContext *ctx) {
-//   return Value(stoi(ctx->getText()));
-// }
-
-// std::any
-// Codegen::visitNegationExpression(CParser::NegationExpressionContext *ctx) {
-//   auto src = any_cast<Value>(visit(ctx->expression()));
-//   auto dst = make_temp();
-//   Instruction instruction(Instruction::NEGATE, dst);
-//   instruction += src;
-//   *this->ctx.current_function += instruction;
-//   return Value(dst);
-// }
-
-// std::any
-// Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx)
-// {
-//   auto src = any_cast<Value>(visit(ctx->expression()));
-//   auto dst = make_temp();
-//   Instruction instruction(Instruction::COMPLEMENT, dst);
-//   instruction += src;
-//   *this->ctx.current_function += instruction;
-//   return Value(dst);
-// }
-
-// std::any Codegen::visitMultiplicativeExpression(
-//     CParser::MultiplicativeExpressionContext *ctx) {
-//   visit(ctx->expression(1));
-//   os << "\tpush hl\n";
-//   os << "\tpop de\n";
-//   visit(ctx->expression(0));
-
-//   if (ctx->Multiply()) {
-//     os << "\tcall __mulsi3\n";
-//   } else if (ctx->Divide()) {
-//     os << "\tcall __divsi3\n";
-//   } else if (ctx->Modulo()) {
-//     os << "\tcall __modsi3\n";
-//   }
-
-//   return {};
-// }
-
-// std::any
-// Codegen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
-//   visit(ctx->expression(1));
-//   os << "\tpush hl\n";
-//   os << "\tpop de\n";
-
-//   if (ctx->Plus()) {
-//     visit(ctx->expression(0));
-//     os << "\tadd hl, de\n";
-//   } else if (ctx->Minus()) {
-//     visit(ctx->expression(0));
-//     os << "\txor a\n";
-//     os << "\tsbc hl, de\n";
-//   }
-
-//   return {};
-// }
-
-// std::any
-// Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx)
-// {
-//   int skip = reserve_label();
-
-//   visit(ctx->expression(0));
-//   os << "\tld a, h\n";
-//   os << "\tor l\n";
-//   os << "\tjr z, " << forward_label(skip) << "\n";
-//   visit(ctx->expression(1));
-//   os << "\tld a, h\n";
-//   os << "\tor l\n";
-//   os << "\tjr z, " << forward_label(skip) << "\n";
-//   os << "\tld hl, 1\n";
-//   os << label(skip) << "\n";
-
-//   return {};
-// }
-
-// std::any
-// Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
-//   int nz = reserve_label();
-//   int skip = reserve_label();
-
-//   visit(ctx->expression(0));
-//   os << "\tld a, h\n";
-//   os << "\tor l\n";
-//   os << "\tjr nz, " << forward_label(nz) << "\n";
-//   visit(ctx->expression(1));
-//   os << "\tld a, h\n";
-//   os << "\tor l\n";
-//   os << "\tjr nz, " << forward_label(nz) << "\n";
-//   os << "\tld hl, 0\n";
-//   os << "\tjr " << label(skip) << "\n";
-//   os << label(nz) << "\n";
-//   os << "\tld hl, 1\n";
-//   os << label(skip) << "\n";
-
-//   return {};
-// }
+std::any Codegen::visitIntegerConstantExpression(
+    CParser::IntegerConstantExpressionContext *ctx) {
+  return (Value *)ConstantInt::get(Type::getInt16Ty(module.getContext()),
+                                   stoi(ctx->getText()));
+}

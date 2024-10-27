@@ -12,6 +12,7 @@
 #include <iostream>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
 #include <string>
@@ -180,10 +181,15 @@ int main(int argc, char *argv[]) {
   }
 
   LLVMContext context;
-  Module module("cc", context);
+  Module module(source.string(), context);
 
   Codegen codegen(module);
   codegen.visit(tree);
+
+  if (verifyModule(module, &errs())) {
+    cerr << "BUG: Codegen messed up :(" << endl;
+    return 1;
+  }
 
   if (args->get<bool>("-S") && args->get<bool>("--emit-llvm")) {
     auto path = intermediate.replace_extension(".ll");
