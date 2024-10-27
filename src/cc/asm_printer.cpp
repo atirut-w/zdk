@@ -1,6 +1,7 @@
 #include "asm_printer.hpp"
 #include <cstdlib>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/TypeSize.h>
 #include <string>
@@ -76,6 +77,8 @@ void AsmPrinter::print() {
 
 void AsmPrinter::print_instruction(const Instruction *instruction) {
   switch (instruction->getOpcode()) {
+  default:
+    throw runtime_error("unhandled instruction");
   case Instruction::Ret:
     if (auto *value = dyn_cast<ReturnInst>(instruction)->getReturnValue()) {
       load(value);
