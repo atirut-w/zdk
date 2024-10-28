@@ -33,6 +33,10 @@ class Codegen : public CBaseVisitor {
   visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
   virtual std::any
   visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
+  virtual std::any
+  visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
+  virtual std::any
+  visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
 public:
   Codegen(llvm::Module &module)

@@ -122,3 +122,19 @@ Codegen::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
 
   return builder.CreateZExt(cmp, Type::getInt16Ty(module.getContext()));
 }
+
+std::any
+Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
+  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
+  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
+
+  return builder.CreateAnd(lhs, rhs);
+}
+
+std::any
+Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
+  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
+  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
+
+  return builder.CreateOr(lhs, rhs);
+}
