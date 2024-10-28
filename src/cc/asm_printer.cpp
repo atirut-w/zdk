@@ -16,6 +16,7 @@ void AsmPrinter::generate_prologue() {
       if (auto alloca = dyn_cast<AllocaInst>(&instruction)) {
         throw runtime_error("alloca not supported");
       } else if (!instruction.getType()->isVoidTy()) {
+        offsets[&instruction] = offset;
         Type *type = instruction.getType();
         TypeSize size = module.getDataLayout().getTypeAllocSize(type);
         offset -= size;
