@@ -25,6 +25,8 @@ class Codegen : public CBaseVisitor {
   visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
   virtual std::any
   visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
+  virtual std::any visitMultiplicativeExpression(
+      CParser::MultiplicativeExpressionContext *ctx) override;
 
 public:
   Codegen(llvm::Module &module)

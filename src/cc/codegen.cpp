@@ -58,3 +58,17 @@ Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) {
   Value *value = any_cast<Value *>(visit(ctx->expression()));
   return builder.CreateNot(value);
 }
+
+std::any Codegen::visitMultiplicativeExpression(
+    CParser::MultiplicativeExpressionContext *ctx) {
+  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
+  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
+  
+  if (ctx->Multiply()) {
+    return builder.CreateMul(lhs, rhs);
+  } else if (ctx->Divide()) {
+    return builder.CreateSDiv(lhs, rhs);
+  } else if (ctx->Modulo()) {
+    return builder.CreateSRem(lhs, rhs);
+  }
+}
