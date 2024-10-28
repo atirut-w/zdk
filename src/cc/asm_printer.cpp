@@ -82,6 +82,7 @@ void AsmPrinter::print() {
 void AsmPrinter::print_instruction(const Instruction *instruction) {
   switch (instruction->getOpcode()) {
   default:
+    outs() << *instruction << "\n";
     throw runtime_error("unhandled instruction");
   case Instruction::Ret:
     if (auto *value = dyn_cast<ReturnInst>(instruction)->getReturnValue()) {
