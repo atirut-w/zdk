@@ -88,3 +88,22 @@ Codegen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
 
   throw runtime_error("unknown operator");
 }
+
+std::any
+Codegen::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
+  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
+  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
+
+  Value *cmp = nullptr;
+  if (ctx->Less()) {
+    cmp = builder.CreateICmpSLT(lhs, rhs);
+  } else if (ctx->LessEqual()) {
+    cmp = builder.CreateICmpSLE(lhs, rhs);
+  } else if (ctx->Greater()) {
+    cmp = builder.CreateICmpSGT(lhs, rhs);
+  } else if (ctx->GreaterEqual()) {
+    cmp = builder.CreateICmpSGE(lhs, rhs);
+  }
+
+  return builder.CreateZExt(cmp, Type::getInt16Ty(module.getContext()));
+}
