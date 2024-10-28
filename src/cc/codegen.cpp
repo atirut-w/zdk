@@ -43,9 +43,8 @@ Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
     string name = declarator->declarator()->getText();
     Value *value = any_cast<Value *>(visit(declarator->initializer()));
 
-    variables[name] =
-        builder.CreateAlloca(Type::getInt16Ty(module.getContext()), nullptr);
-    builder.CreateStore(value, variables[name]);
+    variables[name] = {value->getType(), builder.CreateAlloca(value->getType())};
+    builder.CreateStore(value, variables[name].alloca);
   }
 
   return {};
@@ -54,9 +53,16 @@ Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
 std::any Codegen::visitDeclarationWithoutInit(
     CParser::DeclarationWithoutInitContext *ctx) {
   string name = ctx->specifier().back()->getText();
-  variables[name] =
-      builder.CreateAlloca(Type::getInt16Ty(module.getContext()), nullptr);
+  variables[name] = {Type::getInt16Ty(module.getContext()),
+                     builder.CreateAlloca(Type::getInt16Ty(module.getContext()))};
   return {};
+}
+
+std::any Codegen::visitIdentifierExpression(
+    CParser::IdentifierExpressionContext *ctx) {
+  string name = ctx->Identifier()->getText();
+
+  return static_cast<Value *>(builder.CreateLoad(variables[name].type, variables[name].alloca));
 }
 
 std::any Codegen::visitIntegerConstantExpression(

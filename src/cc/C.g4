@@ -36,7 +36,8 @@ statement: 'return' expression? ';' # ReturnStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
-	IntegerConstant										# IntegerConstantExpression
+	Identifier											# IdentifierExpression
+	| IntegerConstant									# IntegerConstantExpression
 	| '(' expression ')'								# ParenthesizedExpression
 	| '-' expression									# NegationExpression
 	| '!' expression									# LogicalNotExpression

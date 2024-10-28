@@ -1,9 +1,16 @@
 #pragma once
 #include "CBaseVisitor.h"
 #include "llvm/IR/IRBuilder.h"
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <string>
+
+struct Variable {
+  llvm::Type *type;
+  llvm::AllocaInst *alloca;
+};
 
 class Codegen : public CBaseVisitor {
   llvm::Module &module;
@@ -11,7 +18,7 @@ class Codegen : public CBaseVisitor {
   llvm::Function *current_function = nullptr;
   llvm::BasicBlock *current_block = nullptr;
   llvm::IRBuilder<> builder;
-  std::map<std::string, llvm::Value *> variables;
+  std::map<std::string, Variable> variables;
 
   virtual std::any
   visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
@@ -24,6 +31,8 @@ class Codegen : public CBaseVisitor {
       CParser::DeclarationWithoutInitContext *ctx) override;
 
   // Expressions in order of precedence
+  virtual std::any
+  visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) override;
   virtual std::any visitIntegerConstantExpression(
       CParser::IntegerConstantExpressionContext *ctx) override;
   virtual std::any visitParenthesizedExpression(
