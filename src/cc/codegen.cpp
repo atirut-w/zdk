@@ -63,7 +63,7 @@ std::any Codegen::visitMultiplicativeExpression(
     CParser::MultiplicativeExpressionContext *ctx) {
   Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
   Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-  
+
   if (ctx->Multiply()) {
     return builder.CreateMul(lhs, rhs);
   } else if (ctx->Divide()) {
@@ -71,4 +71,20 @@ std::any Codegen::visitMultiplicativeExpression(
   } else if (ctx->Modulo()) {
     return builder.CreateSRem(lhs, rhs);
   }
+
+  throw runtime_error("unknown operator");
+}
+
+std::any
+Codegen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
+  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
+
+  if (ctx->Plus()) {
+    return builder.CreateAdd(lhs, rhs);
+  } else if (ctx->Minus()) {
+    return builder.CreateSub(lhs, rhs);
+  }
+
+  throw runtime_error("unknown operator");
 }
