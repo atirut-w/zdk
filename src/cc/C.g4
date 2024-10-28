@@ -12,7 +12,7 @@ functionDefinition:
 
 specifier: typeSpecifier;
 
-typeSpecifier: 'void' | 'int';
+typeSpecifier: Identifier | 'void' | 'int';
 
 declarator:
 	Identifier							# IdentifierDeclarator
@@ -22,7 +22,15 @@ parameters: parameter (',' parameter)* (',' '...')? | 'void';
 
 parameter: specifier* declarator;
 
-declaration: specifier+ ';' # DeclarationWithoutInit;
+declaration:
+	specifier+ ';'												# DeclarationWithoutInit
+	| specifier+ (initDeclarator (',' initDeclarator)*)? ';'	# DeclarationWithInit;
+
+initDeclarator: declarator ('=' initializer)?;
+
+initializer: nonCommaExpression;
+
+nonCommaExpression: expression;
 
 statement: 'return' expression? ';' # ReturnStatement;
 
