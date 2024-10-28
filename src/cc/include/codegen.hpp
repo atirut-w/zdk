@@ -2,6 +2,7 @@
 #include "CBaseVisitor.h"
 #include "llvm/IR/IRBuilder.h"
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 #include <string>
 
 class Codegen : public CBaseVisitor {
@@ -10,11 +11,17 @@ class Codegen : public CBaseVisitor {
   llvm::Function *current_function = nullptr;
   llvm::BasicBlock *current_block = nullptr;
   llvm::IRBuilder<> builder;
+  std::map<std::string, llvm::Value *> variables;
 
   virtual std::any
   visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
   virtual std::any
   visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
+
+  virtual std::any
+  visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) override;
+  virtual std::any visitDeclarationWithoutInit(
+      CParser::DeclarationWithoutInitContext *ctx) override;
 
   // Expressions in order of precedence
   virtual std::any visitIntegerConstantExpression(

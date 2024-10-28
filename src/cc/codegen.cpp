@@ -21,8 +21,9 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
   current_function =
       Function::Create(function_type, Function::ExternalLinkage, name, &module);
   current_block = BasicBlock::Create(module.getContext(), "", current_function);
-
   builder.SetInsertPoint(current_block);
+  variables.clear();
+
   return visitChildren(ctx);
 }
 
@@ -33,6 +34,28 @@ std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   } else {
     builder.CreateRetVoid();
   }
+  return {};
+}
+
+std::any
+Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
+  for (auto *declarator : ctx->initDeclarator()) {
+    string name = declarator->declarator()->getText();
+    Value *value = any_cast<Value *>(visit(declarator->initializer()));
+
+    variables[name] =
+        builder.CreateAlloca(Type::getInt16Ty(module.getContext()), nullptr);
+    builder.CreateStore(value, variables[name]);
+  }
+
+  return {};
+}
+
+std::any Codegen::visitDeclarationWithoutInit(
+    CParser::DeclarationWithoutInitContext *ctx) {
+  string name = ctx->specifier().back()->getText();
+  variables[name] =
+      builder.CreateAlloca(Type::getInt16Ty(module.getContext()), nullptr);
   return {};
 }
 
