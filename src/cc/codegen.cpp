@@ -107,3 +107,18 @@ Codegen::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
 
   return builder.CreateZExt(cmp, Type::getInt16Ty(module.getContext()));
 }
+
+std::any
+Codegen::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
+  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
+  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
+
+  Value *cmp = nullptr;
+  if (ctx->Equal()) {
+    cmp = builder.CreateICmpEQ(lhs, rhs);
+  } else if (ctx->NotEqual()) {
+    cmp = builder.CreateICmpNE(lhs, rhs);
+  }
+
+  return builder.CreateZExt(cmp, Type::getInt16Ty(module.getContext()));
+}
