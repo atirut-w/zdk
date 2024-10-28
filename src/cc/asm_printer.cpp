@@ -17,7 +17,7 @@ void AsmPrinter::generate_prologue() {
         offsets[&instruction] = offset;
         Type *type = alloca->getAllocatedType();
         TypeSize size = module.getDataLayout().getTypeAllocSize(type);
-        offset += size;
+        offset -= size;
       } else if (!instruction.getType()->isVoidTy()) {
         offsets[&instruction] = offset;
         Type *type = instruction.getType();
@@ -43,7 +43,7 @@ string AsmPrinter::get_ix(int base, int offset) {
   }
 }
 
-void AsmPrinter::load(const Value *value) {
+void AsmPrinter::load_value(const Value *value) {
   if (auto *constant = dyn_cast<ConstantInt>(value)) {
     os << "\tld hl, " << constant->getSExtValue() << "\n";
   } else {
@@ -54,7 +54,7 @@ void AsmPrinter::load(const Value *value) {
   }
 }
 
-void AsmPrinter::store(const Value *value) {
+void AsmPrinter::store_value(const Value *value) {
   int offset = offsets[value];
   os << "\tld " << get_ix(offset) << ", l\n";
   os << "\tld " << get_ix(offset, 1) << ", h\n";
@@ -88,10 +88,16 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   // No-op
   case Instruction::Alloca:
     break;
-
+  
+  case Instruction::Load:
+    print_load(cast<LoadInst>(instruction));
+    break;
+  case Instruction::Store:
+    print_store(cast<StoreInst>(instruction));
+    break;
   case Instruction::Ret:
     if (auto *value = dyn_cast<ReturnInst>(instruction)->getReturnValue()) {
-      load(value);
+      load_value(value);
     }
     if (!offsets.empty()) {
       os << "\tld sp, ix\n";
@@ -99,5 +105,22 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
     }
     os << "\tret\n";
     break;
+  }
+}
+
+void AsmPrinter::print_load(const LoadInst *load) {
+  load_value(load->getPointerOperand());
+  store_value(load);
+}
+
+void AsmPrinter::print_store(const StoreInst *store) {
+  const Value *value = store->getValueOperand();
+
+  if (auto *constant = dyn_cast<ConstantInt>(value)) {
+    os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", " << (constant->getSExtValue() & 0xff) << "\n";
+    os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", " << (constant->getSExtValue() >> 8) << "\n";
+  } else {
+    load_value(value);
+    store_value(store->getPointerOperand());
   }
 }
