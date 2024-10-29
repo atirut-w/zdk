@@ -12,7 +12,7 @@ functionDefinition:
 
 specifier: typeSpecifier;
 
-typeSpecifier: 'void' | 'int';
+typeSpecifier: Identifier | 'void' | 'int';
 
 declarator:
 	Identifier							# IdentifierDeclarator
@@ -22,13 +22,23 @@ parameters: parameter (',' parameter)* (',' '...')? | 'void';
 
 parameter: specifier* declarator;
 
-declaration: specifier+ ';' # DeclarationWithoutInit;
+declaration:
+	specifier+ ';'												# DeclarationWithoutInit
+	| specifier+ (initDeclarator (',' initDeclarator)*)? ';'	# DeclarationWithInit;
+
+initDeclarator: declarator ('=' initializer)?;
+
+initializer: nonCommaExpression;
+
+nonCommaExpression: expression;
 
 statement: 'return' expression? ';' # ReturnStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
-	IntegerConstant										# IntegerConstantExpression
+	Identifier											# IdentifierExpression
+	| IntegerConstant									# IntegerConstantExpression
+	| '(' expression ')'								# ParenthesizedExpression
 	| '-' expression									# NegationExpression
 	| '!' expression									# LogicalNotExpression
 	| '~' expression									# BitwiseNotExpression
@@ -37,8 +47,7 @@ expression:
 	| expression ('<' | '<=' | '>' | '>=') expression	# RelationalExpression
 	| expression ('==' | '!=') expression				# EqualityExpression
 	| expression '&&' expression						# LogicalAndExpression
-	| expression '||' expression						# LogicalOrExpression
-	| '(' expression ')'								# ParenthesizedExpression;
+	| expression '||' expression						# LogicalOrExpression;
 
 // === Lexer rules ===
 

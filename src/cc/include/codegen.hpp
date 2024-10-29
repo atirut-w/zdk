@@ -1,38 +1,62 @@
 #pragma once
 #include "CBaseVisitor.h"
-#include "zir/module.hpp"
+#include "llvm/IR/IRBuilder.h"
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <string>
 
+struct Variable {
+  llvm::Type *type;
+  llvm::AllocaInst *alloca;
+};
+
 class Codegen : public CBaseVisitor {
-  ZIR::Module module;
-  // std::ostream &os;
+  llvm::Module &module;
 
-  struct {
-    ZIR::Module::Function *current_function;
-    int temp = 0;
-  } ctx;
+  llvm::Function *current_function = nullptr;
+  llvm::BasicBlock *current_block = nullptr;
+  llvm::IRBuilder<> builder;
+  std::map<std::string, Variable> variables;
 
-  // int reserve_label() { return ctx.label++; }
-  // std::string label(int n) { return std::to_string(n) + ":"; }
-  // std::string forward_label(int n) { return std::to_string(n) + "f"; }
-  std::string make_temp() { return "tmp." + std::to_string(ctx.temp++); }
+  virtual std::any
+  visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+  virtual std::any
+  visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
 
-  // virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
-  virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
-  virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
+  virtual std::any
+  visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) override;
+  virtual std::any visitDeclarationWithoutInit(
+      CParser::DeclarationWithoutInitContext *ctx) override;
 
   // Expressions in order of precedence
-  virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
-  virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
-  virtual std::any visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
-  virtual std::any visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
-  // virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
-  // virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
-  // virtual std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
-  // virtual std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
+  virtual std::any
+  visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) override;
+  virtual std::any visitIntegerConstantExpression(
+      CParser::IntegerConstantExpressionContext *ctx) override;
+  virtual std::any visitParenthesizedExpression(
+      CParser::ParenthesizedExpressionContext *ctx) override;
+  virtual std::any
+  visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
+  virtual std::any
+  visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
+  virtual std::any visitMultiplicativeExpression(
+      CParser::MultiplicativeExpressionContext *ctx) override;
+  virtual std::any
+  visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+  virtual std::any
+  visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
+  virtual std::any
+  visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
+  virtual std::any
+  visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
+  virtual std::any
+  visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
 public:
-  // Codegen(std::ostream &os) : os(os) {}
+  Codegen(llvm::Module &module)
+      : module(module), builder(module.getContext()) {}
 
-  ZIR::Module &get_module() { return module; }
+  llvm::Module &get_module() { return module; }
 };

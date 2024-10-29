@@ -10,17 +10,21 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
 #include <memory>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
-#include <zir/module.hpp>
 
 using namespace std;
 using namespace argparse;
 using namespace antlr4;
-using namespace ZIR;
+using namespace llvm;
+// using namespace ZIR;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
   auto parser = make_unique<ArgumentParser>("cc");
@@ -57,6 +61,9 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
 
   // Dump AST
   parser->add_argument("--dump-ast").help("Dump AST to stdout").flag();
+
+  // Emit LLVM IR
+  parser->add_argument("--emit-llvm").help("Emit LLVM IR").flag();
 
   try {
     parser->parse_args(argc, argv);
@@ -172,8 +179,28 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  Codegen codegen;
+  LLVMContext context;
+  Module module(source.string(), context);
+
+  Codegen codegen(module);
   codegen.visit(tree);
+
+  if (verifyModule(module, &errs())) {
+    cerr << "BUG: Codegen messed up :(" << endl;
+    return 1;
+  }
+
+  if (args->get<bool>("-S") && args->get<bool>("--emit-llvm")) {
+    auto path = intermediate.replace_extension(".ll");
+    std::error_code EC;
+    raw_fd_ostream output(path.string(), EC);
+    if (EC) {
+      cerr << "Could not open file: " << EC.message() << endl;
+      return 1;
+    }
+    module.print(output, nullptr);
+    return 0;
+  }
 
   std::ofstream output(intermediate.replace_extension(".s"));
   AsmPrinter(codegen.get_module(), output).print();
