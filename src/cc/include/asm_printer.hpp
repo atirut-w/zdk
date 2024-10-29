@@ -30,4 +30,5 @@ public:
 
   void print_add(const llvm::BinaryOperator *add);
   void print_sub(const llvm::BinaryOperator *sub);
+  void print_xor(const llvm::BinaryOperator *xor_);
 };

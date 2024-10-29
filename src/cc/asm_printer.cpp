@@ -112,6 +112,9 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   case Instruction::Sub:
     print_sub(cast<BinaryOperator>(instruction));
     break;
+  case Instruction::Xor:
+    print_xor(cast<BinaryOperator>(instruction));
+    break;
   }
 }
 
@@ -153,4 +156,16 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
   store_value(sub);
 }
 
-
+void AsmPrinter::print_xor(const BinaryOperator *xor_) {
+  load_value(xor_->getOperand(1));
+  os << "\tpush hl\n";
+  os << "\tpop de\n";
+  load_value(xor_->getOperand(0));
+  os << "\tld a, l\n";
+  os << "\txor e\n";
+  os << "\tld l, a\n";
+  os << "\tld a, h\n";
+  os << "\txor d\n";
+  os << "\tld h, a\n";
+  store_value(xor_);
+}
