@@ -29,4 +29,5 @@ public:
   void print_store(const llvm::StoreInst *store);
 
   void print_add(const llvm::BinaryOperator *add);
+  void print_sub(const llvm::BinaryOperator *sub);
 };

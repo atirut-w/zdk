@@ -109,6 +109,9 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   case Instruction::Add:
     print_add(cast<BinaryOperator>(instruction));
     break;
+  case Instruction::Sub:
+    print_sub(cast<BinaryOperator>(instruction));
+    break;
   }
 }
 
@@ -139,3 +142,15 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
   os << "\tadd hl, de\n";
   store_value(add);
 }
+
+void AsmPrinter::print_sub(const BinaryOperator *sub) {
+  load_value(sub->getOperand(1));
+  os << "\tpush hl\n";
+  os << "\tpop de\n";
+  load_value(sub->getOperand(0));
+  os << "\txor a\n";
+  os << "\tsbc hl, de\n";
+  store_value(sub);
+}
+
+
