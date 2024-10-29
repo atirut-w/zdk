@@ -184,7 +184,7 @@ Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
                    current_block);
   phi->addIncoming(rhs, rhs_block);
 
-  return dynamic_cast<Value *>(phi);
+  return static_cast<Value *>(phi);
 }
 
 std::any
@@ -211,5 +211,5 @@ Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
                    current_block);
   phi->addIncoming(rhs, rhs_block);
 
-  return dynamic_cast<Value *>(phi);
+  return static_cast<Value *>(phi);
 }
