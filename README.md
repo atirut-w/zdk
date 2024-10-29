@@ -1,9 +1,6 @@
 # ZDK
 C compiler and libraries for Z80 development.
 
-> [!WARNING]
-> This project is currently half in limbo, especially the compiler. I have decided to shift focus to compiling LLVM IR instead.
-
 ## Build Dependencies
 - ANTLR4 for generating the C parser. Your distribution of choice should already have a package for ANTLR4, but you can also download from [the official website](https://www.antlr.org/).
 
