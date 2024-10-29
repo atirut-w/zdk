@@ -200,11 +200,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (verifyModule(module, &errs())) {
-    cerr << "BUG: Codegen messed up :(" << endl;
-    return 1;
-  }
-
   if (args->get<bool>("-S") && args->get<bool>("--emit-llvm")) {
     auto path = intermediate.replace_extension(".ll");
     std::error_code EC;
@@ -215,6 +210,11 @@ int main(int argc, char *argv[]) {
     }
     module.print(output, nullptr);
     return 0;
+  }
+
+  if (verifyModule(module, &errs())) {
+    cerr << "BUG: Codegen messed up :(" << endl;
+    return 1;
   }
 
   std::ofstream output(intermediate.replace_extension(".s"));
