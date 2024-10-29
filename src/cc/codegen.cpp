@@ -1,5 +1,6 @@
 #include "codegen.hpp"
 #include "CParser.h"
+#include "error.hpp"
 // #include "zir/instruction.hpp"
 #include <any>
 #include <llvm/IR/BasicBlock.h>
@@ -64,6 +65,9 @@ std::any Codegen::visitDeclarationWithoutInit(
 std::any
 Codegen::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
   string name = ctx->Identifier()->getText();
+  if (!variables.count(name)) {
+    throw SemanticError(ctx, "use of undeclared identifier '" + name + "'");
+  }
 
   return static_cast<Value *>(
       builder.CreateLoad(variables[name].type, variables[name].alloca));

@@ -8,8 +8,16 @@
 // Gutter width, gutter text, arrow position, arrow text, color
 #define CALLOUT_ARROW_FMT "%*s | %*s\033[1;%dm^\033[0m\n"
 
-class CCErrorListener : public antlr4::BaseErrorListener
-{
-    virtual void syntaxError(antlr4::Recognizer *recognizer, antlr4::Token *offendingSymbol, size_t line,
-                             size_t charPositionInLine, const std::string &msg, std::exception_ptr e) override;
+class CCErrorListener : public antlr4::BaseErrorListener {
+  virtual void syntaxError(antlr4::Recognizer *recognizer,
+                           antlr4::Token *offendingSymbol, size_t line,
+                           size_t charPositionInLine, const std::string &msg,
+                           std::exception_ptr e) override;
+};
+
+struct SemanticError : public std::runtime_error {
+  antlr4::ParserRuleContext *ctx;
+
+  SemanticError(antlr4::ParserRuleContext *ctx, const std::string &msg)
+      : std::runtime_error(msg), ctx(ctx) {}
 };

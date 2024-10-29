@@ -183,7 +183,22 @@ int main(int argc, char *argv[]) {
   Module module(source.string(), context);
 
   Codegen codegen(module);
-  codegen.visit(tree);
+  try {
+    codegen.visit(tree);
+  } catch (const SemanticError &e) {
+    ifstream file(source);
+    string line;
+    for (size_t i = 0; i < e.ctx->start->getLine(); i++) {
+      getline(file, line);
+    }
+
+    printf(CALLOUT_FMT, source.c_str(), e.ctx->start->getLine(),
+           e.ctx->start->getCharPositionInLine(), 31, "error", e.what());
+    printf(CALLOUT_INFO_FMT, e.ctx->start->getLine(), line.c_str());
+    printf(CALLOUT_ARROW_FMT, 5, "",
+           static_cast<int>(e.ctx->start->getCharPositionInLine()), "", 92);
+    return 1;
+  }
 
   if (verifyModule(module, &errs())) {
     cerr << "BUG: Codegen messed up :(" << endl;
