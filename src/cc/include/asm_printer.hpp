@@ -27,4 +27,6 @@ public:
   void print_instruction(const llvm::Instruction *instruction);
   void print_load(const llvm::LoadInst *load);
   void print_store(const llvm::StoreInst *store);
+
+  void print_add(const llvm::BinaryOperator *add);
 };

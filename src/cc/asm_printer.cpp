@@ -105,6 +105,10 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
     }
     os << "\tret\n";
     break;
+  
+  case Instruction::Add:
+    print_add(cast<BinaryOperator>(instruction));
+    break;
   }
 }
 
@@ -123,4 +127,13 @@ void AsmPrinter::print_store(const StoreInst *store) {
     load_value(value);
     store_value(store->getPointerOperand());
   }
+}
+
+void AsmPrinter::print_add(const BinaryOperator *add) {
+  load_value(add->getOperand(1));
+  os << "\tpush hl\n";
+  os << "\tpop de\n";
+  load_value(add->getOperand(0));
+  os << "\tadd hl, de\n";
+  store_value(add);
 }
