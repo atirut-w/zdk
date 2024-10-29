@@ -44,7 +44,8 @@ Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
     string name = declarator->declarator()->getText();
     Value *value = any_cast<Value *>(visit(declarator->initializer()));
 
-    variables[name] = {value->getType(), builder.CreateAlloca(value->getType())};
+    variables[name] = {value->getType(),
+                       builder.CreateAlloca(value->getType())};
     builder.CreateStore(value, variables[name].alloca);
   }
 
@@ -54,16 +55,18 @@ Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
 std::any Codegen::visitDeclarationWithoutInit(
     CParser::DeclarationWithoutInitContext *ctx) {
   string name = ctx->specifier().back()->getText();
-  variables[name] = {Type::getInt16Ty(module.getContext()),
-                     builder.CreateAlloca(Type::getInt16Ty(module.getContext()))};
+  variables[name] = {
+      Type::getInt16Ty(module.getContext()),
+      builder.CreateAlloca(Type::getInt16Ty(module.getContext()))};
   return {};
 }
 
-std::any Codegen::visitIdentifierExpression(
-    CParser::IdentifierExpressionContext *ctx) {
+std::any
+Codegen::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
   string name = ctx->Identifier()->getText();
 
-  return static_cast<Value *>(builder.CreateLoad(variables[name].type, variables[name].alloca));
+  return static_cast<Value *>(
+      builder.CreateLoad(variables[name].type, variables[name].alloca));
 }
 
 std::any Codegen::visitIntegerConstantExpression(
@@ -155,21 +158,26 @@ Codegen::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
 
 std::any
 Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
-  BasicBlock *rhs_block = BasicBlock::Create(module.getContext(), "", current_function);
-  BasicBlock *end_block = BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *rhs_block =
+      BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *end_block =
+      BasicBlock::Create(module.getContext(), "", current_function);
 
   Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  auto *cmp = builder.CreateICmpNE(lhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  auto *cmp = builder.CreateICmpNE(
+      lhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
   builder.CreateCondBr(cmp, rhs_block, end_block);
 
   builder.SetInsertPoint(rhs_block);
   Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-  cmp = builder.CreateICmpNE(rhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  cmp = builder.CreateICmpNE(
+      rhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
   builder.CreateBr(end_block);
 
   builder.SetInsertPoint(end_block);
   PHINode *phi = builder.CreatePHI(Type::getInt16Ty(module.getContext()), 2);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(module.getContext()), 0), current_block);
+  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(module.getContext()), 0),
+                   current_block);
   phi->addIncoming(rhs, rhs_block);
 
   return dynamic_cast<Value *>(phi);
@@ -177,21 +185,26 @@ Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
 
 std::any
 Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
-  BasicBlock *rhs_block = BasicBlock::Create(module.getContext(), "", current_function);
-  BasicBlock *end_block = BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *rhs_block =
+      BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *end_block =
+      BasicBlock::Create(module.getContext(), "", current_function);
 
   Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  auto *cmp = builder.CreateICmpNE(lhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  auto *cmp = builder.CreateICmpNE(
+      lhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
   builder.CreateCondBr(cmp, end_block, rhs_block);
 
   builder.SetInsertPoint(rhs_block);
   Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-  cmp = builder.CreateICmpNE(rhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  cmp = builder.CreateICmpNE(
+      rhs, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
   builder.CreateBr(end_block);
 
   builder.SetInsertPoint(end_block);
   PHINode *phi = builder.CreatePHI(Type::getInt16Ty(module.getContext()), 2);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(module.getContext()), 1), current_block);
+  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(module.getContext()), 1),
+                   current_block);
   phi->addIncoming(rhs, rhs_block);
 
   return dynamic_cast<Value *>(phi);
