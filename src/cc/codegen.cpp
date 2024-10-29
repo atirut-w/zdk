@@ -32,6 +32,15 @@ Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
 std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   if (ctx->expression()) {
     Value *value = any_cast<Value *>(visit(ctx->expression()));
+    if (value->getType() != Type::getInt16Ty(module.getContext())) {
+      if (value->getType()->isIntegerTy()) {
+        value =
+            builder.CreateZExt(value, Type::getInt16Ty(module.getContext()));
+      } else {
+        throw SemanticError(ctx, "invalid return type");
+      }
+    }
+
     builder.CreateRet(value);
   } else {
     builder.CreateRetVoid();
@@ -179,10 +188,10 @@ Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
   builder.CreateBr(end_block);
 
   builder.SetInsertPoint(end_block);
-  PHINode *phi = builder.CreatePHI(Type::getInt16Ty(module.getContext()), 2);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(module.getContext()), 0),
+  PHINode *phi = builder.CreatePHI(Type::getInt1Ty(module.getContext()), 2);
+  phi->addIncoming(ConstantInt::get(Type::getInt1Ty(module.getContext()), 0),
                    current_block);
-  phi->addIncoming(rhs, rhs_block);
+  phi->addIncoming(cmp, rhs_block);
 
   return static_cast<Value *>(phi);
 }
@@ -206,10 +215,10 @@ Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
   builder.CreateBr(end_block);
 
   builder.SetInsertPoint(end_block);
-  PHINode *phi = builder.CreatePHI(Type::getInt16Ty(module.getContext()), 2);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(module.getContext()), 1),
+  PHINode *phi = builder.CreatePHI(Type::getInt1Ty(module.getContext()), 2);
+  phi->addIncoming(ConstantInt::get(Type::getInt1Ty(module.getContext()), 0),
                    current_block);
-  phi->addIncoming(rhs, rhs_block);
+  phi->addIncoming(cmp, rhs_block);
 
   return static_cast<Value *>(phi);
 }
