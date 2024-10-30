@@ -25,10 +25,11 @@ public:
 
   void print();
   void print_instruction(const llvm::Instruction *instruction);
-  void print_load(const llvm::LoadInst *load);
-  void print_store(const llvm::StoreInst *store);
 
   void print_add(const llvm::BinaryOperator *add);
   void print_sub(const llvm::BinaryOperator *sub);
   void print_xor(const llvm::BinaryOperator *xor_);
+  
+  void print_load(const llvm::LoadInst *load);
+  void print_store(const llvm::StoreInst *store);
 };

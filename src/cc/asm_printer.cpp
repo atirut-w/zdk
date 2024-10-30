@@ -84,17 +84,8 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   default:
     outs() << *instruction << "\n";
     throw runtime_error("unhandled instruction");
-
-  // No-op
-  case Instruction::Alloca:
-    break;
-
-  case Instruction::Load:
-    print_load(cast<LoadInst>(instruction));
-    break;
-  case Instruction::Store:
-    print_store(cast<StoreInst>(instruction));
-    break;
+  
+  // Terminator instructions :robot:
   case Instruction::Ret:
     if (auto *value = dyn_cast<ReturnInst>(instruction)->getReturnValue()) {
       load_value(value);
@@ -106,6 +97,7 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
     os << "\tret\n";
     break;
 
+  // Binary instructions
   case Instruction::Add:
     print_add(cast<BinaryOperator>(instruction));
     break;
@@ -115,25 +107,16 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   case Instruction::Xor:
     print_xor(cast<BinaryOperator>(instruction));
     break;
-  }
-}
 
-void AsmPrinter::print_load(const LoadInst *load) {
-  load_value(load->getPointerOperand());
-  store_value(load);
-}
-
-void AsmPrinter::print_store(const StoreInst *store) {
-  const Value *value = store->getValueOperand();
-
-  if (auto *constant = dyn_cast<ConstantInt>(value)) {
-    os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", "
-       << (constant->getSExtValue() & 0xff) << "\n";
-    os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", "
-       << (constant->getSExtValue() >> 8) << "\n";
-  } else {
-    load_value(value);
-    store_value(store->getPointerOperand());
+  // Memory instructions
+  case Instruction::Alloca:
+    break;
+  case Instruction::Load:
+    print_load(cast<LoadInst>(instruction));
+    break;
+  case Instruction::Store:
+    print_store(cast<StoreInst>(instruction));
+    break;
   }
 }
 
@@ -168,4 +151,23 @@ void AsmPrinter::print_xor(const BinaryOperator *xor_) {
   os << "\txor d\n";
   os << "\tld h, a\n";
   store_value(xor_);
+}
+
+void AsmPrinter::print_load(const LoadInst *load) {
+  load_value(load->getPointerOperand());
+  store_value(load);
+}
+
+void AsmPrinter::print_store(const StoreInst *store) {
+  const Value *value = store->getValueOperand();
+
+  if (auto *constant = dyn_cast<ConstantInt>(value)) {
+    os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", "
+       << (constant->getSExtValue() & 0xff) << "\n";
+    os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", "
+       << (constant->getSExtValue() >> 8) << "\n";
+  } else {
+    load_value(value);
+    store_value(store->getPointerOperand());
+  }
 }
