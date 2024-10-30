@@ -1,5 +1,6 @@
 #include "asm_printer.hpp"
 #include <cstdlib>
+#include <iostream>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
@@ -11,7 +12,9 @@ using namespace llvm;
 
 void AsmPrinter::generate_prologue() {
   int offset = 0;
+  int blocknum = 0;
   for (auto &block : *current_function) {
+    blocknums[&block] = blocknum++;
     for (auto &instruction : block) {
       if (auto alloca = dyn_cast<AllocaInst>(&instruction)) {
         offsets[&instruction] = offset;
@@ -72,6 +75,8 @@ void AsmPrinter::print() {
     generate_prologue();
 
     for (auto &block : function) {
+      current_block = &block;
+      os << blocknums[&block] << ":\n";
       for (auto &instruction : block) {
         print_instruction(&instruction);
       }
@@ -83,11 +88,16 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   switch (instruction->getOpcode()) {
   default:
     outs() << *instruction << "\n";
-    throw runtime_error("unhandled instruction");
+    // throw runtime_error("unhandled instruction");
+    cerr << "unhandled opcode: " << instruction->getOpcode() << "\n";
+    break;
   
   // Terminator instructions :robot:
   case Instruction::Ret:
     print_return(cast<ReturnInst>(instruction));
+    break;
+  case Instruction::Br:
+    print_br(cast<BranchInst>(instruction));
     break;
 
   // Binary instructions
@@ -122,6 +132,20 @@ void AsmPrinter::print_return(const ReturnInst *ret) {
     os << "\tpop ix\n";
   }
   os << "\tret\n";
+}
+
+void AsmPrinter::print_br(const BranchInst *br) {
+  if (br->isConditional()) {
+    // TODO: Implement
+  } else {
+    os << "\tjr " << blocknums[br->getSuccessor(0)];
+    if (blocknums[br->getSuccessor(0)] < blocknums[current_block]) {
+      os << "b";
+    } else {
+      os << "f";
+    }
+    os << "\n";
+  }
 }
 
 void AsmPrinter::print_add(const BinaryOperator *add) {

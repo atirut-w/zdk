@@ -1,4 +1,5 @@
 #pragma once
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
@@ -13,7 +14,9 @@ class AsmPrinter {
   std::ostream &os;
 
   llvm::Function *current_function = nullptr;
+  llvm::BasicBlock *current_block = nullptr;
   std::map<const llvm::Value *, int> offsets;
+  std::map<const llvm::BasicBlock *, int> blocknums;
 
   void generate_prologue();
   std::string get_ix(int base, int offset = 0);
@@ -27,6 +30,7 @@ public:
   void print_instruction(const llvm::Instruction *instruction);
 
   void print_return(const llvm::ReturnInst *ret);
+  void print_br(const llvm::BranchInst *br);
 
   void print_add(const llvm::BinaryOperator *add);
   void print_sub(const llvm::BinaryOperator *sub);
