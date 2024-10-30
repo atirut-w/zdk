@@ -87,14 +87,7 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   
   // Terminator instructions :robot:
   case Instruction::Ret:
-    if (auto *value = dyn_cast<ReturnInst>(instruction)->getReturnValue()) {
-      load_value(value);
-    }
-    if (!offsets.empty()) {
-      os << "\tld sp, ix\n";
-      os << "\tpop ix\n";
-    }
-    os << "\tret\n";
+    print_return(cast<ReturnInst>(instruction));
     break;
 
   // Binary instructions
@@ -118,6 +111,17 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
     print_store(cast<StoreInst>(instruction));
     break;
   }
+}
+
+void AsmPrinter::print_return(const ReturnInst *ret) {
+  if (auto *value = ret->getReturnValue()) {
+    load_value(value);
+  }
+  if (!offsets.empty()) {
+    os << "\tld sp, ix\n";
+    os << "\tpop ix\n";
+  }
+  os << "\tret\n";
 }
 
 void AsmPrinter::print_add(const BinaryOperator *add) {
