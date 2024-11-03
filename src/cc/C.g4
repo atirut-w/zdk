@@ -67,6 +67,7 @@ Comma: ',';
 Semicolon: ';';
 
 // Arithmetic operators
+Increment: '++';
 Plus: '+';
 Decrement: '--';
 Minus: '-';
