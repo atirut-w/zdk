@@ -32,9 +32,13 @@ void AsmPrinter::generate_prologue() {
 
   if (offset < 0) {
     os << "\tpush ix\n";
-    os << "\tld ix, " << offset << "\n";
+    os << "\tld ix, 0\n";
     os << "\tadd ix, sp\n";
     os << "\tld sp, ix\n";
+
+    os << "\tld hl, " << offset << "\n";
+    os << "\tadd hl, sp\n";
+    os << "\tld sp, hl\n";
   }
 }
 
