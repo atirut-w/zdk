@@ -91,7 +91,7 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
     // throw runtime_error("unhandled instruction");
     cerr << "unhandled opcode: " << instruction->getOpcode() << "\n";
     break;
-  
+
   // Terminator instructions :robot:
   case Instruction::Ret:
     print_return(cast<ReturnInst>(instruction));
@@ -190,10 +190,8 @@ void AsmPrinter::print_store(const StoreInst *store) {
   const Value *value = store->getValueOperand();
 
   if (auto *constant = dyn_cast<ConstantInt>(value)) {
-    os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", "
-       << (constant->getSExtValue() & 0xff) << "\n";
-    os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", "
-       << (constant->getSExtValue() >> 8) << "\n";
+    os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", " << (constant->getSExtValue() & 0xff) << "\n";
+    os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", " << (constant->getSExtValue() >> 8) << "\n";
   } else {
     load_value(value);
     store_value(store->getPointerOperand());
