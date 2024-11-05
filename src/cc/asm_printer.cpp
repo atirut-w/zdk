@@ -201,4 +201,33 @@ void AsmPrinter::print_store(const StoreInst *store) {
   }
 }
 
-void AsmPrinter::print_icmp(const ICmpInst *icmp) {}
+void AsmPrinter::print_icmp(const ICmpInst *icmp) {
+  load_value(icmp->getOperand(0));
+  load_value(icmp->getOperand(1), "de");
+  
+  // Set flags
+  os << "\txor a\n";
+  os << "\tld sbc hl, de\n";
+  // Obtain flags
+  os << "\tpush af\n";
+  os << "\tpop hl\n";
+
+  switch (icmp->getPredicate()) {
+  default:
+    cerr << "unhandled icmp predicate: " << icmp->getPredicate() << "\n";
+    break;
+  case ICmpInst::ICMP_EQ:
+    os << "\tld a, l\n";
+    os << "\tand " << (1 << 6) << "\n";
+    os << "\tld l, a\n";
+    break;
+  case ICmpInst::ICMP_NE:
+    os << "\tld a, l\n";
+    os << "\tand " << (1 << 6) << "\n";
+    os << "\txor " << (1 << 6) << "\n";
+    os << "\tld l, a\n";
+    break;
+  }
+
+  store_value(icmp);
+}
