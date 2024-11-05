@@ -20,8 +20,8 @@ class AsmPrinter {
 
   void generate_prologue();
   std::string get_ix(int base, int offset = 0);
-  void load_value(const llvm::Value *value);
-  void store_value(const llvm::Value *value);
+  void load_value(const llvm::Value *value, std::string reg = "hl");
+  void store_value(const llvm::Value *value, std::string reg = "hl");
 
 public:
   AsmPrinter(llvm::Module &module, std::ostream &os) : module(module), os(os) {}

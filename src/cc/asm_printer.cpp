@@ -50,21 +50,21 @@ string AsmPrinter::get_ix(int base, int offset) {
   }
 }
 
-void AsmPrinter::load_value(const Value *value) {
+void AsmPrinter::load_value(const Value *value, string reg) {
   if (auto *constant = dyn_cast<ConstantInt>(value)) {
-    os << "\tld hl, " << constant->getSExtValue() << "\n";
+    os << "\tld " << reg << ", " << (constant->getSExtValue() & 0xff) << "\n";
   } else {
     int offset = offsets[value];
 
-    os << "\tld l, " << get_ix(offset) << "\n";
-    os << "\tld h, " << get_ix(offset, 1) << "\n";
+    os << "\tld " << reg[1] << ", " << get_ix(offset) << "\n";
+    os << "\tld " << reg[0] << ", " << get_ix(offset, 1) << "\n";
   }
 }
 
-void AsmPrinter::store_value(const Value *value) {
+void AsmPrinter::store_value(const Value *value, string reg) {
   int offset = offsets[value];
-  os << "\tld " << get_ix(offset) << ", l\n";
-  os << "\tld " << get_ix(offset, 1) << ", h\n";
+  os << "\tld " << get_ix(offset) << ", " << reg[1] << "\n";
+  os << "\tld " << get_ix(offset, 1) << ", " << reg[0] << "\n";
 }
 
 void AsmPrinter::print() {
@@ -158,29 +158,23 @@ void AsmPrinter::print_br(const BranchInst *br) {
 }
 
 void AsmPrinter::print_add(const BinaryOperator *add) {
-  load_value(add->getOperand(1));
-  os << "\tpush hl\n";
-  os << "\tpop de\n";
   load_value(add->getOperand(0));
+  load_value(add->getOperand(1), "de");
   os << "\tadd hl, de\n";
   store_value(add);
 }
 
 void AsmPrinter::print_sub(const BinaryOperator *sub) {
-  load_value(sub->getOperand(1));
-  os << "\tpush hl\n";
-  os << "\tpop de\n";
   load_value(sub->getOperand(0));
+  load_value(sub->getOperand(1), "de");
   os << "\txor a\n";
   os << "\tsbc hl, de\n";
   store_value(sub);
 }
 
 void AsmPrinter::print_xor(const BinaryOperator *xor_) {
-  load_value(xor_->getOperand(1));
-  os << "\tpush hl\n";
-  os << "\tpop de\n";
   load_value(xor_->getOperand(0));
+  load_value(xor_->getOperand(1), "de");
   os << "\tld a, l\n";
   os << "\txor e\n";
   os << "\tld l, a\n";
