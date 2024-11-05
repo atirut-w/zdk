@@ -120,6 +120,11 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   case Instruction::Store:
     print_store(cast<StoreInst>(instruction));
     break;
+  
+  // Other instructions
+  case Instruction::ICmp:
+    print_icmp(cast<ICmpInst>(instruction));
+    break;
   }
 }
 
@@ -197,3 +202,5 @@ void AsmPrinter::print_store(const StoreInst *store) {
     store_value(store->getPointerOperand());
   }
 }
+
+void AsmPrinter::print_icmp(const ICmpInst *icmp) {}
