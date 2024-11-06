@@ -207,7 +207,7 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
   
   // Set flags
   os << "\txor a\n";
-  os << "\tld sbc hl, de\n";
+  os << "\tsbc hl, de\n";
   // Obtain flags
   os << "\tpush af\n";
   os << "\tpop hl\n";
