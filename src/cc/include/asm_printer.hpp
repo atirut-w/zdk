@@ -41,5 +41,7 @@ public:
   void print_load(const llvm::LoadInst *load);
   void print_store(const llvm::StoreInst *store);
 
+  void print_zext(const llvm::ZExtInst *zext);
+
   void print_icmp(const llvm::ICmpInst *icmp);
 };

@@ -152,6 +152,11 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
     print_store(cast<StoreInst>(instruction));
     break;
   
+  // Cast instructions
+  case Instruction::ZExt:
+    print_zext(cast<ZExtInst>(instruction));
+    break;
+  
   // Other instructions
   case Instruction::ICmp:
     print_icmp(cast<ICmpInst>(instruction));
@@ -233,6 +238,12 @@ void AsmPrinter::print_store(const StoreInst *store) {
     load_value(value);
     store_value(store->getPointerOperand());
   }
+}
+
+void AsmPrinter::print_zext(const ZExtInst *zext) {
+  load_value(zext->getOperand(0));
+  os << "\tld h, 0\n";
+  store_value(zext);
 }
 
 void AsmPrinter::print_icmp(const ICmpInst *icmp) {
