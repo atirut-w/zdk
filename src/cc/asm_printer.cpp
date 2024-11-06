@@ -61,6 +61,22 @@ string AsmPrinter::get_label(const BasicBlock *block) {
   return label;
 }
 
+void AsmPrinter::check_phi(const BasicBlock *block) {
+  for (auto &instruction : *block) {
+    if (auto *phi = dyn_cast<PHINode>(&instruction)) {
+      for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
+        BasicBlock *incoming_block = phi->getIncomingBlock(i);
+        Value *value = phi->getIncomingValue(i);
+        
+        if (incoming_block == current_block) {
+          load_value(value);
+          store_value(phi);
+        }
+      }
+    }
+  }
+}
+
 void AsmPrinter::load_value(const Value *value, string reg) {
   if (auto *constant = dyn_cast<ConstantInt>(value)) {
     os << "\tld " << reg << ", " << (constant->getSExtValue() & 0xff) << "\n";
@@ -140,6 +156,8 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   case Instruction::ICmp:
     print_icmp(cast<ICmpInst>(instruction));
     break;
+  case Instruction::PHI:
+    break;
   }
 }
 
@@ -155,15 +173,21 @@ void AsmPrinter::print_return(const ReturnInst *ret) {
 }
 
 void AsmPrinter::print_br(const BranchInst *br) {
-  BasicBlock *successor = br->getSuccessor(0);
-  
   if (br->isConditional()) {
+    BasicBlock *true_block = br->getSuccessor(0);
+    BasicBlock *false_block = br->getSuccessor(1);
+
     load_value(br->getCondition());
     os << "\tld a, l\n";
     os << "\tand h\n";
-    os << "\tjr nz, " << get_label(successor) << "\n";
+
+    check_phi(true_block);
+    os << "\tjr nz, " << get_label(true_block) << "\n";
+    check_phi(false_block);
+    os << "\tjr " << get_label(false_block) << "\n";
   } else {
-    os << "\tjr " << get_label(successor) << "\n";
+    check_phi(br->getSuccessor(0));
+    os << "\tjr " << get_label(br->getSuccessor(0)) << "\n";
   }
 }
 
