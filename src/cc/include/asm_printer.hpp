@@ -20,6 +20,7 @@ class AsmPrinter {
 
   void generate_prologue();
   std::string get_ix(int base, int offset = 0);
+  std::string get_label(const llvm::BasicBlock *block);
   void load_value(const llvm::Value *value, std::string reg = "hl");
   void store_value(const llvm::Value *value, std::string reg = "hl");
 

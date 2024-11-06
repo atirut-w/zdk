@@ -1,6 +1,7 @@
 #include "asm_printer.hpp"
 #include <cstdlib>
 #include <iostream>
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
@@ -48,6 +49,16 @@ string AsmPrinter::get_ix(int base, int offset) {
   } else {
     return "(ix+" + to_string(base + offset) + ")";
   }
+}
+
+string AsmPrinter::get_label(const BasicBlock *block) {
+  string label = to_string(blocknums[block]);
+  if (blocknums[block] < blocknums[current_block]) {
+    label += "b";
+  } else {
+    label += "f";
+  }
+  return label;
 }
 
 void AsmPrinter::load_value(const Value *value, string reg) {
@@ -144,20 +155,16 @@ void AsmPrinter::print_return(const ReturnInst *ret) {
 }
 
 void AsmPrinter::print_br(const BranchInst *br) {
+  BasicBlock *successor = br->getSuccessor(0);
+  
   if (br->isConditional()) {
     load_value(br->getCondition());
     os << "\tld a, l\n";
     os << "\tand h\n";
-    os << "\tjr nz, " << blocknums[br->getSuccessor(0)];
+    os << "\tjr nz, " << get_label(successor) << "\n";
   } else {
-    os << "\tjr " << blocknums[br->getSuccessor(0)];
+    os << "\tjr " << get_label(successor) << "\n";
   }
-  if (blocknums[br->getSuccessor(0)] < blocknums[current_block]) {
-    os << "b";
-  } else {
-    os << "f";
-  }
-  os << "\n";
 }
 
 void AsmPrinter::print_add(const BinaryOperator *add) {
