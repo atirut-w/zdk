@@ -145,16 +145,19 @@ void AsmPrinter::print_return(const ReturnInst *ret) {
 
 void AsmPrinter::print_br(const BranchInst *br) {
   if (br->isConditional()) {
-    // TODO: Implement
+    load_value(br->getCondition());
+    os << "\tld a, l\n";
+    os << "\tand h\n";
+    os << "\tjr nz, " << blocknums[br->getSuccessor(0)];
   } else {
     os << "\tjr " << blocknums[br->getSuccessor(0)];
-    if (blocknums[br->getSuccessor(0)] < blocknums[current_block]) {
-      os << "b";
-    } else {
-      os << "f";
-    }
-    os << "\n";
   }
+  if (blocknums[br->getSuccessor(0)] < blocknums[current_block]) {
+    os << "b";
+  } else {
+    os << "f";
+  }
+  os << "\n";
 }
 
 void AsmPrinter::print_add(const BinaryOperator *add) {
