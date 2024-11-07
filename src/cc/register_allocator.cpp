@@ -100,9 +100,11 @@ void RegisterAllocator::run(Function &function) {
       }
       break;
     }
+
     case Instruction::Add:
     case Instruction::Sub:
     case Instruction::ICmp:
+    case Instruction::Xor: {
       auto *lhs = instruction->getOperand(0);
       auto *rhs = instruction->getOperand(1);
       TypeSize size = module.getDataLayout().getTypeAllocSize(lhs->getType());
@@ -118,6 +120,7 @@ void RegisterAllocator::run(Function &function) {
 
       allocation[rhs] = allocate(rhs);
       break;
+    }
     }
   }
 }

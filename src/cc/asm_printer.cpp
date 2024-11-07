@@ -243,8 +243,8 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
 }
 
 void AsmPrinter::print_xor(const BinaryOperator *xor_) {
-  // load_value(xor_->getOperand(0));
-  // load_value(xor_->getOperand(1), "de");
+  load_value(xor_->getOperand(0));
+  load_value(xor_->getOperand(1));
   os << "\tld a, l\n";
   os << "\txor e\n";
   os << "\tld l, a\n";
