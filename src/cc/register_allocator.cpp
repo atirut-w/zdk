@@ -1,5 +1,6 @@
 #include "register_allocator.hpp"
 #include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
@@ -97,6 +98,10 @@ void RegisterAllocator::run(Function &function) {
           allocation[value] = allocate_reg(R32_DEHL);
           break;
         }
+
+        if (isa<ConstantInt>(value)) {
+          register_state &= ~allocation[value];
+        }
       }
       break;
     }
@@ -119,6 +124,13 @@ void RegisterAllocator::run(Function &function) {
       }
 
       allocation[rhs] = allocate(rhs);
+
+      if (isa<ConstantInt>(lhs)) {
+        register_state &= ~allocation[lhs];
+      }
+      if (isa<ConstantInt>(rhs)) {
+        register_state &= ~allocation[rhs];
+      }
       break;
     }
     }
