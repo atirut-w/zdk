@@ -87,7 +87,7 @@ void AsmPrinter::check_phi(const BasicBlock *block) {
   }
 }
 
-void AsmPrinter::load_value(const Value *value, int reg) {
+int AsmPrinter::load_value(const Value *value, int reg) {
   reg = reg ? reg : allocation[value];
   string reg_name = register_names[reg];
 
@@ -102,6 +102,8 @@ void AsmPrinter::load_value(const Value *value, int reg) {
       os << "\tld " << reg_name.substr(2, 2) << ", " << (constant->getSExtValue() & 0xff) << "\n";
       os << "\tld " << reg_name.substr(0, 2) << ", " << (constant->getSExtValue() >> 8) << "\n";
     }
+
+    return size;
   } else if (auto *alloca = dyn_cast<AllocaInst>(value)) {
     int offset = offsets[value];
     Type *type = alloca->getAllocatedType();
@@ -110,7 +112,11 @@ void AsmPrinter::load_value(const Value *value, int reg) {
     for (int i = 0; i < size; i++) {
       os << "\tld " << reg_name[size - i - 1] << ", " << get_ix(offset, i) << "\n";
     }
+
+    return size;
   }
+
+  return module.getDataLayout().getTypeAllocSize(value->getType());
 }
 
 void AsmPrinter::store_value(const Value *value) {
@@ -243,14 +249,21 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
 }
 
 void AsmPrinter::print_xor(const BinaryOperator *xor_) {
-  load_value(xor_->getOperand(0));
-  load_value(xor_->getOperand(1));
-  os << "\tld a, l\n";
-  os << "\txor e\n";
-  os << "\tld l, a\n";
-  os << "\tld a, h\n";
-  os << "\txor d\n";
-  os << "\tld h, a\n";
+  Value *lhs = xor_->getOperand(0);
+  Value *rhs = xor_->getOperand(1);
+  int size = load_value(lhs);
+  load_value(rhs);
+  
+  string lhs_reg = register_names[allocation[xor_->getOperand(0)]];
+  string rhs_reg = register_names[allocation[xor_->getOperand(1)]];
+  string target_reg = register_names[allocation[xor_]];
+
+  for (int i = 0; i < size; i++) {
+    os << "\tld a, " << lhs_reg[i] << "\n";
+    os << "\txor " << rhs_reg[i] << "\n";
+    os << "\tld " << target_reg[i] << ", a\n";
+  }
+
   store_value(xor_);
 }
 

@@ -23,7 +23,7 @@ class AsmPrinter {
   std::string get_ix(int base, int offset = 0);
   std::string get_label(const llvm::BasicBlock *block);
   void check_phi(const llvm::BasicBlock *block);
-  void load_value(const llvm::Value *value, int reg = 0);
+  int load_value(const llvm::Value *value, int reg = 0);
   void store_value(const llvm::Value *value);
 
 public:
