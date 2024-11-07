@@ -33,6 +33,7 @@ add_executable(zdk-cc
     error.cpp
     codegen.cpp
     asm_printer.cpp
+    register_allocator.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp

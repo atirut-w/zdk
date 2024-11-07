@@ -2,6 +2,7 @@
 #include "asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
+#include "register_allocator.hpp"
 #include <CLexer.h>
 #include <CParser.h>
 #include <argparse/argparse.hpp>

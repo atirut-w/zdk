@@ -17,13 +17,14 @@ class AsmPrinter {
   llvm::BasicBlock *current_block = nullptr;
   std::map<const llvm::Value *, int> offsets;
   std::map<const llvm::BasicBlock *, int> blocknums;
+  std::map<const llvm::Value *, int> allocation;
 
   void generate_prologue();
   std::string get_ix(int base, int offset = 0);
   std::string get_label(const llvm::BasicBlock *block);
   void check_phi(const llvm::BasicBlock *block);
-  void load_value(const llvm::Value *value, std::string reg = "hl");
-  void store_value(const llvm::Value *value, std::string reg = "hl");
+  void load_value(const llvm::Value *value, int reg);
+  void store_value(const llvm::Value *value);
 
 public:
   AsmPrinter(llvm::Module &module, std::ostream &os) : module(module), os(os) {}
