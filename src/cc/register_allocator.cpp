@@ -85,8 +85,7 @@ void RegisterAllocator::run(Function &function) {
 
     switch (instruction->getOpcode()) {
     case Instruction::Ret: {
-      auto *ret = cast<ReturnInst>(instruction);
-      if (auto *value = ret->getReturnValue()) {
+      if (auto *value = instruction->getOperand(0)) {
         switch (get_value_size(value)) {
         case 1:
           allocation[value] = allocate_reg(R8_A);
@@ -103,9 +102,9 @@ void RegisterAllocator::run(Function &function) {
     }
     case Instruction::Add:
     case Instruction::Sub:
-      auto *add = cast<BinaryOperator>(instruction);
-      auto *lhs = add->getOperand(0);
-      auto *rhs = add->getOperand(1);
+    case Instruction::ICmp:
+      auto *lhs = instruction->getOperand(0);
+      auto *rhs = instruction->getOperand(1);
       TypeSize size = module.getDataLayout().getTypeAllocSize(lhs->getType());
 
       switch (size) {

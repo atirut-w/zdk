@@ -277,12 +277,12 @@ void AsmPrinter::print_zext(const ZExtInst *zext) {
 }
 
 void AsmPrinter::print_icmp(const ICmpInst *icmp) {
-  // load_value(icmp->getOperand(0));
-  // load_value(icmp->getOperand(1), "de");
+  load_value(icmp->getOperand(0));
+  load_value(icmp->getOperand(1));
 
   // Set flags
   os << "\txor a\n";
-  os << "\tsbc hl, de\n";
+  os << "\tsbc hl, " << register_names[allocation[icmp->getOperand(1)]] << "\n";
   // Obtain flags
   os << "\tpush af\n";
   os << "\tpop hl\n";
