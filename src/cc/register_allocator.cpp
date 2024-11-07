@@ -76,13 +76,9 @@ void RegisterAllocator::run(Function &function) {
     }
   }
 
-  // First pass; put operand values in registers
-  int used_registers = 0;
-  std::vector<Value *> anywhere;
   for (int ninst = instructions.size() - 1; ninst >= 0; ninst--) {
     auto *instruction = instructions[ninst];
 
-    // True means we found the start of a value's lifetime
     if (allocation.count(instruction)) {
       register_state &= ~allocation[instruction];
     }
@@ -121,27 +117,8 @@ void RegisterAllocator::run(Function &function) {
         break;
       }
 
-      anywhere.push_back(rhs);
+      allocation[rhs] = allocate(rhs);
       break;
-    }
-    used_registers |= register_state;
-  }
-  register_state = used_registers;
-
-  // Second pass; allocate anything else
-  for (int ninst = instructions.size() - 1; ninst >= 0; ninst--) {
-    auto *instruction = instructions[ninst];
-
-    for (int i = 0; i < instruction->getNumOperands(); i++) {
-      auto *operand = instruction->getOperand(i);
-
-      if (isa<AllocaInst>(operand)) {
-        continue;
-      }
-
-      if (find(anywhere.begin(), anywhere.end(), operand) != anywhere.end()) {
-        allocation[operand] = allocate(operand);
-      }
     }
   }
 }
