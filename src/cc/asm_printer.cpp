@@ -88,6 +88,7 @@ void AsmPrinter::check_phi(const BasicBlock *block) {
 }
 
 void AsmPrinter::load_value(const Value *value, int reg) {
+  reg = reg ? reg : allocation[value];
   string reg_name = register_names[reg];
 
   cout << "loading value into " << reg_name << "\n";
@@ -194,7 +195,7 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
 
 void AsmPrinter::print_return(const ReturnInst *ret) {
   if (auto *value = ret->getReturnValue()) {
-    load_value(value, allocation[value]);
+    load_value(value);
   }
   if (!offsets.empty()) {
     os << "\tld sp, ix\n";
@@ -225,8 +226,8 @@ void AsmPrinter::print_br(const BranchInst *br) {
 void AsmPrinter::print_add(const BinaryOperator *add) {
   Value *lhs = add->getOperand(0);
   Value *rhs = add->getOperand(1);
-  load_value(lhs, allocation[lhs]);
-  load_value(rhs, allocation[rhs]);
+  load_value(lhs);
+  load_value(rhs);
   os << "\tadd hl, " << register_names[allocation[rhs]] << "\n";
   store_value(add);
 }
@@ -234,8 +235,8 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
 void AsmPrinter::print_sub(const BinaryOperator *sub) {
   Value *lhs = sub->getOperand(0);
   Value *rhs = sub->getOperand(1);
-  load_value(lhs, allocation[lhs]);
-  load_value(rhs, allocation[rhs]);
+  load_value(lhs);
+  load_value(rhs);
   os << "\txor a\n";
   os << "\tsbc hl, " << register_names[allocation[rhs]] << "\n";
   store_value(sub);
