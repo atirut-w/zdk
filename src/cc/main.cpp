@@ -2,6 +2,7 @@
 #include "asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
+#include "frotnend_manager.hpp"
 #include <CLexer.h>
 #include <CParser.h>
 #include <argparse/argparse.hpp>
@@ -132,6 +133,11 @@ bool link(const filesystem::path source, const filesystem::path intermediate) {
 }
 
 int main(int argc, char *argv[]) {
+  FrontendManager manager;
+  manager.parse_args(argc, argv);
+
+  return 0;
+
   auto args = parse_args(argc, argv);
   const auto source = args->get<filesystem::path>("source");
   filesystem::path intermediate = source;
