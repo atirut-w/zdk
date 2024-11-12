@@ -134,7 +134,9 @@ bool link(const filesystem::path source, const filesystem::path intermediate) {
 
 int main(int argc, char *argv[]) {
   FrontendManager manager;
-  manager.parse_args(argc, argv);
+  if (!manager.parse_args(argc, argv)) {
+    return 1;
+  }
 
   return 0;
 
