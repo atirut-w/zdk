@@ -119,8 +119,19 @@ int AsmPrinter::load_value(const Value *value, int reg) {
   return module.getDataLayout().getTypeAllocSize(value->getType());
 }
 
-void AsmPrinter::store_value(const Value *value) {
-  
+void AsmPrinter::copy(int from, int to) {
+  string from_reg = register_names[from];
+  string to_reg = register_names[to];
+
+  if (from_reg == to_reg) {
+    return;
+  } else if (from_reg.length() != to_reg.length()) {
+    throw runtime_error("register copy size mismatch");
+  }
+
+  for (int i = 0; i < from_reg.length(); i++) {
+    os << "\tld " << to_reg[i] << ", " << from_reg[i] << "\n";
+  }
 }
 
 void AsmPrinter::print() {
@@ -235,7 +246,7 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
   load_value(lhs);
   load_value(rhs);
   os << "\tadd hl, " << register_names[allocation[rhs]] << "\n";
-  store_value(add);
+  copy(RegisterAllocator::R16_HL, allocation[add]);
 }
 
 void AsmPrinter::print_sub(const BinaryOperator *sub) {
@@ -245,7 +256,7 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
   load_value(rhs);
   os << "\txor a\n";
   os << "\tsbc hl, " << register_names[allocation[rhs]] << "\n";
-  store_value(sub);
+  copy(RegisterAllocator::R16_HL, allocation[sub]);
 }
 
 void AsmPrinter::print_xor(const BinaryOperator *xor_) {
@@ -263,8 +274,6 @@ void AsmPrinter::print_xor(const BinaryOperator *xor_) {
     os << "\txor " << rhs_reg[i] << "\n";
     os << "\tld " << target_reg[i] << ", a\n";
   }
-
-  store_value(xor_);
 }
 
 void AsmPrinter::print_load(const LoadInst *load) {
@@ -278,15 +287,12 @@ void AsmPrinter::print_store(const StoreInst *store) {
     os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", " << (constant->getSExtValue() & 0xff) << "\n";
     os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", " << (constant->getSExtValue() >> 8) << "\n";
   } else {
-    // load_value(value);
-    store_value(store->getPointerOperand());
+    throw runtime_error("variable store not implemented");
   }
 }
 
 void AsmPrinter::print_zext(const ZExtInst *zext) {
-  // load_value(zext->getOperand(0));
-  os << "\tld h, 0\n";
-  store_value(zext);
+  
 }
 
 void AsmPrinter::print_icmp(const ICmpInst *icmp) {
@@ -307,15 +313,13 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
   case ICmpInst::ICMP_EQ:
     os << "\tld a, l\n";
     os << "\tand " << (1 << 6) << "\n";
-    os << "\tld l, a\n";
     break;
   case ICmpInst::ICMP_NE:
     os << "\tld a, l\n";
     os << "\tand " << (1 << 6) << "\n";
     os << "\txor " << (1 << 6) << "\n";
-    os << "\tld l, a\n";
     break;
   }
 
-  store_value(icmp);
+  copy(RegisterAllocator::R8_A, allocation[icmp]);
 }

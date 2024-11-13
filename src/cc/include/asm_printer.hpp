@@ -24,7 +24,7 @@ class AsmPrinter {
   std::string get_label(const llvm::BasicBlock *block);
   void check_phi(const llvm::BasicBlock *block);
   int load_value(const llvm::Value *value, int reg = 0);
-  void store_value(const llvm::Value *value);
+  void copy(int from, int to);
 
 public:
   AsmPrinter(llvm::Module &module, std::ostream &os) : module(module), os(os) {}
