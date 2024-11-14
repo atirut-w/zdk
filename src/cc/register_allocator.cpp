@@ -1,4 +1,5 @@
 #include "register_allocator.hpp"
+#include <iostream>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
@@ -28,6 +29,8 @@ int RegisterAllocator::allocate(const Value *value) {
   int register_mask = (1 << size) - 1;
 
   switch (size) {
+  default:
+    throw runtime_error("unsupported register size");
   case 1:
     for (int reg = 0; reg < 7; reg++) {
       if (register_state & (register_mask << reg)) {
@@ -51,6 +54,7 @@ int RegisterAllocator::allocate(const Value *value) {
       }
       return allocate_reg(15 << (quad * 2));
     }
+    break;
   }
 
   throw runtime_error("could not allocate register");
@@ -85,6 +89,7 @@ void RegisterAllocator::run(Function &function) {
     }
 
     switch (instruction->getOpcode()) {
+    case Instruction::ZExt:
     case Instruction::Ret: {
       if (auto *value = instruction->getOperand(0)) {
         switch (get_value_size(value)) {
@@ -130,6 +135,24 @@ void RegisterAllocator::run(Function &function) {
       }
       if (isa<ConstantInt>(rhs)) {
         register_state &= ~allocation[rhs];
+      }
+      break;
+    }
+
+    case Instruction::Br: {
+      auto *br = cast<BranchInst>(instruction);
+      if (br->isConditional()) {
+        auto *condition = br->getCondition();
+        allocation[condition] = R8_A;
+      }
+      break;
+    }
+
+    case Instruction::PHI: {
+      auto *phi = cast<PHINode>(instruction);
+      for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
+        auto *value = phi->getIncomingValue(i);
+        allocation[value] = allocation[phi];
       }
       break;
     }

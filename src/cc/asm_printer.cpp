@@ -149,11 +149,13 @@ void AsmPrinter::print() {
     os << name << ":\n";
     generate_prologue();
 
+    int ninst = 0;
     for (auto &block : function) {
       current_block = &block;
       os << blocknums[&block] << ":\n";
       for (auto &instruction : block) {
         print_instruction(&instruction);
+        ninst++;
       }
     }
   }
