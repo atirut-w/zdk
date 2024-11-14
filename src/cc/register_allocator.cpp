@@ -83,6 +83,9 @@ void RegisterAllocator::run(Function &function) {
 
   for (int ninst = instructions.size() - 1; ninst >= 0; ninst--) {
     auto *instruction = instructions[ninst];
+    if (!instruction->getType()->isVoidTy() && !allocation.count(instruction) && !instruction->isTerminator() && !isa<AllocaInst>(instruction)) {
+      throw runtime_error("instruction not allocated");
+    }
 
     if (allocation.count(instruction)) {
       register_state &= ~allocation[instruction];
