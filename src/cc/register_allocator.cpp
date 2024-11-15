@@ -124,7 +124,13 @@ void RegisterAllocator::run(Function &function) {
       break;
     }
 
-    case Instruction::Add: {
+    case Instruction::Add:
+    case Instruction::Sub:
+    case Instruction::Mul:
+    case Instruction::SDiv:
+    case Instruction::UDiv:
+    case Instruction::SRem:
+    case Instruction::URem: {
       Value *lhs = instruction->getOperand(0);
       Value *rhs = instruction->getOperand(1);
       int size = get_value_size(lhs);
