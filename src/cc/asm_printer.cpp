@@ -273,10 +273,32 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
 void AsmPrinter::print_sub(const BinaryOperator *sub) {
   Value *lhs = sub->getOperand(0);
   Value *rhs = sub->getOperand(1);
-  load_value(lhs);
-  load_value(rhs);
-  os << "\txor a\n";
-  os << "\tsbc hl, " << register_names[allocation[rhs]] << "\n";
+  int size = load_value(lhs);
+
+  switch (size) {
+  case 1:
+    load_value(rhs);
+    os << "\tsub " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
+    break;
+  case 2:
+    load_value(rhs);
+    os << "\txor a\n";
+    os << "\tsbc " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
+    break;
+  case 4:
+    os << "\tpush " << register_names[allocation[lhs]].substr(2, 2) << "\n";
+    os << "\tpush " << register_names[allocation[lhs]].substr(0, 2) << "\n";
+    load_value(rhs);
+    os << "\tpush " << register_names[allocation[rhs]].substr(2, 2) << "\n";
+    os << "\tpush " << register_names[allocation[rhs]].substr(0, 2) << "\n";
+    os << "\tcall __subdi3\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    break;
+  }
+
   copy(RegisterAllocator::R16_HL, allocation[sub]);
 }
 
