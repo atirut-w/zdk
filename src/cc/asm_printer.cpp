@@ -245,9 +245,27 @@ void AsmPrinter::print_br(const BranchInst *br) {
 void AsmPrinter::print_add(const BinaryOperator *add) {
   Value *lhs = add->getOperand(0);
   Value *rhs = add->getOperand(1);
-  load_value(lhs);
-  load_value(rhs);
-  os << "\tadd hl, " << register_names[allocation[rhs]] << "\n";
+  int size = load_value(lhs);
+  
+  switch (size) {
+  case 1:
+  case 2:
+    load_value(rhs);
+    os << "\tadd " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
+    break;
+  case 4:
+    os << "push " << register_names[allocation[lhs]].substr(2, 2) << "\n";
+    os << "push " << register_names[allocation[lhs]].substr(0, 2) << "\n";
+    load_value(rhs);
+    os << "push " << register_names[allocation[rhs]].substr(2, 2) << "\n";
+    os << "push " << register_names[allocation[rhs]].substr(0, 2) << "\n";
+    os << "call __adddi3\n";
+    os << "pop bc\n";
+    os << "pop bc\n";
+    os << "pop bc\n";
+    os << "pop bc\n";
+  }
+
   copy(RegisterAllocator::R16_HL, allocation[add]);
 }
 
