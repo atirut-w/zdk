@@ -96,11 +96,61 @@ void RegisterAllocator::run(Function &function) {
         if (auto *value = dyn_cast<Value>(&operand)) {
           allocation[value] = allocate(value);
 
-          if (auto *constant = dyn_cast<Constant>(value)) {
+          if (isa<Constant>(value)) {
             register_state &= ~allocation[value];
           }
         }
       }
+      break;
+
+    case Instruction::Ret: {
+      if (auto *value = instruction->getOperand(0)) {
+        switch (get_value_size(value)) {
+        case 1:
+          allocation[value] = allocate_reg(R8_A);
+          break;
+        case 2:
+          allocation[value] = allocate_reg(R16_HL);
+          break;
+        case 4:
+          allocation[value] = allocate_reg(R32_DEHL);
+          break;
+        }
+
+        if (isa<Constant>(value)) {
+          register_state &= ~allocation[value];
+        }
+      }
+      break;
+    }
+
+    case Instruction::Add: {
+      Value *lhs = instruction->getOperand(0);
+      Value *rhs = instruction->getOperand(1);
+      int size = get_value_size(lhs);
+
+      switch (size) {
+      case 1:
+        allocation[lhs] = allocate_reg(R8_A);
+        break;
+      case 2:
+        allocation[lhs] = allocate_reg(R16_HL);
+        break;
+      case 4:
+        allocation[lhs] = allocate_reg(R32_DEHL);
+        break;
+      }
+
+      allocation[rhs] = allocate(rhs);
+
+      if (isa<Constant>(lhs)) {
+        register_state &= ~allocation[rhs];
+      }
+      if (isa<Constant>(rhs)) {
+        register_state &= ~allocation[rhs];
+      }
+      break;
+    }
     }
   }
 }
