@@ -1,10 +1,12 @@
 #include "register_allocator.hpp"
 #include <iostream>
 #include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/TypeSize.h>
 #include <vector>
 
@@ -83,82 +85,22 @@ void RegisterAllocator::run(Function &function) {
 
   for (int ninst = instructions.size() - 1; ninst >= 0; ninst--) {
     auto *instruction = instructions[ninst];
-    if (!instruction->getType()->isVoidTy() && !allocation.count(instruction) && !instruction->isTerminator() && !isa<AllocaInst>(instruction)) {
-      throw runtime_error("instruction not allocated");
-    }
 
     if (allocation.count(instruction)) {
       register_state &= ~allocation[instruction];
     }
 
     switch (instruction->getOpcode()) {
-    case Instruction::ZExt:
-    case Instruction::Ret: {
-      if (auto *value = instruction->getOperand(0)) {
-        switch (get_value_size(value)) {
-        case 1:
-          allocation[value] = allocate_reg(R8_A);
-          break;
-        case 2:
-          allocation[value] = allocate_reg(R16_HL);
-          break;
-        case 4:
-          allocation[value] = allocate_reg(R32_DEHL);
-          break;
-        }
+    default:
+      for (auto &operand : instruction->operands()) {
+        if (auto *value = dyn_cast<Value>(&operand)) {
+          allocation[value] = allocate(value);
 
-        if (isa<ConstantInt>(value)) {
-          register_state &= ~allocation[value];
+          if (auto *constant = dyn_cast<Constant>(value)) {
+            register_state &= ~allocation[value];
+          }
         }
       }
-      break;
-    }
-
-    case Instruction::Add:
-    case Instruction::Sub:
-    case Instruction::ICmp:
-    case Instruction::Xor: {
-      auto *lhs = instruction->getOperand(0);
-      auto *rhs = instruction->getOperand(1);
-      TypeSize size = module.getDataLayout().getTypeAllocSize(lhs->getType());
-
-      switch (size) {
-      case 1:
-        allocation[lhs] = allocate_reg(R8_A);
-        break;
-      case 2:
-        allocation[lhs] = allocate_reg(R16_HL);
-        break;
-      }
-
-      allocation[rhs] = allocate(rhs);
-
-      if (isa<ConstantInt>(lhs)) {
-        register_state &= ~allocation[lhs];
-      }
-      if (isa<ConstantInt>(rhs)) {
-        register_state &= ~allocation[rhs];
-      }
-      break;
-    }
-
-    case Instruction::Br: {
-      auto *br = cast<BranchInst>(instruction);
-      if (br->isConditional()) {
-        auto *condition = br->getCondition();
-        allocation[condition] = R8_A;
-      }
-      break;
-    }
-
-    case Instruction::PHI: {
-      auto *phi = cast<PHINode>(instruction);
-      for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
-        auto *value = phi->getIncomingValue(i);
-        allocation[value] = allocation[phi];
-      }
-      break;
-    }
     }
   }
 }
