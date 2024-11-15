@@ -254,16 +254,17 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
     os << "\tadd " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
     break;
   case 4:
-    os << "push " << register_names[allocation[lhs]].substr(2, 2) << "\n";
-    os << "push " << register_names[allocation[lhs]].substr(0, 2) << "\n";
+    os << "\tpush " << register_names[allocation[lhs]].substr(2, 2) << "\n";
+    os << "\tpush " << register_names[allocation[lhs]].substr(0, 2) << "\n";
     load_value(rhs);
-    os << "push " << register_names[allocation[rhs]].substr(2, 2) << "\n";
-    os << "push " << register_names[allocation[rhs]].substr(0, 2) << "\n";
-    os << "call __adddi3\n";
-    os << "pop bc\n";
-    os << "pop bc\n";
-    os << "pop bc\n";
-    os << "pop bc\n";
+    os << "\tpush " << register_names[allocation[rhs]].substr(2, 2) << "\n";
+    os << "\tpush " << register_names[allocation[rhs]].substr(0, 2) << "\n";
+    os << "\tcall __adddi3\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    break;
   }
 
   copy(RegisterAllocator::R16_HL, allocation[add]);
