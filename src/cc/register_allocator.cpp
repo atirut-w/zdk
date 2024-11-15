@@ -161,6 +161,10 @@ void RegisterAllocator::run(Function &function) {
       if (branch->isConditional()) {
         Value *condition = branch->getCondition();
         allocation[condition] = allocate(condition);
+
+        if (isa<Constant>(condition)) {
+          register_state &= ~allocation[condition];
+        }
       }
     }
     }
