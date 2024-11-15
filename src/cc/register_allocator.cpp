@@ -103,6 +103,7 @@ void RegisterAllocator::run(Function &function) {
       }
       break;
 
+    case Instruction::ZExt:
     case Instruction::Ret: {
       if (auto *value = instruction->getOperand(0)) {
         switch (get_value_size(value)) {
@@ -126,11 +127,8 @@ void RegisterAllocator::run(Function &function) {
 
     case Instruction::Add:
     case Instruction::Sub:
-    case Instruction::Mul:
-    case Instruction::SDiv:
-    case Instruction::UDiv:
-    case Instruction::SRem:
-    case Instruction::URem: {
+    case Instruction::ICmp:
+    case Instruction::Xor: {
       Value *lhs = instruction->getOperand(0);
       Value *rhs = instruction->getOperand(1);
       int size = get_value_size(lhs);
@@ -156,6 +154,14 @@ void RegisterAllocator::run(Function &function) {
         register_state &= ~allocation[rhs];
       }
       break;
+    }
+
+    case Instruction::Br: {
+      auto *branch = cast<BranchInst>(instruction);
+      if (branch->isConditional()) {
+        Value *condition = branch->getCondition();
+        allocation[condition] = allocate(condition);
+      }
     }
     }
   }
