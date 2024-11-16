@@ -89,7 +89,7 @@ int AsmPrinter::load_value(const Value *value, int reg) {
   reg = reg ? reg : allocation[value];
   string reg_name = register_names[reg];
 
-  cout << "loading value into " << reg_name << "\n";
+  // cout << "loading value into " << reg_name << "\n";
   if (auto *constant = dyn_cast<ConstantInt>(value)) {
     Type *type = value->getType();
     TypeSize size = module.getDataLayout().getTypeAllocSize(type);
@@ -344,7 +344,6 @@ void AsmPrinter::print_zext(const ZExtInst *zext) {
   string reg = get_register_of(zext->getOperand(0));
   string target_reg = get_register_of(zext);
 
-  cout << reg << " -> " << target_reg << "\n";
   for (int i = 0; i < reg.length(); i++) {
     os << "\tld " << target_reg[target_reg.length() - i - 1] << ", " << reg[reg.length() - i - 1] << "\n";
   }
