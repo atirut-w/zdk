@@ -353,12 +353,35 @@ void AsmPrinter::print_zext(const ZExtInst *zext) {
 }
 
 void AsmPrinter::print_icmp(const ICmpInst *icmp) {
-  load_value(icmp->getOperand(0));
-  load_value(icmp->getOperand(1));
+  Value *lhs = icmp->getOperand(0);
+  Value *rhs = icmp->getOperand(1);
+  int size = load_value(lhs);
 
   // Set flags
-  os << "\txor a\n";
-  os << "\tsbc hl, " << get_register_of(icmp->getOperand(1)) << "\n";
+  switch (size) {
+  case 1:
+    load_value(rhs);
+    os << "\tsub " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
+    break;
+  case 2:
+    load_value(rhs);
+    os << "\txor a\n";
+    os << "\tsbc " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
+    break;
+  case 4:
+    os << "\tpush " << get_register_of(lhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(0, 2) << "\n";
+    load_value(rhs);
+    os << "\tpush " << get_register_of(rhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(0, 2) << "\n";
+    os << "\tcall __subdi3\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    break;
+  }
+
   // Obtain flags
   os << "\tpush af\n";
   os << "\tpop hl\n";
