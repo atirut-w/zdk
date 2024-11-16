@@ -32,11 +32,6 @@ void AsmPrinter::generate_prologue() {
         Type *type = alloca->getAllocatedType();
         TypeSize size = module.getDataLayout().getTypeAllocSize(type);
         offset -= size;
-      } else if (!instruction.getType()->isVoidTy()) {
-        offsets[&instruction] = offset;
-        Type *type = instruction.getType();
-        TypeSize size = module.getDataLayout().getTypeAllocSize(type);
-        offset -= size;
       }
     }
   }
