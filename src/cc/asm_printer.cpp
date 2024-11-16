@@ -1,4 +1,5 @@
 #include "asm_printer.hpp"
+#include "register_allocator.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <llvm/IR/BasicBlock.h>
@@ -10,6 +11,15 @@
 
 using namespace std;
 using namespace llvm;
+
+map<int, string> register_names = {
+    {RegisterAllocator::R8_A, "a"},        {RegisterAllocator::R8_B, "b"},        {RegisterAllocator::R8_C, "c"},    {RegisterAllocator::R8_D, "d"},
+    {RegisterAllocator::R8_E, "e"},        {RegisterAllocator::R8_H, "h"},        {RegisterAllocator::R8_L, "l"},
+
+    {RegisterAllocator::R16_BC, "bc"},     {RegisterAllocator::R16_DE, "de"},     {RegisterAllocator::R16_HL, "hl"},
+
+    {RegisterAllocator::R32_BCDE, "bcde"}, {RegisterAllocator::R32_DEHL, "dehl"},
+};
 
 void AsmPrinter::generate_prologue() {
   int offset = 0;
@@ -61,37 +71,70 @@ string AsmPrinter::get_label(const BasicBlock *block) {
   return label;
 }
 
+string AsmPrinter::get_register_of(const Value *value) {
+  return register_names[allocation[value]];
+}
+
 void AsmPrinter::check_phi(const BasicBlock *block) {
   for (auto &instruction : *block) {
     if (auto *phi = dyn_cast<PHINode>(&instruction)) {
       for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
         BasicBlock *incoming_block = phi->getIncomingBlock(i);
         Value *value = phi->getIncomingValue(i);
-        
+
         if (incoming_block == current_block) {
-          load_value(value);
-          store_value(phi);
+          load_value(value, allocation[phi]);
         }
       }
     }
   }
 }
 
-void AsmPrinter::load_value(const Value *value, string reg) {
-  if (auto *constant = dyn_cast<ConstantInt>(value)) {
-    os << "\tld " << reg << ", " << (constant->getSExtValue() & 0xff) << "\n";
-  } else {
-    int offset = offsets[value];
+int AsmPrinter::load_value(const Value *value, int reg) {
+  reg = reg ? reg : allocation[value];
+  string reg_name = register_names[reg];
 
-    os << "\tld " << reg[1] << ", " << get_ix(offset) << "\n";
-    os << "\tld " << reg[0] << ", " << get_ix(offset, 1) << "\n";
+  cout << "loading value into " << reg_name << "\n";
+  if (auto *constant = dyn_cast<ConstantInt>(value)) {
+    Type *type = value->getType();
+    TypeSize size = module.getDataLayout().getTypeAllocSize(type);
+
+    if (size < 4) {
+      os << "\tld " << reg_name << ", " << constant->getSExtValue() << "\n";
+    } else {
+      os << "\tld " << reg_name.substr(2, 2) << ", " << (constant->getSExtValue() & 0xff) << "\n";
+      os << "\tld " << reg_name.substr(0, 2) << ", " << (constant->getSExtValue() >> 8) << "\n";
+    }
+
+    return size;
+  } else if (auto *alloca = dyn_cast<AllocaInst>(value)) {
+    int offset = offsets[value];
+    Type *type = alloca->getAllocatedType();
+    TypeSize size = module.getDataLayout().getTypeAllocSize(type);
+
+    for (int i = 0; i < size; i++) {
+      os << "\tld " << reg_name[size - i - 1] << ", " << get_ix(offset, i) << "\n";
+    }
+
+    return size;
   }
+
+  return module.getDataLayout().getTypeAllocSize(value->getType());
 }
 
-void AsmPrinter::store_value(const Value *value, string reg) {
-  int offset = offsets[value];
-  os << "\tld " << get_ix(offset) << ", " << reg[1] << "\n";
-  os << "\tld " << get_ix(offset, 1) << ", " << reg[0] << "\n";
+void AsmPrinter::copy(int from, int to) {
+  string from_reg = register_names[from];
+  string to_reg = register_names[to];
+
+  if (from_reg == to_reg) {
+    return;
+  } else if (from_reg.length() != to_reg.length()) {
+    throw runtime_error("register copy size mismatch");
+  }
+
+  for (int i = 0; i < from_reg.length(); i++) {
+    os << "\tld " << to_reg[i] << ", " << from_reg[i] << "\n";
+  }
 }
 
 void AsmPrinter::print() {
@@ -101,15 +144,21 @@ void AsmPrinter::print() {
     string name = function.getName().str();
     current_function = &function;
 
+    RegisterAllocator allocator(module);
+    allocator.run(function);
+    allocation = allocator.allocation;
+
     os << "\t.global " << name << "\n";
     os << name << ":\n";
     generate_prologue();
 
+    int ninst = 0;
     for (auto &block : function) {
       current_block = &block;
       os << blocknums[&block] << ":\n";
       for (auto &instruction : block) {
         print_instruction(&instruction);
+        ninst++;
       }
     }
   }
@@ -151,12 +200,12 @@ void AsmPrinter::print_instruction(const Instruction *instruction) {
   case Instruction::Store:
     print_store(cast<StoreInst>(instruction));
     break;
-  
+
   // Cast instructions
   case Instruction::ZExt:
     print_zext(cast<ZExtInst>(instruction));
     break;
-  
+
   // Other instructions
   case Instruction::ICmp:
     print_icmp(cast<ICmpInst>(instruction));
@@ -183,8 +232,16 @@ void AsmPrinter::print_br(const BranchInst *br) {
     BasicBlock *false_block = br->getSuccessor(1);
 
     load_value(br->getCondition());
-    os << "\tld a, l\n";
-    os << "\tand h\n";
+    string reg = get_register_of(br->getCondition());
+    os << "\tld a, " << reg[0] << "\n";
+    
+    if (reg.length() == 1) {
+      os << "\tor a\n";
+    } else {
+      for (int i = 1; i < reg.length(); i++) {
+        os << "\tor " << reg[i] << "\n";
+      }
+    }
 
     check_phi(true_block);
     os << "\tjr nz, " << get_label(true_block) << "\n";
@@ -197,35 +254,84 @@ void AsmPrinter::print_br(const BranchInst *br) {
 }
 
 void AsmPrinter::print_add(const BinaryOperator *add) {
-  load_value(add->getOperand(0));
-  load_value(add->getOperand(1), "de");
-  os << "\tadd hl, de\n";
-  store_value(add);
+  Value *lhs = add->getOperand(0);
+  Value *rhs = add->getOperand(1);
+  int size = load_value(lhs);
+  
+  switch (size) {
+  case 1:
+  case 2:
+    load_value(rhs);
+    os << "\tadd " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
+    break;
+  case 4:
+    os << "\tpush " << get_register_of(lhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(0, 2) << "\n";
+    load_value(rhs);
+    os << "\tpush " << get_register_of(rhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(0, 2) << "\n";
+    os << "\tcall __adddi3\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    break;
+  }
+
+  copy(RegisterAllocator::R16_HL, allocation[add]);
 }
 
 void AsmPrinter::print_sub(const BinaryOperator *sub) {
-  load_value(sub->getOperand(0));
-  load_value(sub->getOperand(1), "de");
-  os << "\txor a\n";
-  os << "\tsbc hl, de\n";
-  store_value(sub);
+  Value *lhs = sub->getOperand(0);
+  Value *rhs = sub->getOperand(1);
+  int size = load_value(lhs);
+
+  switch (size) {
+  case 1:
+    load_value(rhs);
+    os << "\tsub " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
+    break;
+  case 2:
+    load_value(rhs);
+    os << "\txor a\n";
+    os << "\tsbc " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
+    break;
+  case 4:
+    os << "\tpush " << get_register_of(lhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(0, 2) << "\n";
+    load_value(rhs);
+    os << "\tpush " << get_register_of(rhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(0, 2) << "\n";
+    os << "\tcall __subdi3\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    os << "\tpop bc\n";
+    break;
+  }
+
+  copy(RegisterAllocator::R16_HL, allocation[sub]);
 }
 
 void AsmPrinter::print_xor(const BinaryOperator *xor_) {
-  load_value(xor_->getOperand(0));
-  load_value(xor_->getOperand(1), "de");
-  os << "\tld a, l\n";
-  os << "\txor e\n";
-  os << "\tld l, a\n";
-  os << "\tld a, h\n";
-  os << "\txor d\n";
-  os << "\tld h, a\n";
-  store_value(xor_);
+  Value *lhs = xor_->getOperand(0);
+  Value *rhs = xor_->getOperand(1);
+  int size = load_value(lhs);
+  load_value(rhs);
+  
+  string lhs_reg = get_register_of(xor_->getOperand(0));
+  string rhs_reg = get_register_of(xor_->getOperand(1));
+  string target_reg = get_register_of(xor_);
+
+  for (int i = 0; i < size; i++) {
+    os << "\tld a, " << lhs_reg[i] << "\n";
+    os << "\txor " << rhs_reg[i] << "\n";
+    os << "\tld " << target_reg[i] << ", a\n";
+  }
 }
 
 void AsmPrinter::print_load(const LoadInst *load) {
-  load_value(load->getPointerOperand());
-  store_value(load);
+  load_value(load->getPointerOperand(), allocation[load]);
 }
 
 void AsmPrinter::print_store(const StoreInst *store) {
@@ -235,24 +341,21 @@ void AsmPrinter::print_store(const StoreInst *store) {
     os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", " << (constant->getSExtValue() & 0xff) << "\n";
     os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", " << (constant->getSExtValue() >> 8) << "\n";
   } else {
-    load_value(value);
-    store_value(store->getPointerOperand());
+    throw runtime_error("variable store not implemented");
   }
 }
 
 void AsmPrinter::print_zext(const ZExtInst *zext) {
-  load_value(zext->getOperand(0));
-  os << "\tld h, 0\n";
-  store_value(zext);
+  
 }
 
 void AsmPrinter::print_icmp(const ICmpInst *icmp) {
   load_value(icmp->getOperand(0));
-  load_value(icmp->getOperand(1), "de");
-  
+  load_value(icmp->getOperand(1));
+
   // Set flags
   os << "\txor a\n";
-  os << "\tsbc hl, de\n";
+  os << "\tsbc hl, " << get_register_of(icmp->getOperand(1)) << "\n";
   // Obtain flags
   os << "\tpush af\n";
   os << "\tpop hl\n";
@@ -264,15 +367,13 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
   case ICmpInst::ICMP_EQ:
     os << "\tld a, l\n";
     os << "\tand " << (1 << 6) << "\n";
-    os << "\tld l, a\n";
     break;
   case ICmpInst::ICMP_NE:
     os << "\tld a, l\n";
     os << "\tand " << (1 << 6) << "\n";
     os << "\txor " << (1 << 6) << "\n";
-    os << "\tld l, a\n";
     break;
   }
 
-  store_value(icmp);
+  copy(RegisterAllocator::R8_A, allocation[icmp]);
 }
