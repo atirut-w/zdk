@@ -346,7 +346,15 @@ void AsmPrinter::print_store(const StoreInst *store) {
 }
 
 void AsmPrinter::print_zext(const ZExtInst *zext) {
-  
+  string reg = get_register_of(zext->getOperand(0));
+  string target_reg = get_register_of(zext);
+
+  for (int i = 0; i < reg.length(); i++) {
+    os << "\tld " << target_reg[i] << ", " << reg[i] << "\n";
+  }
+  for (int i = reg.length(); i < target_reg.length(); i++) {
+    os << "\tld " << target_reg[i] << ", 0\n";
+  }
 }
 
 void AsmPrinter::print_icmp(const ICmpInst *icmp) {
