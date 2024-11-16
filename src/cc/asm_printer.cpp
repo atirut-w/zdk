@@ -349,11 +349,12 @@ void AsmPrinter::print_zext(const ZExtInst *zext) {
   string reg = get_register_of(zext->getOperand(0));
   string target_reg = get_register_of(zext);
 
+  cout << reg << " -> " << target_reg << "\n";
   for (int i = 0; i < reg.length(); i++) {
-    os << "\tld " << target_reg[i] << ", " << reg[i] << "\n";
+    os << "\tld " << target_reg[target_reg.length() - i - 1] << ", " << reg[reg.length() - i - 1] << "\n";
   }
   for (int i = reg.length(); i < target_reg.length(); i++) {
-    os << "\tld " << target_reg[i] << ", 0\n";
+    os << "\tld " << target_reg[target_reg.length() - i - 1] << ", 0\n";
   }
 }
 
