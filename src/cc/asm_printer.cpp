@@ -232,9 +232,17 @@ void AsmPrinter::print_br(const BranchInst *br) {
     BasicBlock *true_block = br->getSuccessor(0);
     BasicBlock *false_block = br->getSuccessor(1);
 
-    // load_value(br->getCondition());
-    os << "\tld a, l\n";
-    os << "\tand h\n";
+    load_value(br->getCondition());
+    string reg = get_register_of(br->getCondition());
+    os << "\tld a, " << reg[0] << "\n";
+    
+    if (reg.length() == 1) {
+      os << "\tor a\n";
+    } else {
+      for (int i = 1; i < reg.length(); i++) {
+        os << "\tor " << reg[i] << "\n";
+      }
+    }
 
     check_phi(true_block);
     os << "\tjr nz, " << get_label(true_block) << "\n";
