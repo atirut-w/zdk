@@ -71,6 +71,10 @@ string AsmPrinter::get_label(const BasicBlock *block) {
   return label;
 }
 
+string AsmPrinter::get_register_of(const Value *value) {
+  return register_names[allocation[value]];
+}
+
 void AsmPrinter::check_phi(const BasicBlock *block) {
   for (auto &instruction : *block) {
     if (auto *phi = dyn_cast<PHINode>(&instruction)) {
@@ -251,14 +255,14 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
   case 1:
   case 2:
     load_value(rhs);
-    os << "\tadd " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
+    os << "\tadd " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
     break;
   case 4:
-    os << "\tpush " << register_names[allocation[lhs]].substr(2, 2) << "\n";
-    os << "\tpush " << register_names[allocation[lhs]].substr(0, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(0, 2) << "\n";
     load_value(rhs);
-    os << "\tpush " << register_names[allocation[rhs]].substr(2, 2) << "\n";
-    os << "\tpush " << register_names[allocation[rhs]].substr(0, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(0, 2) << "\n";
     os << "\tcall __adddi3\n";
     os << "\tpop bc\n";
     os << "\tpop bc\n";
@@ -278,19 +282,19 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
   switch (size) {
   case 1:
     load_value(rhs);
-    os << "\tsub " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
+    os << "\tsub " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
     break;
   case 2:
     load_value(rhs);
     os << "\txor a\n";
-    os << "\tsbc " << register_names[allocation[lhs]] << ", " << register_names[allocation[rhs]] << "\n";
+    os << "\tsbc " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
     break;
   case 4:
-    os << "\tpush " << register_names[allocation[lhs]].substr(2, 2) << "\n";
-    os << "\tpush " << register_names[allocation[lhs]].substr(0, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(lhs).substr(0, 2) << "\n";
     load_value(rhs);
-    os << "\tpush " << register_names[allocation[rhs]].substr(2, 2) << "\n";
-    os << "\tpush " << register_names[allocation[rhs]].substr(0, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(2, 2) << "\n";
+    os << "\tpush " << get_register_of(rhs).substr(0, 2) << "\n";
     os << "\tcall __subdi3\n";
     os << "\tpop bc\n";
     os << "\tpop bc\n";
@@ -308,9 +312,9 @@ void AsmPrinter::print_xor(const BinaryOperator *xor_) {
   int size = load_value(lhs);
   load_value(rhs);
   
-  string lhs_reg = register_names[allocation[xor_->getOperand(0)]];
-  string rhs_reg = register_names[allocation[xor_->getOperand(1)]];
-  string target_reg = register_names[allocation[xor_]];
+  string lhs_reg = get_register_of(xor_->getOperand(0));
+  string rhs_reg = get_register_of(xor_->getOperand(1));
+  string target_reg = get_register_of(xor_);
 
   for (int i = 0; i < size; i++) {
     os << "\tld a, " << lhs_reg[i] << "\n";
@@ -344,7 +348,7 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
 
   // Set flags
   os << "\txor a\n";
-  os << "\tsbc hl, " << register_names[allocation[icmp->getOperand(1)]] << "\n";
+  os << "\tsbc hl, " << get_register_of(icmp->getOperand(1)) << "\n";
   // Obtain flags
   os << "\tpush af\n";
   os << "\tpop hl\n";
