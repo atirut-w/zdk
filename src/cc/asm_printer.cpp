@@ -83,8 +83,7 @@ void AsmPrinter::check_phi(const BasicBlock *block) {
         Value *value = phi->getIncomingValue(i);
 
         if (incoming_block == current_block) {
-          // load_value(value);
-          // store_value(phi);
+          load_value(value, allocation[phi]);
         }
       }
     }
