@@ -17,6 +17,19 @@
                 // "--emit-llvm",
                 // "-c",
             ]
+        },
+        {
+            "name": "Debug Generated Code",
+            "type": "dezog",
+            "request": "launch",
+            "rootFolder": "${workspaceFolder}",
+            "remoteType": "zsim",
+            "loadObjs": [
+                {
+                    "path": "${workspaceFolder}/a.bin",
+                    "start": "0x0000",
+                }
+            ],
         }
     ]
 }
