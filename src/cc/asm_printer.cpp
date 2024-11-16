@@ -381,6 +381,7 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
   }
 
   // Obtain flags
+  // TODO: Implement as conditional set by abusing `jr`.
   os << "\tpush af\n";
   os << "\tpop hl\n";
 
