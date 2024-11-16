@@ -71,15 +71,13 @@ string AsmPrinter::get_register_of(const Value *value) {
 }
 
 void AsmPrinter::check_phi(const BasicBlock *block) {
-  for (auto &instruction : *block) {
-    if (auto *phi = dyn_cast<PHINode>(&instruction)) {
-      for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
-        BasicBlock *incoming_block = phi->getIncomingBlock(i);
-        Value *value = phi->getIncomingValue(i);
+  if (auto *phi = dyn_cast<PHINode>(block->begin())) {
+    for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
+      BasicBlock *incoming_block = phi->getIncomingBlock(i);
+      Value *value = phi->getIncomingValue(i);
 
-        if (incoming_block == current_block) {
-          load_value(value, allocation[phi]);
-        }
+      if (incoming_block == current_block) {
+        load_value(value, allocation[phi]);
       }
     }
   }
