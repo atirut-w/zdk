@@ -166,6 +166,19 @@ void RegisterAllocator::run(Function &function) {
           register_state &= ~allocation[condition];
         }
       }
+      break;
+    }
+
+    case Instruction::PHI: {
+      auto *phi = cast<PHINode>(instruction);
+      for (int i = 0; i < phi->getNumIncomingValues(); i++) {
+        Value *value = phi->getIncomingValue(i);
+        allocation[value] = allocation[phi];
+
+        if (isa<Constant>(value)) {
+          register_state &= ~allocation[value];
+        }
+      }
     }
     }
   }
