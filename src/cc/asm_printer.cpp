@@ -346,7 +346,13 @@ void AsmPrinter::print_store(const StoreInst *store) {
     os << "\tld " << get_ix(offsets[store->getPointerOperand()]) << ", " << (constant->getSExtValue() & 0xff) << "\n";
     os << "\tld " << get_ix(offsets[store->getPointerOperand()], 1) << ", " << (constant->getSExtValue() >> 8) << "\n";
   } else {
-    throw runtime_error("variable store not implemented");
+    int offset = offsets[store->getPointerOperand()];
+    int size = load_value(value);
+    string reg = get_register_of(value);
+
+    for (int i = 0; i < size; i++) {
+      os << "\tld " << get_ix(offset, i) << ", " << reg[size - i - 1] << "\n";
+    }
   }
 }
 
