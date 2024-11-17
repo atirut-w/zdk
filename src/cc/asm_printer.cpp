@@ -343,6 +343,9 @@ void AsmPrinter::print_zext(const ZExtInst *zext) {
   string target_reg = get_register_of(zext);
 
   for (int i = 0; i < reg.length(); i++) {
+    if (target_reg[target_reg.length() - i - 1] == reg[reg.length() - i - 1]) {
+      continue;
+    }
     os << "\tld " << target_reg[target_reg.length() - i - 1] << ", " << reg[reg.length() - i - 1] << "\n";
   }
   for (int i = reg.length(); i < target_reg.length(); i++) {

@@ -103,7 +103,6 @@ void RegisterAllocator::run(Function &function) {
       }
       break;
 
-    case Instruction::ZExt:
     case Instruction::Ret: {
       if (auto *value = instruction->getOperand(0)) {
         switch (get_value_size(value)) {
@@ -178,6 +177,27 @@ void RegisterAllocator::run(Function &function) {
         if (isa<Constant>(value)) {
           register_state &= ~allocation[value];
         }
+      }
+      break;
+    }
+
+    case Instruction::ZExt: {
+      Value *operand = instruction->getOperand(0);
+
+      switch (get_value_size(operand)) {
+      case 1:
+        allocation[operand] = allocate_reg(R8_L);
+        break;
+      case 2:
+        allocation[operand] = allocate_reg(R16_HL);
+        break;
+      case 4:
+        allocation[operand] = allocate_reg(R32_DEHL);
+        break;
+      }
+
+      if (isa<Constant>(operand)) {
+        register_state &= ~allocation[operand];
       }
       break;
     }
