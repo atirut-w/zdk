@@ -380,25 +380,20 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
     break;
   }
 
-  // Obtain flags
-  // TODO: Implement as conditional set by abusing `jr`.
-  os << "\tpush af\n";
-  os << "\tpop hl\n";
-
+  // Obtain flags by using `jr` for "conditional set"
+  os << "\tjr ";
   switch (icmp->getPredicate()) {
   default:
     cerr << "unhandled icmp predicate: " << icmp->getPredicate() << "\n";
     break;
   case ICmpInst::ICMP_EQ:
-    os << "\tld a, l\n";
-    os << "\tand " << (1 << 6) << "\n";
+    os << "nz";
     break;
   case ICmpInst::ICMP_NE:
-    os << "\tld a, l\n";
-    os << "\tand " << (1 << 6) << "\n";
-    os << "\txor " << (1 << 6) << "\n";
+    os << "\tz";
     break;
   }
-
-  copy(RegisterAllocator::R8_A, allocation[icmp]);
+  // `jr`(2) + `ld r, n`(2) = 4 bytes
+  os << ", . + 4\n";
+  os << "\tld " << get_register_of(icmp) << ", 1\n";
 }
