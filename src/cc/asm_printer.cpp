@@ -156,7 +156,6 @@ void AsmPrinter::print() {
         string comment = "; ";
         raw_string_ostream rso(comment);
         instruction.print(rso);
-        rso.str().pop_back();
         os << comment << "\n";
 
         print_instruction(&instruction);
