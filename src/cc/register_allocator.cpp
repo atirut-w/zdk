@@ -179,6 +179,7 @@ void RegisterAllocator::run(Function &function) {
           register_state &= ~allocation[value];
         }
       }
+      break;
     }
     }
   }
