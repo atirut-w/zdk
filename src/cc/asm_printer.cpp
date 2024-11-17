@@ -1,5 +1,6 @@
 #include "asm_printer.hpp"
 #include "register_allocator.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <llvm/IR/BasicBlock.h>
@@ -121,12 +122,13 @@ void AsmPrinter::copy(int from, int to) {
 
   if (from_reg == to_reg) {
     return;
-  } else if (from_reg.length() != to_reg.length()) {
-    throw runtime_error("register copy size mismatch");
   }
 
-  for (int i = 0; i < from_reg.length(); i++) {
-    os << "\tld " << to_reg[i] << ", " << from_reg[i] << "\n";
+  for (int i = 0; i < min(from_reg.length(), to_reg.length()); i++) {
+    if (from_reg[from_reg.length() - i - 1] == to_reg[to_reg.length() - i - 1]) {
+      continue;
+    }
+    os << "\tld " << to_reg[to_reg.length() - i - 1] << ", " << from_reg[from_reg.length() - i - 1] << "\n";
   }
 }
 
@@ -226,7 +228,7 @@ void AsmPrinter::print_br(const BranchInst *br) {
 
     load_value(br->getCondition());
     string reg = get_register_of(br->getCondition());
-    os << "\tld a, " << reg[0] << "\n";
+    copy(allocation[br->getCondition()], RegisterAllocator::R8_A);
     
     if (reg.length() == 1) {
       os << "\tor a\n";

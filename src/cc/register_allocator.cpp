@@ -159,7 +159,7 @@ void RegisterAllocator::run(Function &function) {
       auto *branch = cast<BranchInst>(instruction);
       if (branch->isConditional()) {
         Value *condition = branch->getCondition();
-        allocation[condition] = allocate(condition);
+        allocation[condition] = allocate_reg(R8_A);
 
         if (isa<Constant>(condition)) {
           register_state &= ~allocation[condition];
