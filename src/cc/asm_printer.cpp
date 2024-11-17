@@ -8,6 +8,7 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/TypeSize.h>
+#include <llvm/Support/raw_ostream.h>
 #include <string>
 
 using namespace std;
@@ -152,6 +153,12 @@ void AsmPrinter::print() {
       current_block = &block;
       os << blocknums[&block] << ":\n";
       for (auto &instruction : block) {
+        string comment = "; ";
+        raw_string_ostream rso(comment);
+        instruction.print(rso);
+        rso.str().pop_back();
+        os << comment << "\n";
+
         print_instruction(&instruction);
         ninst++;
       }
