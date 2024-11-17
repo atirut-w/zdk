@@ -185,3 +185,23 @@ std::any Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *
 
   return static_cast<Value *>(phi);
 }
+
+std::any Codegen::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) {
+  CParser::ExpressionContext *lhs_ctx = ctx->expression(0);
+  CParser::ExpressionContext *rhs_ctx = ctx->expression(1);
+
+  if (auto *ident_expr = dynamic_cast<CParser::IdentifierExpressionContext *>(lhs_ctx)) {
+    string name = ident_expr->Identifier()->getText();
+    if (!variables.count(name)) {
+      throw SemanticError(ctx, "use of undeclared identifier '" + name + "'");
+    }
+
+    Value *value = any_cast<Value *>(visit(rhs_ctx));
+    builder.CreateStore(value, variables[name].alloca);
+    return value;
+  } else {
+    throw runtime_error("unsupported lvalue");
+  }
+
+  return {};
+}
