@@ -84,7 +84,7 @@ void AsmPrinter::check_phi(const BasicBlock *block) {
   }
 }
 
-int AsmPrinter::load_value(const Value *value, int reg) {
+int AsmPrinter::load_value(const Value *value, int reg, bool sign_extend) {
   reg = reg ? reg : allocation[value];
   string reg_name = register_names[reg];
 
@@ -92,12 +92,13 @@ int AsmPrinter::load_value(const Value *value, int reg) {
   if (auto *constant = dyn_cast<ConstantInt>(value)) {
     Type *type = value->getType();
     TypeSize size = module.getDataLayout().getTypeAllocSize(type);
+    int value = sign_extend ? constant->getSExtValue() : constant->getZExtValue();
 
     if (size < 4) {
-      os << "\tld " << reg_name << ", " << constant->getSExtValue() << "\n";
+      os << "\tld " << reg_name << ", " << value << "\n";
     } else {
-      os << "\tld " << reg_name.substr(2, 2) << ", " << (constant->getSExtValue() & 0xff) << "\n";
-      os << "\tld " << reg_name.substr(0, 2) << ", " << (constant->getSExtValue() >> 8) << "\n";
+      os << "\tld " << reg_name.substr(2, 2) << ", " << (value & 0xff) << "\n";
+      os << "\tld " << reg_name.substr(0, 2) << ", " << (value >> 8) << "\n";
     }
 
     return size;
@@ -344,12 +345,7 @@ void AsmPrinter::print_zext(const ZExtInst *zext) {
   string reg = get_register_of(zext->getOperand(0));
   string target_reg = get_register_of(zext);
 
-  for (int i = 0; i < reg.length(); i++) {
-    if (target_reg[target_reg.length() - i - 1] == reg[reg.length() - i - 1]) {
-      continue;
-    }
-    os << "\tld " << target_reg[target_reg.length() - i - 1] << ", " << reg[reg.length() - i - 1] << "\n";
-  }
+  copy(allocation[zext->getOperand(0)], allocation[zext]);
   for (int i = reg.length(); i < target_reg.length(); i++) {
     os << "\tld " << target_reg[target_reg.length() - i - 1] << ", 0\n";
   }
