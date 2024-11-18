@@ -30,10 +30,10 @@ void AsmPrinter::generate_prologue() {
     blocknums[&block] = blocknum++;
     for (auto &instruction : block) {
       if (auto alloca = dyn_cast<AllocaInst>(&instruction)) {
-        offsets[&instruction] = offset;
         Type *type = alloca->getAllocatedType();
         TypeSize size = module.getDataLayout().getTypeAllocSize(type);
         offset -= size;
+        offsets[&instruction] = offset + 1;
       }
     }
   }
@@ -50,8 +50,8 @@ void AsmPrinter::generate_prologue() {
 }
 
 string AsmPrinter::get_ix(int base, int offset) {
-  if (base <= 0) {
-    return "(ix-" + to_string(abs(base) + offset) + ")";
+  if (base + offset <= 0) {
+    return "(ix-" + to_string(-(base + offset)) + ")";
   } else {
     return "(ix+" + to_string(base + offset) + ")";
   }
