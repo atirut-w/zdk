@@ -44,9 +44,9 @@ std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
 std::any Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
   for (auto *declarator : ctx->initDeclarator()) {
     string name = declarator->declarator()->getText();
+    variables[name] = {Type::getInt16Ty(module.getContext()), builder.CreateAlloca(Type::getInt16Ty(module.getContext()))};
+    
     Value *value = any_cast<Value *>(visit(declarator->initializer()));
-
-    variables[name] = {value->getType(), builder.CreateAlloca(value->getType())};
     builder.CreateStore(value, variables[name].alloca);
   }
 
