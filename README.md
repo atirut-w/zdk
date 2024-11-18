@@ -1,6 +1,13 @@
 # ZDK
 C compiler and libraries for Z80 development.
 
+The compiler itself is loosely based on Nora Sandler's book on writing a C compiler, but with some key differences:
+- The semantic analysis is bundled into IR generation.
+- Uses LLVM IR.
+- Uses an ANTLR4-generated parser.
+- Register allocation is implemented early on as a consequence of using LLVM IR.
+- Uses a bottom-up approach to register allocation.
+
 ## Build Dependencies
 - ANTLR4 for generating the C parser. Your distribution of choice should already have a package for ANTLR4, but you can also download from [the official website](https://www.antlr.org/).
 
