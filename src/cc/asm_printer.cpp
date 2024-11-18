@@ -153,15 +153,16 @@ void AsmPrinter::print() {
       current_block = &block;
       os << blocknums[&block] << ":\n";
       for (auto &instruction : block) {
-        // Ignore unused instructions
-        if (!instruction.getType()->isVoidTy() && instruction.getNumUses() == 0) {
-          continue;
-        }
         string comment = "; ";
         raw_string_ostream rso(comment);
         instruction.print(rso);
         os << comment << "\n";
 
+        // Ignore unused instructions
+        if (!instruction.getType()->isVoidTy() && instruction.getNumUses() == 0) {
+          continue;
+        }
+        
         print_instruction(&instruction);
         ninst++;
       }
