@@ -94,6 +94,14 @@ void RegisterAllocator::run(Function &function) {
     default:
       for (auto &operand : instruction->operands()) {
         if (auto *value = dyn_cast<Value>(&operand)) {
+          if (isa<AllocaInst>(value)) {
+            continue;
+          }
+          if (allocation.count(value)) {
+            outs() << "WARN: " << *value << " is already allocated\n";
+            continue;
+          }
+
           allocation[value] = allocate(value);
 
           if (isa<Constant>(value)) {

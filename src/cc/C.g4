@@ -32,7 +32,10 @@ initializer: nonCommaExpression;
 
 nonCommaExpression: expression;
 
-statement: 'return' expression? ';' # ReturnStatement;
+statement:
+	'return' expression? ';'	# ReturnStatement
+	| expression ';'			# ExpressionStatement
+	| ';'						# NullStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
@@ -47,7 +50,8 @@ expression:
 	| expression ('<' | '<=' | '>' | '>=') expression	# RelationalExpression
 	| expression ('==' | '!=') expression				# EqualityExpression
 	| expression '&&' expression						# LogicalAndExpression
-	| expression '||' expression						# LogicalOrExpression;
+	| expression '||' expression						# LogicalOrExpression
+	| expression '=' expression							# AssignmentExpression;
 
 // === Lexer rules ===
 
@@ -91,6 +95,9 @@ Less: '<';
 LessEqual: '<=';
 Greater: '>';
 GreaterEqual: '>=';
+
+// Miscellaneous
+Assignment: '=';
 
 // Identifiers and constants
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
