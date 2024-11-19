@@ -299,7 +299,7 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
     break;
   case 2:
     load_value(rhs);
-    os << "\txor a\n";
+    os << "\tor a\n";
     os << "\tsbc " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
     break;
   case 4:
@@ -380,7 +380,7 @@ void AsmPrinter::print_icmp(const ICmpInst *icmp) {
     break;
   case 2:
     load_value(rhs);
-    os << "\txor a\n";
+    os << "\tor a\n";
     os << "\tsbc " << get_register_of(lhs) << ", " << get_register_of(rhs) << "\n";
     break;
   case 4:
