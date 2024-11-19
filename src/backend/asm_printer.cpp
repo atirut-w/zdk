@@ -160,6 +160,7 @@ void AsmPrinter::print() {
 
         // Ignore unused instructions
         if (!instruction.getType()->isVoidTy() && instruction.getNumUses() == 0) {
+          os << "\t; (UNUSED)\n";
           continue;
         }
         
