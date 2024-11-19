@@ -32,8 +32,6 @@ add_executable(zdk-cc
     main.cpp
     error.cpp
     codegen.cpp
-    asm_printer.cpp
-    register_allocator.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp
@@ -43,5 +41,5 @@ add_executable(zdk-cc
     parser/CVisitor.cpp
 )
 target_include_directories(zdk-cc PRIVATE include ${CMAKE_SOURCE_DIR}/3rd/antlr4-cpp-runtime/runtime/src ${CMAKE_BINARY_DIR}/src/cc/parser ${CMAKE_BINARY_DIR}/src/cc/include)
-target_link_libraries(zdk-cc PRIVATE argparse antlr4_static ${LLVM_LIBS})
+target_link_libraries(zdk-cc PRIVATE argparse antlr4_static ${LLVM_LIBS} backend)
 install(TARGETS zdk-cc RUNTIME DESTINATION bin)
