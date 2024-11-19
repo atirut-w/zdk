@@ -1,5 +1,5 @@
-#include "asm_printer.hpp"
-#include "register_allocator.hpp"
+#include "include/backend/asm_printer.hpp"
+#include "include/backend/register_allocator.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>

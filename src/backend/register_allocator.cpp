@@ -1,10 +1,9 @@
-#include "register_allocator.hpp"
-#include <iostream>
+#include "include/backend/register_allocator.hpp"
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
-#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Instructions.h> 
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/TypeSize.h>
