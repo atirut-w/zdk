@@ -22,6 +22,8 @@ class Codegen : public CBaseVisitor {
 
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
   virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
+  virtual std::any visitIfStatement(CParser::IfStatementContext *ctx) override;
+  virtual std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
 
   virtual std::any visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) override;
   virtual std::any visitDeclarationWithoutInit(CParser::DeclarationWithoutInitContext *ctx) override;
