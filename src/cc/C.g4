@@ -51,7 +51,7 @@ expression:
 	| expression ('==' | '!=') expression				# EqualityExpression
 	| expression '&&' expression						# LogicalAndExpression
 	| expression '||' expression						# LogicalOrExpression
-	| expression '=' expression							# AssignmentExpression;
+	| <assoc = right> expression '=' expression			# AssignmentExpression;
 
 // === Lexer rules ===
 
