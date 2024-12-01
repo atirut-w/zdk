@@ -20,7 +20,19 @@ std::any Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ct
   builder.SetInsertPoint(current_block);
   variables.clear();
 
-  return visitChildren(ctx);
+  for (auto *declaration : ctx->declaration()) {
+    visit(declaration);
+  }
+
+  for (auto *stmnt : ctx->statement()) {
+    visit(stmnt);
+  }
+
+  if (!current_block->getTerminator()) {
+    builder.CreateRet(ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  }
+
+  return {};
 }
 
 std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
@@ -30,6 +42,49 @@ std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   } else {
     builder.CreateRetVoid();
   }
+  return {};
+}
+
+std::any Codegen::visitIfStatement(CParser::IfStatementContext *ctx) {
+  BasicBlock *then_block = BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *end_block = BasicBlock::Create(module.getContext(), "", current_function);
+
+  Value *condition = any_cast<Value *>(visit(ctx->expression()));
+  auto *cmp = builder.CreateICmpNE(condition, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  builder.CreateCondBr(cmp, then_block, end_block);
+
+  builder.SetInsertPoint(then_block);
+  visit(ctx->statement());
+  if (!then_block->getTerminator()) {
+    builder.CreateBr(end_block);
+  }
+
+  builder.SetInsertPoint(end_block);
+  return {};
+}
+
+std::any Codegen::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
+  BasicBlock *then_block = BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *else_block = BasicBlock::Create(module.getContext(), "", current_function);
+  BasicBlock *end_block = BasicBlock::Create(module.getContext(), "", current_function);
+
+  Value *condition = any_cast<Value *>(visit(ctx->expression()));
+  auto *cmp = builder.CreateICmpNE(condition, ConstantInt::get(Type::getInt16Ty(module.getContext()), 0));
+  builder.CreateCondBr(cmp, then_block, else_block);
+
+  builder.SetInsertPoint(then_block);
+  visit(ctx->statement(0));
+  if (!then_block->getTerminator()) {
+    builder.CreateBr(end_block);
+  }
+
+  builder.SetInsertPoint(else_block);
+  visit(ctx->statement(1));
+  if (!else_block->getTerminator()) {
+    builder.CreateBr(end_block);
+  }
+
+  builder.SetInsertPoint(end_block);
   return {};
 }
 

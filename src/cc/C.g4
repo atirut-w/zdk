@@ -33,9 +33,11 @@ initializer: nonCommaExpression;
 nonCommaExpression: expression;
 
 statement:
-	'return' expression? ';'	# ReturnStatement
-	| expression ';'			# ExpressionStatement
-	| ';'						# NullStatement;
+	'return' expression? ';'								# ReturnStatement
+	| expression ';'										# ExpressionStatement
+	| 'if' '(' expression ')' statement						# IfStatement
+	| 'if' '(' expression ')' statement 'else' statement	# IfElseStatement
+	| ';'													# NullStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
@@ -58,6 +60,8 @@ expression:
 Whitespace: [ \t\r\n] -> skip;
 
 // Keywords
+KeywordIf: 'if';
+KeywordElse: 'else';
 KeywordReturn: 'return';
 KeywordVoid: 'void';
 KeywordInt: 'int';
