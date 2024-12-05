@@ -1,6 +1,5 @@
 #include "ANTLRInputStream.h"
 #include "backend/asm_printer.hpp"
-#include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -180,45 +179,6 @@ int main(int argc, char *argv[]) {
   }
 
   LLVMContext context;
-  Module module(source.string(), context);
-
-  Codegen codegen(module);
-  try {
-    codegen.visit(tree);
-  } catch (const SemanticError &e) {
-    ifstream file(source);
-    string line;
-    for (size_t i = 0; i < e.ctx->start->getLine(); i++) {
-      getline(file, line);
-    }
-
-    printf(CALLOUT_FMT, source.c_str(), e.ctx->start->getLine(),
-           e.ctx->start->getCharPositionInLine(), 31, "error", e.what());
-    printf(CALLOUT_INFO_FMT, e.ctx->start->getLine(), line.c_str());
-    printf(CALLOUT_ARROW_FMT, 5, "",
-           static_cast<int>(e.ctx->start->getCharPositionInLine()), "", 92);
-    return 1;
-  }
-
-  if (args->get<bool>("-S") && args->get<bool>("--emit-llvm")) {
-    auto path = intermediate.replace_extension(".ll");
-    std::error_code EC;
-    raw_fd_ostream output(path.string(), EC);
-    if (EC) {
-      cerr << "Could not open file: " << EC.message() << endl;
-      return 1;
-    }
-    module.print(output, nullptr);
-    return 0;
-  }
-
-  if (verifyModule(module, &errs())) {
-    cerr << "BUG: Codegen messed up :(" << endl;
-    // return 1;
-  }
-
-  std::ofstream output(intermediate.replace_extension(".s"));
-  AsmPrinter(codegen.get_module(), output).print();
 
   if (args->get<bool>("-S")) {
     return 0;
