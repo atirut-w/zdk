@@ -32,6 +32,7 @@ add_executable(zdk-cc
     main.cpp
     error.cpp
     codegen.cpp
+    analyzer.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp
