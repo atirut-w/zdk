@@ -1,4 +1,4 @@
-#include "include/backend/register_allocator.hpp"
+#include "include/backend/allocator.hpp"
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
@@ -12,7 +12,7 @@
 using namespace std;
 using namespace llvm;
 
-int RegisterAllocator::allocate_reg(int reg) {
+int Allocator::allocate_reg(int reg) {
   if (register_state & reg) {
     throw runtime_error("could not allocate register");
   }
@@ -20,7 +20,7 @@ int RegisterAllocator::allocate_reg(int reg) {
   return reg;
 }
 
-int RegisterAllocator::allocate(const Value *value) {
+int Allocator::allocate(const Value *value) {
   Type *type = value->getType();
   TypeSize size = module.getDataLayout().getTypeAllocSize(type);
   if (isa<AllocaInst>(value)) {
@@ -61,7 +61,7 @@ int RegisterAllocator::allocate(const Value *value) {
   throw runtime_error("could not allocate register");
 }
 
-int RegisterAllocator::get_value_size(const Value *value) {
+int Allocator::get_value_size(const Value *value) {
   if (auto *alloca = dyn_cast<AllocaInst>(value)) {
     return module.getDataLayout().getTypeAllocSize(alloca->getAllocatedType());
   } else {
@@ -69,7 +69,7 @@ int RegisterAllocator::get_value_size(const Value *value) {
   }
 }
 
-void RegisterAllocator::run(Function &function) {
+void Allocator::run(Function &function) {
   std::vector<BasicBlock *> blocks;
   for (auto &block : function) {
     blocks.push_back(&block);
