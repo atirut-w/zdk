@@ -14,11 +14,14 @@ class AsmPrinter {
   llvm::Module &module;
   std::ostream &os;
 
-  llvm::Function *current_function = nullptr;
-  llvm::BasicBlock *current_block = nullptr;
-  std::map<const llvm::Value *, int> offsets;
-  std::map<const llvm::BasicBlock *, int> blocknums;
-  std::map<const llvm::Value *, Allocation> allocation;
+  // Context for the current function
+  struct {
+    llvm::Function *current = nullptr;
+    llvm::BasicBlock *block = nullptr;
+    std::map<const llvm::Value *, int> offsets;
+    std::map<const llvm::BasicBlock *, int> blocknums;
+    std::map<const llvm::Value *, Allocation> allocation;
+  } fctx;
 
   void generate_prologue();
   std::string get_ix(int base, int offset = 0);
