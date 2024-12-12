@@ -1,4 +1,5 @@
 #pragma once
+#include "backend/allocation.hpp"
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
@@ -17,7 +18,7 @@ class AsmPrinter {
   llvm::BasicBlock *current_block = nullptr;
   std::map<const llvm::Value *, int> offsets;
   std::map<const llvm::BasicBlock *, int> blocknums;
-  std::map<const llvm::Value *, int> allocation;
+  std::map<const llvm::Value *, Allocation> allocation;
 
   void generate_prologue();
   std::string get_ix(int base, int offset = 0);

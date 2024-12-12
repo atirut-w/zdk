@@ -1,4 +1,5 @@
 #pragma once
+#include "backend/allocation.hpp"
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
@@ -8,9 +9,7 @@ class Allocator {
   llvm::Module &module;
   int register_state = 0;
 
-  int allocate_reg(int reg);
-  int allocate(const llvm::Value *value);
-  int get_value_size(const llvm::Value *value);
+  
 public:
   enum R8 {
     R8_A = 1 << 6,
@@ -35,6 +34,6 @@ public:
 
   Allocator(llvm::Module &module) : module(module) {}
 
-  std::map<const llvm::Value *, int> allocation;
+  std::map<const llvm::Value *, Allocation> allocation;
   void run(llvm::Function &function);
 };
