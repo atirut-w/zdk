@@ -4,7 +4,7 @@
 #include <llvm/IR/Value.h>
 #include <map>
 
-class RegisterAllocator {
+class Allocator {
   llvm::Module &module;
   int register_state = 0;
 
@@ -33,7 +33,7 @@ public:
     R32_DEHL = R16_DE | R16_HL,
   };
 
-  RegisterAllocator(llvm::Module &module) : module(module) {}
+  Allocator(llvm::Module &module) : module(module) {}
 
   std::map<const llvm::Value *, int> allocation;
   void run(llvm::Function &function);

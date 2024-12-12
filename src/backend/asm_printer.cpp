@@ -1,5 +1,5 @@
 #include "include/backend/asm_printer.hpp"
-#include "include/backend/register_allocator.hpp"
+#include "include/backend/allocator.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
@@ -15,12 +15,12 @@ using namespace std;
 using namespace llvm;
 
 map<int, string> register_names = {
-    {RegisterAllocator::R8_A, "a"},        {RegisterAllocator::R8_B, "b"},        {RegisterAllocator::R8_C, "c"},    {RegisterAllocator::R8_D, "d"},
-    {RegisterAllocator::R8_E, "e"},        {RegisterAllocator::R8_H, "h"},        {RegisterAllocator::R8_L, "l"},
+    {Allocator::R8_A, "a"},        {Allocator::R8_B, "b"},        {Allocator::R8_C, "c"},    {Allocator::R8_D, "d"},
+    {Allocator::R8_E, "e"},        {Allocator::R8_H, "h"},        {Allocator::R8_L, "l"},
 
-    {RegisterAllocator::R16_BC, "bc"},     {RegisterAllocator::R16_DE, "de"},     {RegisterAllocator::R16_HL, "hl"},
+    {Allocator::R16_BC, "bc"},     {Allocator::R16_DE, "de"},     {Allocator::R16_HL, "hl"},
 
-    {RegisterAllocator::R32_BCDE, "bcde"}, {RegisterAllocator::R32_DEHL, "dehl"},
+    {Allocator::R32_BCDE, "bcde"}, {Allocator::R32_DEHL, "dehl"},
 };
 
 void AsmPrinter::generate_prologue() {
@@ -140,7 +140,7 @@ void AsmPrinter::print() {
     string name = function.getName().str();
     current_function = &function;
 
-    RegisterAllocator allocator(module);
+    Allocator allocator(module);
     allocator.run(function);
     allocation = allocator.allocation;
 
@@ -240,7 +240,7 @@ void AsmPrinter::print_br(const BranchInst *br) {
 
     load_value(br->getCondition());
     string reg = get_register_of(br->getCondition());
-    copy(allocation[br->getCondition()], RegisterAllocator::R8_A);
+    copy(allocation[br->getCondition()], Allocator::R8_A);
     
     if (reg.length() == 1) {
       os << "\tor a\n";
@@ -285,7 +285,7 @@ void AsmPrinter::print_add(const BinaryOperator *add) {
     break;
   }
 
-  copy(RegisterAllocator::R16_HL, allocation[add]);
+  copy(Allocator::R16_HL, allocation[add]);
 }
 
 void AsmPrinter::print_sub(const BinaryOperator *sub) {
@@ -317,7 +317,7 @@ void AsmPrinter::print_sub(const BinaryOperator *sub) {
     break;
   }
 
-  copy(RegisterAllocator::R16_HL, allocation[sub]);
+  copy(Allocator::R16_HL, allocation[sub]);
 }
 
 void AsmPrinter::print_xor(const BinaryOperator *xor_) {
