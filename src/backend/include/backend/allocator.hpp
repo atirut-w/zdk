@@ -7,8 +7,11 @@
 
 class Allocator {
   llvm::Module &module;
-  int register_state = 0;
+  int register_state = R8_A | R16_HL; // Reserve A and HL
 
+  int allocate(int size);
+  Allocation allocate_for(const llvm::Value *value);
+  int free(int reg);
   
 public:
   enum R8 {
