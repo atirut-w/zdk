@@ -26,14 +26,14 @@ map<int, string> register_names = {
 void AsmPrinter::generate_prologue() {
   int offset = 0;
   int blocknum = 0;
-  for (auto &block : *current_function) {
-    blocknums[&block] = blocknum++;
+  for (auto &block : *fctx.current) {
+    fctx.blocknums[&block] = blocknum++;
     for (auto &instruction : block) {
       if (auto alloca = dyn_cast<AllocaInst>(&instruction)) {
         Type *type = alloca->getAllocatedType();
         TypeSize size = module.getDataLayout().getTypeAllocSize(type);
         offset -= size;
-        offsets[&instruction] = offset + 1;
+        fctx.offsets[&instruction] = offset + 1;
       }
     }
   }
@@ -58,8 +58,8 @@ string AsmPrinter::get_ix(int base, int offset) {
 }
 
 string AsmPrinter::get_label(const BasicBlock *block) {
-  string label = to_string(blocknums[block]);
-  if (blocknums[block] < blocknums[current_block]) {
+  string label = to_string(fctx.blocknums[block]);
+  if (fctx.blocknums[block] < fctx.blocknums[fctx.block]) {
     label += "b";
   } else {
     label += "f";
@@ -72,11 +72,12 @@ void AsmPrinter::print() {
 
   for (auto &function : module) {
     string name = function.getName().str();
-    current_function = &function;
+    fctx = {};
+    fctx.current = &function;
 
     Allocator allocator(module);
     allocator.run(function);
-    allocation = allocator.allocation;
+    fctx.allocation = allocator.allocation;
 
     os << "\t.global " << name << "\n";
     os << name << ":\n";
@@ -84,8 +85,8 @@ void AsmPrinter::print() {
 
     int ninst = 0;
     for (auto &block : function) {
-      current_block = &block;
-      os << blocknums[&block] << ":\n";
+      fctx.block = &block;
+      os << fctx.blocknums[&block] << ":\n";
       for (auto &instruction : block) {
         string comment = "; ";
         raw_string_ostream rso(comment);
