@@ -20,7 +20,7 @@ int Allocator::allocate(int size) {
   default:
     throw runtime_error("unsupported register size");
   case 1:
-    for (int reg : {R8_B, R8_C, R8_D, R8_E}) {
+    for (int reg : {R8_A, R8_B, R8_C, R8_D, R8_E, R8_H, R8_L}) {
       if (register_state & reg) {
         continue;
       }
@@ -29,7 +29,7 @@ int Allocator::allocate(int size) {
     }
     break;
   case 2:
-    for (int reg : {R16_BC, R16_DE}) {
+    for (int reg : {R16_BC, R16_DE, R16_HL}) {
       if (register_state & reg) {
         continue;
       }
@@ -38,7 +38,7 @@ int Allocator::allocate(int size) {
     }
     break;
   case 4:
-    for (int reg : {R32_BCDE}) {
+    for (int reg : {R32_BCDE, R32_DEHL}) {
       if (register_state & reg) {
         continue;
       }
