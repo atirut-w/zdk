@@ -38,9 +38,12 @@ int Allocator::allocate(int size) {
     }
     break;
   case 4:
-    if (!(register_state & R32_BCDE)) {
-      register_state |= R32_BCDE;
-      return R32_BCDE;
+    for (int reg : {R32_BCDE}) {
+      if (register_state & reg) {
+        continue;
+      }
+      register_state |= reg;
+      return reg;
     }
     break;
   }
@@ -55,12 +58,12 @@ Allocation Allocator::allocate_for(const Value *value) {
   if (isa<IntegerType>(type)) {
     int reg = allocate(size);
     if (reg) {
-      return {false, reg};
+      return {.spilled = false, .reg = reg};
     } else {
-      return {true, 0};
+      return {.spilled = true, .reg = 0};
     }
   } else {
-    return {true, 0};
+    return {.spilled = true, .reg = 0};
   }
 }
 
@@ -90,6 +93,7 @@ void Allocator::run(Function &function) {
       if (isa<Instruction>(operand) && !isa<AllocaInst>(operand) && !isa<Constant>(operand)) {
         if (!allocation.count(operand)) {
           allocation[operand] = allocate_for(operand);
+          allocation[operand].end = instruction;
         }
       }
     }
@@ -98,9 +102,11 @@ void Allocator::run(Function &function) {
     if (!isa<AllocaInst>(instruction) && !instruction->getType()->isVoidTy()) {
       if (allocation.count(instruction)) {
         free(allocation[instruction].reg);
+        allocation[instruction].start = instruction;
       } else {
         // Probably an unused instruction. Allocate then free right away
         allocation[instruction] = allocate_for(instruction);
+        allocation[instruction].start = allocation[instruction].end = instruction;
         free(allocation[instruction].reg);
       }
     }
@@ -115,7 +121,7 @@ void Allocator::run(Function &function) {
   //   outs() << "\n";
   // }
 
-  // if (register_state & ~(R8_A | R16_HL)) {
+  // if (register_state) {
   //   outs() << "Registers not freed: " << register_state << "\n";
   // }
 }
