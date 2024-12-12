@@ -106,16 +106,16 @@ void Allocator::run(Function &function) {
     }
   }
 
-  outs() << "Allocations:\n";
-  for (auto &[value, alloc] : allocation) {
-    outs() << *value << " -> " << alloc.reg;
-    if (alloc.spilled) {
-      outs() << " (spilled)";
-    }
-    outs() << "\n";
-  }
+  // outs() << "Allocations:\n";
+  // for (auto &[value, alloc] : allocation) {
+  //   outs() << *value << " -> " << alloc.reg;
+  //   if (alloc.spilled) {
+  //     outs() << " (spilled)";
+  //   }
+  //   outs() << "\n";
+  // }
 
-  if (register_state & ~(R8_A | R16_HL)) {
-    outs() << "Registers not freed: " << register_state << "\n";
-  }
+  // if (register_state & ~(R8_A | R16_HL)) {
+  //   outs() << "Registers not freed: " << register_state << "\n";
+  // }
 }
