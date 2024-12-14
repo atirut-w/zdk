@@ -7,6 +7,7 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Type.h>
 #include <llvm/Support/TypeSize.h>
 #include <llvm/Support/raw_ostream.h>
 #include <string>
@@ -26,15 +27,28 @@ map<int, string> register_names = {
 void AsmPrinter::generate_prologue() {
   int offset = 0;
   int blocknum = 0;
+
   for (auto &block : *fctx.current) {
     fctx.blocknums[&block] = blocknum++;
+
     for (auto &instruction : block) {
       if (auto alloca = dyn_cast<AllocaInst>(&instruction)) {
         Type *type = alloca->getAllocatedType();
         TypeSize size = module.getDataLayout().getTypeAllocSize(type);
+
         offset -= size;
         fctx.offsets[&instruction] = offset + 1;
       }
+    }
+  }
+
+  for (auto &[value, alloc] : fctx.allocation) {
+    if (alloc.spilled) {
+      Type *type = value->getType();
+      TypeSize size = module.getDataLayout().getTypeAllocSize(type);
+
+      offset -= size;
+      fctx.offsets[value] = offset + 1;
     }
   }
 
