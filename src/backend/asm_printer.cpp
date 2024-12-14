@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <llvm/ADT/STLExtras.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instruction.h>
@@ -107,13 +108,19 @@ void AsmPrinter::print() {
         instruction.print(rso);
         os << comment << "\n";
 
-        // Ignore unused instructions
-        if (!instruction.getType()->isVoidTy() && instruction.getNumUses() == 0) {
-          os << "\t; (UNUSED)\n";
-          continue;
+        // Unmark registers as used
+        for (auto &[value, alloc] : fctx.allocation) {
+          if (alloc.end == &instruction) {
+            fctx.used_regs &= ~alloc.reg;
+          }
         }
         
         // print_instruction(&instruction);
+
+        // Mark registers as used
+        if (fctx.allocation.count(&instruction)) {
+          fctx.used_regs |= fctx.allocation[&instruction].reg;
+        }
         ninst++;
       }
     }

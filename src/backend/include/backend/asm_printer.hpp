@@ -21,6 +21,7 @@ class AsmPrinter {
     std::map<const llvm::Value *, int> offsets;
     std::map<const llvm::BasicBlock *, int> blocknums;
     std::map<const llvm::Value *, Allocation> allocation;
+    int used_regs = 0;
   } fctx;
 
   void generate_prologue();
