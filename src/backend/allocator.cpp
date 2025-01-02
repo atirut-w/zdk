@@ -1,4 +1,6 @@
 #include "include/backend/allocator.hpp"
+#include "backend/allocation.hpp"
+#include <bitset>
 #include <iostream>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
@@ -51,19 +53,15 @@ int Allocator::allocate(int size) {
   return 0;
 }
 
-Allocation Allocator::allocate_for(const Value *value) {
+int Allocator::allocate_for(const Value *value) {
   Type *type = value->getType();
   int size = module.getDataLayout().getTypeAllocSize(type);
 
   if (isa<IntegerType>(type)) {
     int reg = allocate(size);
-    if (reg) {
-      return {.spilled = false, .reg = reg};
-    } else {
-      return {.spilled = true, .reg = 0};
-    }
+    return reg;
   } else {
-    return {.spilled = true, .reg = 0};
+    return 0;
   }
 }
 
@@ -88,12 +86,18 @@ void Allocator::run(Function &function) {
   for (int ninst = instructions.size() - 1; ninst >= 0; ninst--) {
     auto *instruction = instructions[ninst];
 
-    // Check operands for for end of lifetime
+    // Check operands for end of lifetime
     for (auto &operand : instruction->operands()) {
-      if (isa<Instruction>(operand) && !isa<AllocaInst>(operand) && !isa<Constant>(operand)) {
-        if (!allocation.count(operand)) {
-          allocation[operand] = allocate_for(operand);
-          allocation[operand].end = instruction;
+      if (auto *opinst = dyn_cast<Instruction>(operand)) {
+        if (!isa<AllocaInst>(opinst) && !opinst->getType()->isVoidTy()) {
+          if (!allocation.count(opinst)) {
+            Allocation alloc;
+            alloc.reg = allocate_for(opinst);
+            alloc.start = opinst;
+            alloc.end = instruction;
+
+            allocation[opinst] = alloc;
+          }
         }
       }
     }
@@ -102,26 +106,27 @@ void Allocator::run(Function &function) {
     if (!isa<AllocaInst>(instruction) && !instruction->getType()->isVoidTy()) {
       if (allocation.count(instruction)) {
         free(allocation[instruction].reg);
-        allocation[instruction].start = instruction;
       } else {
-        // Probably an unused instruction. Allocate then free right away
-        allocation[instruction] = allocate_for(instruction);
-        allocation[instruction].start = allocation[instruction].end = instruction;
-        free(allocation[instruction].reg);
+        Allocation alloc;
+        alloc.reg = allocate_for(instruction);
+        alloc.start = alloc.end = instruction;
+
+        allocation[instruction] = alloc;
+        free(alloc.reg);
       }
     }
   }
 
   // outs() << "Allocations:\n";
   // for (auto &[value, alloc] : allocation) {
-  //   outs() << *value << " -> " << alloc.reg;
-  //   if (alloc.spilled) {
+  //   outs() << *value << " -> 0b" << bitset<8>(alloc.reg).to_string();
+  //   if (!alloc.reg) {
   //     outs() << " (spilled)";
   //   }
   //   outs() << "\n";
   // }
 
   // if (register_state) {
-  //   outs() << "Registers not freed: " << register_state << "\n";
+  //   outs() << "Registers not freed: 0b" << bitset<8>(register_state).to_string() << "\n";
   // }
 }

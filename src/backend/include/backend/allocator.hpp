@@ -10,9 +10,9 @@ class Allocator {
   int register_state = 0;
 
   int allocate(int size);
-  Allocation allocate_for(const llvm::Value *value);
+  int allocate_for(const llvm::Value *value);
   int free(int reg);
-  
+
 public:
   enum R8 {
     R8_A = 1 << 6,

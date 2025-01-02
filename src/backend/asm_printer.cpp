@@ -44,7 +44,7 @@ void AsmPrinter::generate_prologue() {
   }
 
   for (auto &[value, alloc] : fctx.allocation) {
-    if (alloc.spilled) {
+    if (!alloc.reg) {
       Type *type = value->getType();
       TypeSize size = module.getDataLayout().getTypeAllocSize(type);
 
@@ -114,7 +114,7 @@ void AsmPrinter::print() {
             fctx.used_regs &= ~alloc.reg;
           }
         }
-        
+
         // print_instruction(&instruction);
 
         // Mark registers as used
