@@ -1,6 +1,3 @@
-    .global exit
-    .global __call_ptr
-
     ; void __libc_start_main(int (*main)(int, char**, char**), int argc, char **ubp_av, void (*init)(void), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     ; Argument locations:
     ;   IX+4: main

@@ -1,5 +1,5 @@
 .macro STUB name
-    .global \name
+    .weak \name
     .type \name, @function
 \name:
     ld hl, -1
