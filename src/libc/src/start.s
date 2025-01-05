@@ -10,20 +10,24 @@
     ;   IX+10: fini
     ;   IX+12: rtld_fini
     ;   IX+14: stack_end
+    ; Variable locations:
+    ;   IX-2: return value from main
     .global __libc_start_main
 __libc_start_main:
     ld ix, 0
     add ix, sp
 
-    ; TODO: atexit(fini)
+    ; TODO: atexit(fini) & atexit(rtld_fini)
 
     ; Call init
     ld l, (ix+8)
     ld h, (ix+9)
     push hl
-    call __call_ptr
+    ld a, l
+    or h
+    call nz, __call_ptr
 
-    ; Call main
+    ; Call main and save return value
     ld hl, 0
     ex (sp), hl ; No support for environment variables (yet)
     ld l, (ix+6)
@@ -36,18 +40,29 @@ __libc_start_main:
     ld h, (ix+3)
     push hl
     call __call_ptr
+    ld (ix-2), l
+    ld (ix-1), h
     pop bc
     pop bc
 
     ; TODO: Again, atexit(fini)
-    push hl
     ld l, (ix+10)
     ld h, (ix+11)
-    push hl
-    call __call_ptr
-    pop hl
-    pop hl
+    ld a, l
+    or h
+    ex (sp), hl
+    call nz, __call_ptr
+
+    ; TODO: atexit(rtld_fini)
+    ld l, (ix+12)
+    ld h, (ix+13)
+    ld a, l
+    or h
+    ex (sp), hl
+    call nz, __call_ptr
 
     ; Call exit with return value from main
+    ld l, (ix-2)
+    ld h, (ix-1)
     ex (sp), hl
     call exit
