@@ -8,14 +8,15 @@ atexit:
     ld hl, (atexit_table_ptr)
     ld bc, atexit_table_end
     xor a
+    push hl
     sbc hl, bc
+    pop hl
     jr nz, 0f
 
     ld hl, -1 ; Failure
     jr 1f
 
 0:
-    ld hl, (atexit_table_ptr)
     ld a, (ix+4)
     ld (hl), a
     inc hl
