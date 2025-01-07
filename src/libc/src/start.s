@@ -15,14 +15,27 @@ __libc_start_main:
     ld ix, 0
     add ix, sp
 
-    ; TODO: atexit(fini) & atexit(rtld_fini)
+    ld l, (ix+14)
+    ld h, (ix+15)
+    push hl
+    ld a, l
+    or h
+    call nz, atexit
+
+    ld l, (ix+12)
+    ld h, (ix+13)
+    ld a, l
+    or h
+    ex (sp), hl
+    call nz, atexit
+
 
     ; Call init
     ld l, (ix+10)
     ld h, (ix+11)
-    push hl
     ld a, l
     or h
+    ex (sp), hl
     call nz, __call_ptr
 
     ; Call main and save return value
@@ -42,22 +55,6 @@ __libc_start_main:
     ld (ix-1), h
     pop bc
     pop bc
-
-    ; TODO: Again, atexit(fini)
-    ld l, (ix+12)
-    ld h, (ix+13)
-    ld a, l
-    or h
-    ex (sp), hl
-    call nz, __call_ptr
-
-    ; TODO: atexit(rtld_fini)
-    ld l, (ix+14)
-    ld h, (ix+15)
-    ld a, l
-    or h
-    ex (sp), hl
-    call nz, __call_ptr
 
     ; Call exit with return value from main
     ld l, (ix-2)
