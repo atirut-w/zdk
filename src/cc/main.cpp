@@ -60,7 +60,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
       .flag();
 
   // Dump AST
-  parser->add_argument("--dump-ast").help("Dump AST to stdout").flag();
+  parser->add_argument("--dump-tree").help("Dump parse tree to stdout").flag();
 
   // Emit LLVM IR
   parser->add_argument("--emit-llvm").help("Emit LLVM IR").flag();
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
   if (lexer.getNumberOfSyntaxErrors() > 0 ||
       parser.getNumberOfSyntaxErrors() > 0) {
     return {};
-  } else if (args->get<bool>("--dump-ast")) {
+  } else if (args->get<bool>("--dump-tree")) {
     cout << tree->toStringTree(&parser, true) << endl;
     return {};
   }
