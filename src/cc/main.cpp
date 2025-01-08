@@ -1,4 +1,6 @@
 #include "ANTLRInputStream.h"
+#include "ast.hpp"
+#include "ast_emitter.hpp"
 #include "backend/asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
@@ -179,9 +181,11 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
+  ASTEmitter emitter;
+  auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
   ofstream output(intermediate.replace_extension(".s"));
   Codegen codegen(output);
-  codegen.visit(tree);
+  codegen.visit(*ast);
 
   if (args->get<bool>("-S")) {
     return 0;

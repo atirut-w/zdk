@@ -1,22 +1,25 @@
 #pragma once
-#include "CBaseVisitor.h"
 #include <any>
 #include <ostream>
 #include <string>
 
-struct ExpressionCtx {
-  // std::string reg;
-};
+class TranslationUnit;
+class FunctionDefinition;
+class ReturnStatement;
+class Expression;
+class IntegerConstant;
 
-class Codegen : public CBaseVisitor {
+class Codegen {
   std::ostream &os;
 
-  void load_imm(std::string reg, int value);
+  void load_imm(int value);
 
 public:
   Codegen(std::ostream &os) : os(os) {}
 
-  virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
-  virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
-  virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
+  void visit(const TranslationUnit &node);
+  void visit(const FunctionDefinition &node);
+  void visit(const ReturnStatement &node);
+  void visit(const Expression &node);
+  void visit(const IntegerConstant &node);
 };
