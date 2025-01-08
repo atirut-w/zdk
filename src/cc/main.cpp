@@ -1,5 +1,7 @@
+#include "lexer.hpp"
 #include <argparse/argparse.hpp>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 
 using namespace std;
@@ -30,6 +32,21 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   auto path = parser->get<filesystem::path>("source");
+
+  ifstream file(path);
+  if (!file) {
+    cerr << "error: could not open file " << path << endl;
+    return 1;
+  }
+
+  Lexer lexer(file);
+  while (auto token = lexer.next()) {
+    cout << "Token type " << token->type;
+    if (token->type == Token::INTLIT) {
+      cout << " value " << token->value;
+    }
+    cout << "\n";
+  }
 
   return 0;
 }
