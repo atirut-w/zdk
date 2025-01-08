@@ -1,41 +1,42 @@
 #include "codegen.hpp"
-#include "CParser.h"
-#include <algorithm>
+#include "ast.hpp"
 
 using namespace std;
 
-void Codegen::load_imm(string reg, int value) {
-  if (reg.length() > 2) {
-    os << "\tld " << reg.substr(2, 2) << ", " << (value & 0xff) << "\n";
-    os << "\tld " << reg.substr(0, 2) << ", " << (value >> 8) << "\n";
-  } else {
-    os << "\tld " << reg << ", " << value << "\n";
+void Codegen::load_imm(int value) {
+  os << "\tld hl, " << value << endl;
+}
+
+void Codegen::visit(const TranslationUnit &node) {
+  for (const auto &decl : node.declarations) {
+    if (auto fd = dynamic_cast<const FunctionDefinition *>(decl.get())) {
+      visit(*fd);
+    }
   }
 }
 
-any Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
-  string name = dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())->Identifier()->getText();
-  os << "\t.global " << name << "\n";
-  os << name << ":" << "\n";
-
-  for (auto stmt : ctx->statement()) {
-    visit(stmt);
+void Codegen::visit(const FunctionDefinition &node) {
+  os << node.name << ":" << endl;
+  for (const auto &stmt : node.body) {
+    if (auto rs = dynamic_cast<const ReturnStatement *>(stmt.get())) {
+      visit(*rs);
+    }
   }
-
-  return {};
 }
 
-any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
-  if (ctx->expression()) {
-    visit(ctx->expression());
+void Codegen::visit(const ReturnStatement &node) {
+  if (node.expression) {
+    visit(*node.expression);
   }
-  os << "\tret\n";
-
-  return {};
+  os << "\tret" << endl;
 }
 
-any Codegen::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
-  load_imm("hl", stoi(ctx->getText()));
+void Codegen::visit(const Expression &node) {
+  if (auto ic = dynamic_cast<const IntegerConstant *>(&node)) {
+    visit(*ic);
+  }
+}
 
-  return ExpressionCtx{};
+void Codegen::visit(const IntegerConstant &node) {
+  load_imm(node.value);
 }
