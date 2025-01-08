@@ -77,9 +77,9 @@ Semicolon: ';';
 
 // Arithmetic operators
 Increment: '++';
-Plus: '+';
+Add: '+';
 Decrement: '--';
-Minus: '-';
+Subtract: '-';
 Multiply: '*';
 Divide: '/';
 Modulo: '%';

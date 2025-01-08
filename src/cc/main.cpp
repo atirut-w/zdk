@@ -1,5 +1,6 @@
 #include "ANTLRInputStream.h"
 #include "backend/asm_printer.hpp"
+#include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -178,7 +179,9 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  LLVMContext context;
+  ofstream output(intermediate.replace_extension(".s"));
+  Codegen codegen(output);
+  codegen.visit(tree);
 
   if (args->get<bool>("-S")) {
     return 0;
