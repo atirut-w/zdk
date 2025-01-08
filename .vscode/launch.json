@@ -14,6 +14,7 @@
             "args": [
                 "test.c",
                 "-S",
+                // "--dump-ast",
                 // "--emit-llvm",
                 // "-c",
             ]
