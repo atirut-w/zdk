@@ -51,7 +51,7 @@ optional<Token> Lexer::next() {
       token.value = scan_int(c);
       return token;
     }
-    throw runtime_error("unrecognized character " + to_string(c) + " on line " + to_string(line));
+    throw runtime_error("unrecognized character '" + string(1, c) + "' on line " + to_string(line));
   case EOF:
     return nullopt;
   case '+':
