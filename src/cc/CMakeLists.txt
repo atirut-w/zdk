@@ -1,3 +1,3 @@
 add_executable(zdk-cc
-    main.cpp
+    main.c
 )
