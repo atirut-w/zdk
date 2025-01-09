@@ -12,6 +12,18 @@ public:
 
 class Expression : public ASTNode {};
 
+class BinaryExpression : public Expression {
+public:
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
+};
+
+class AddExpression : public BinaryExpression {};
+class SubtractExpression : public BinaryExpression {};
+class MultiplyExpression : public BinaryExpression {};
+class DivideExpression : public BinaryExpression {};
+class ModuloExpression : public BinaryExpression {};
+
 class IntegerConstant : public Expression {
 public:
   int value;
