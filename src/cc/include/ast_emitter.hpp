@@ -8,4 +8,7 @@ public:
   virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
 
   virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
+  virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
+  virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
+  virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
 };

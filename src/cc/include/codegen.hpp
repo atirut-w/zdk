@@ -5,9 +5,12 @@
 
 class TranslationUnit;
 class FunctionDefinition;
+
 class ReturnStatement;
+
 class Expression;
 class IntegerConstant;
+class BinaryExpression;
 
 class Codegen {
   std::ostream &os;
@@ -19,7 +22,10 @@ public:
 
   void visit(const TranslationUnit &node);
   void visit(const FunctionDefinition &node);
+
   void visit(const ReturnStatement &node);
+
   void visit(const Expression &node);
   void visit(const IntegerConstant &node);
+  void visit(const BinaryExpression &node);
 };
