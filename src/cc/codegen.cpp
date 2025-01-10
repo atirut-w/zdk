@@ -20,6 +20,8 @@ void Codegen::visit(const FunctionDefinition &node) {
   for (const auto &stmt : node.body) {
     if (auto rs = dynamic_cast<const ReturnStatement *>(stmt.get())) {
       visit(*rs);
+    } else {
+      throw runtime_error("unhandled statement type");
     }
   }
 }
@@ -34,6 +36,8 @@ void Codegen::visit(const ReturnStatement &node) {
 void Codegen::visit(const Expression &node) {
   if (auto ic = dynamic_cast<const IntegerConstant *>(&node)) {
     visit(*ic);
+  } else {
+    throw runtime_error("unhandled expression type");
   }
 }
 
