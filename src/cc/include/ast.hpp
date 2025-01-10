@@ -14,15 +14,18 @@ class Expression : public ASTNode {};
 
 class BinaryExpression : public Expression {
 public:
+  enum Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+  };
+
   std::unique_ptr<Expression> left;
   std::unique_ptr<Expression> right;
+  Operator op;
 };
-
-class AddExpression : public BinaryExpression {};
-class SubtractExpression : public BinaryExpression {};
-class MultiplyExpression : public BinaryExpression {};
-class DivideExpression : public BinaryExpression {};
-class ModuloExpression : public BinaryExpression {};
 
 class IntegerConstant : public Expression {
 public:

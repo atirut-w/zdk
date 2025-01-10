@@ -41,3 +41,39 @@ any ASTEmitter::visitIntegerConstantExpression(CParser::IntegerConstantExpressio
 
   return static_cast<Expression *>(ic);
 }
+
+any ASTEmitter::visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) {
+  return visit(ctx->expression());
+}
+
+any ASTEmitter::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
+  auto be = new BinaryExpression();
+
+  be->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
+  be->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  if (ctx->Multiply()) {
+    be->op = BinaryExpression::Operator::Mul;
+  } else if (ctx->Divide()) {
+    be->op = BinaryExpression::Operator::Div;
+  } else if (ctx->Modulo()) {
+    be->op = BinaryExpression::Operator::Mod;
+  }
+
+  return static_cast<Expression *>(be);
+}
+
+any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+  auto be = new BinaryExpression();
+
+  be->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
+  be->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  if (ctx->Add()) {
+    be->op = BinaryExpression::Operator::Add;
+  } else if (ctx->Subtract()) {
+    be->op = BinaryExpression::Operator::Sub;
+  }
+
+  return static_cast<Expression *>(be);
+}
