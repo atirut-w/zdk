@@ -1,31 +1,21 @@
 #pragma once
-#include <any>
+#include "CBaseVisitor.h"
+#include "ast.hpp"
 #include <ostream>
-#include <string>
 
-class TranslationUnit;
-class FunctionDefinition;
-
-class ReturnStatement;
-
-class Expression;
-class IntegerConstant;
-class BinaryExpression;
-
-class Codegen {
+class Codegen : public CBaseVisitor {
   std::ostream &os;
-
-  void load_imm(int value);
 
 public:
   Codegen(std::ostream &os) : os(os) {}
 
-  void visit(const TranslationUnit &node);
-  void visit(const FunctionDefinition &node);
+  virtual void gen_expression(Expression *expr);
 
-  void visit(const ReturnStatement &node);
+  virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+  virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
 
-  void visit(const Expression &node);
-  void visit(const IntegerConstant &node);
-  void visit(const BinaryExpression &node);
+  virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
+  virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
+  virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
+  virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
 };

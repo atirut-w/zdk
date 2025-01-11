@@ -1,6 +1,5 @@
 #include "ANTLRInputStream.h"
 #include "ast.hpp"
-#include "ast_emitter.hpp"
 #include "backend/asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
@@ -33,9 +32,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
   parser->add_description("C compiler for Z80");
 
   // Source file
-  parser->add_argument("source")
-      .help("Source file")
-      .action([](const string &value) { return filesystem::path(value); });
+  parser->add_argument("source").help("Source file").action([](const string &value) { return filesystem::path(value); });
 
   // Include directories
   parser->add_argument("-I", "--include")
@@ -43,23 +40,16 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
       .action([](const string &value) { return filesystem::path(value); })
       .append();
 
-  ArgumentParser::MutuallyExclusiveGroup &stage =
-      parser->add_mutually_exclusive_group(false);
+  ArgumentParser::MutuallyExclusiveGroup &stage = parser->add_mutually_exclusive_group(false);
 
   // Preprocess only
-  stage.add_argument("-E")
-      .help("Preprocess the input file, but do not compile")
-      .flag();
+  stage.add_argument("-E").help("Preprocess the input file, but do not compile").flag();
 
   // Codegen only
-  stage.add_argument("-S")
-      .help("Compile the input file, but do not assemble or link")
-      .flag();
+  stage.add_argument("-S").help("Compile the input file, but do not assemble or link").flag();
 
   // Assemble only
-  stage.add_argument("-c")
-      .help("Compile and assemble the input file, but do not link")
-      .flag();
+  stage.add_argument("-c").help("Compile and assemble the input file, but do not link").flag();
 
   // Dump AST
   parser->add_argument("--dump-tree").help("Dump parse tree to stdout").flag();
@@ -109,8 +99,7 @@ int run(string program, vector<string> args) {
 // #endif
 // }
 
-bool preprocess(const vector<string> &preamble, const filesystem::path &source,
-                const filesystem::path &intermediate) {
+bool preprocess(const vector<string> &preamble, const filesystem::path &source, const filesystem::path &intermediate) {
   vector<string> args = preamble;
   args.push_back("-P"); // No line markers please
   args.push_back(source);
@@ -124,14 +113,9 @@ bool preprocess(const vector<string> &preamble, const filesystem::path &source,
   return true;
 }
 
-bool assemble(const filesystem::path source,
-              const filesystem::path intermediate) {
-  return run("z80-elf-as", {source, "-o", intermediate}) == 0;
-}
+bool assemble(const filesystem::path source, const filesystem::path intermediate) { return run("z80-elf-as", {source, "-o", intermediate}) == 0; }
 
-bool link(const filesystem::path source, const filesystem::path intermediate) {
-  return run("z80-elf-ld", {source, "-o", intermediate}) == 0;
-}
+bool link(const filesystem::path source, const filesystem::path intermediate) { return run("z80-elf-ld", {source, "-o", intermediate}) == 0; }
 
 int main(int argc, char *argv[]) {
   auto args = parse_args(argc, argv);
@@ -173,25 +157,21 @@ int main(int argc, char *argv[]) {
   input.close();
   filesystem::remove(intermediate.replace_extension(".i"));
 
-  if (lexer.getNumberOfSyntaxErrors() > 0 ||
-      parser.getNumberOfSyntaxErrors() > 0) {
+  if (lexer.getNumberOfSyntaxErrors() > 0 || parser.getNumberOfSyntaxErrors() > 0) {
     return {};
   } else if (args->get<bool>("--dump-tree")) {
     cout << tree->toStringTree(&parser, true) << endl;
     return {};
   }
 
-  ASTEmitter emitter;
-  auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
   ofstream output(intermediate.replace_extension(".s"));
   Codegen codegen(output);
-  codegen.visit(*ast);
+  codegen.visit(tree);
 
   if (args->get<bool>("-S")) {
     return 0;
   }
-  if (!assemble(intermediate.replace_extension(".s"),
-                intermediate.replace_extension(".o"))) {
+  if (!assemble(intermediate.replace_extension(".s"), intermediate.replace_extension(".o"))) {
     return 1;
   }
   filesystem::remove(intermediate.replace_extension(".s"));
@@ -199,8 +179,7 @@ int main(int argc, char *argv[]) {
   if (args->get<bool>("-c")) {
     return 0;
   }
-  if (!link(intermediate.replace_extension(".o"),
-            intermediate.replace_extension(".elf"))) {
+  if (!link(intermediate.replace_extension(".o"), intermediate.replace_extension(".elf"))) {
     return 1;
   }
   filesystem::remove(intermediate.replace_extension(".o"));
