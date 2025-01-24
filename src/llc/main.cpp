@@ -1,4 +1,3 @@
-#include "backend/asm_printer.hpp"
 #include <argparse/argparse.hpp>
 #include <filesystem>
 #include <fstream>
@@ -71,11 +70,6 @@ int main(int argc, char *argv[]) {
     err.print("zdk-llc", llvm::errs());
     return 1;
   }
-
-
-  const auto output = args->is_used("--output") ? args->get<filesystem::path>("--output") : filesystem::path(source).replace_extension(".s");
-  ofstream output_stream(output);
-  AsmPrinter(*module, output_stream).print();
 
   return 0;
 }
