@@ -1,3 +1,6 @@
-add_library(backend INTERFACE
+add_library(backend OBJECT
+    target_registry.cpp
+
+    targets/z80/target.cpp
 )
-target_include_directories(backend INTERFACE include)
+target_include_directories(backend PUBLIC include)
