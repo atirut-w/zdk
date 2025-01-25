@@ -29,7 +29,7 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
   } catch (const exception &e) {
     cerr << e.what() << endl;
     cerr << *parser << endl;
-    exit(1);
+    return nullptr;
   }
   return parser;
 }
@@ -58,6 +58,9 @@ int run(string program, vector<string> args) {
 
 int main(int argc, char *argv[]) {
   auto args = parse_args(argc, argv);
+  if (!args) {
+    return 1;
+  }
 
   const auto source = args->get<filesystem::path>("source");
   LLVMContext context;
