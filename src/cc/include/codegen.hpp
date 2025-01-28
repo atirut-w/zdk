@@ -1,16 +1,8 @@
 #pragma once
+#include "ast.hpp"
 #include <any>
 #include <ostream>
 #include <string>
-
-class TranslationUnit;
-class FunctionDefinition;
-
-class ReturnStatement;
-
-class Expression;
-class IntegerConstant;
-class BinaryExpression;
 
 class Codegen {
   std::ostream &os;

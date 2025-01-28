@@ -53,11 +53,11 @@ any ASTEmitter::visitMultiplicativeExpression(CParser::MultiplicativeExpressionC
   be->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
 
   if (ctx->Multiply()) {
-    be->op = BinaryExpression::Operator::Mul;
+    be->op = BinaryExpression::Mul;
   } else if (ctx->Divide()) {
-    be->op = BinaryExpression::Operator::Div;
+    be->op = BinaryExpression::Div;
   } else if (ctx->Modulo()) {
-    be->op = BinaryExpression::Operator::Mod;
+    be->op = BinaryExpression::Mod;
   }
 
   return static_cast<Expression *>(be);
@@ -70,9 +70,9 @@ any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
   be->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
 
   if (ctx->Add()) {
-    be->op = BinaryExpression::Operator::Add;
+    be->op = BinaryExpression::Add;
   } else if (ctx->Subtract()) {
-    be->op = BinaryExpression::Operator::Sub;
+    be->op = BinaryExpression::Sub;
   }
 
   return static_cast<Expression *>(be);
