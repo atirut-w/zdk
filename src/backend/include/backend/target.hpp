@@ -1,10 +1,10 @@
 #pragma once
-#include "backend/ralloc.hpp"
+#include "backend/target_codegen.hpp"
 #include <string>
 
 class Target {
 public:
   std::string name;
 
-  virtual AllocationMap ralloc(const llvm::Function &function) = 0;
+  virtual TargetCodegen *create_codegen(std::ostream &os, llvm::Module &module) = 0;
 };
