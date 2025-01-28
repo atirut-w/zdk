@@ -8,6 +8,6 @@ Z80Target::Z80Target() {
   name = "z80";
 }
 
-TargetCodegen * Z80Target::create_codegen(std::ostream &os, llvm::Module &module) {
+TargetCodegen * Z80Target::create_codegen(std::ostream &os, llvm::Module &module) const {
   return new Z80Codegen(os, module);
 }

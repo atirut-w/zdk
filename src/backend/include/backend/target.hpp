@@ -6,5 +6,5 @@ class Target {
 public:
   std::string name;
 
-  virtual TargetCodegen *create_codegen(std::ostream &os, llvm::Module &module) = 0;
+  virtual TargetCodegen *create_codegen(std::ostream &os, llvm::Module &module) const = 0;
 };
