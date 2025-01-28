@@ -7,6 +7,7 @@ class TargetRegistry {
 
 public:
   static const std::vector<const Target *> &get_targets();
+  static const Target *get_target(const std::string &name);
 
   template <class TargetClass> class Register {
   public:
