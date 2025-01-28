@@ -5,5 +5,5 @@ class Z80Target : public Target {
 public:
   Z80Target();
 
-  virtual TargetCodegen * create_codegen(std::ostream &os, llvm::Module &module) const override;
+  virtual std::unique_ptr<TargetCodegen> create_codegen(std::ostream &os, llvm::Module &module) const override;
 };
