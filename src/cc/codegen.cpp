@@ -1,11 +1,54 @@
 #include "codegen.hpp"
 #include "ast.hpp"
+#include <cassert>
+#include <iostream>
+#include <map>
+#include <string>
 
 using namespace std;
 
-void Codegen::load_imm(int value) {
-  os << "\tld hl, " << value << "\n";
+enum R8 {
+  R8_A = 1 << 6,
+  R8_B = 1 << 5,
+  R8_C = 1 << 4,
+  R8_D = 1 << 3,
+  R8_E = 1 << 2,
+  R8_H = 1 << 1,
+  R8_L = 1 << 0,
+};
+
+enum R16 {
+  R16_BC = R8_B | R8_C,
+  R16_DE = R8_D | R8_E,
+  R16_HL = R8_H | R8_L,
+};
+
+map<int, string> reg_names = {
+    {R8_A, "a"},    {R8_B, "b"},    {R8_C, "c"},    {R8_D, "d"}, {R8_E, "e"}, {R8_H, "h"}, {R8_L, "l"},
+
+    {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
+};
+
+int Codegen::ralloc() {
+  for (int reg : {R16_BC, R16_DE, R16_HL}) {
+    if (!(used_regs & reg)) {
+      used_regs |= reg;
+      return reg;
+    }
+  }
+  throw runtime_error("out of registers");
 }
+
+int Codegen::ralloc(int reg) {
+  if (used_regs & reg) {
+    // throw runtime_error("register already allocated");
+    return 0;
+  }
+  used_regs |= reg;
+  return reg;
+}
+
+void Codegen::rfree(int reg) { used_regs &= ~reg; }
 
 void Codegen::visit(const TranslationUnit &node) {
   for (const auto &decl : node.declarations) {
@@ -33,53 +76,65 @@ void Codegen::visit(const ReturnStatement &node) {
   os << "\tret" << "\n";
 }
 
-void Codegen::visit(const Expression &node) {
+int Codegen::visit(const Expression &node, int reg) {
   if (auto *ic = dynamic_cast<const IntegerConstant *>(&node)) {
-    visit(*ic);
+    return visit(*ic, reg);
   } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
-    visit(*be);
+    return visit(*be, reg);
   } else {
     throw runtime_error("unhandled expression type");
   }
 }
 
-void Codegen::visit(const IntegerConstant &node) {
-  load_imm(node.value);
+int Codegen::visit(const IntegerConstant &node, int reg) {
+  if (!reg) {
+    reg = ralloc();
+  } else {
+    reg = ralloc(reg);
+  }
+  os << "\tld " << reg_names[reg] << ", " << node.value << "\n";
+  return reg;
 }
 
-void Codegen::visit(const BinaryExpression &node) {
-  visit(*node.right);
-  os << "\tpush hl" << "\n";
-  visit(*node.left);
-  
-  switch (node.op) {
-  case BinaryExpression::Operator::Add:
-    os << "\tpop de\n";
-    os << "\tadd hl, de\n";
-    break;
-  case BinaryExpression::Operator::Sub:
-    os << "\tpop de\n";
-    os << "\tor a\n";
-    os << "\tsub hl, de\n";
-  case BinaryExpression::Operator::Mul:
-  case BinaryExpression::Operator::Div:
-  case BinaryExpression::Operator::Mod:
-    os << "\tpush hl\n";
+int Codegen::visit(const BinaryExpression &node, int reg) {
+  int lhs = visit(*node.left, R16_HL);
+  int rhs = visit(*node.right);
 
+  switch (node.op) {
+  case BinaryExpression::Add:
+    os << "\tadd " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+    break;
+  case BinaryExpression::Sub:
+    os << "\tor a\n";
+    os << "\tsbc " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+    break;
+  case BinaryExpression::Mul:
+  case BinaryExpression::Div:
+  case BinaryExpression::Mod:
+    os << "\tpush " << reg_names[rhs] << "\n";
+    os << "\tpush " << reg_names[lhs] << "\n";
+    
+    string routine;
     switch (node.op) {
-    case BinaryExpression::Operator::Mul:
-      os << "\tcall __mulsi3\n";
+    case BinaryExpression::Mul:
+      routine = "__mulsi3";
       break;
-    case BinaryExpression::Operator::Div:
-      os << "\tcall __divsi3\n";
+    case BinaryExpression::Div:
+      routine = "__divsi3";
       break;
-    case BinaryExpression::Operator::Mod:
-      os << "\tcall __modsi3\n";
+    case BinaryExpression::Mod:
+      routine = "__modsi3";
       break;
     }
+    os << "\tcall " << routine << "\n";
 
-    os << "\tpop bc\n";
-    os << "\tpop bc\n";
-    break;
+    // TODO: Not use a register for stack cleanup
+    int dump = ralloc();
+    os << "\tpop " << reg_names[dump] << "\n";
+    os << "\tpop " << reg_names[dump] << "\n";
+    rfree(dump);
   }
+
+  rfree(rhs);
+  return lhs;
 }

@@ -6,8 +6,11 @@
 
 class Codegen {
   std::ostream &os;
+  int used_regs = 0;
 
-  void load_imm(int value);
+  int ralloc();
+  int ralloc(int reg);
+  void rfree(int reg);
 
 public:
   Codegen(std::ostream &os) : os(os) {}
@@ -17,7 +20,7 @@ public:
 
   void visit(const ReturnStatement &node);
 
-  void visit(const Expression &node);
-  void visit(const IntegerConstant &node);
-  void visit(const BinaryExpression &node);
+  int visit(const Expression &node, int reg = 0);
+  int visit(const IntegerConstant &node, int reg = 0);
+  int visit(const BinaryExpression &node, int reg = 0);
 };
