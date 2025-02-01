@@ -36,17 +36,46 @@ int Codegen::ralloc() {
       return reg;
     }
   }
-  throw runtime_error("out of registers");
+  return 0;
 }
 
 int Codegen::ralloc(int reg) {
   if (used_regs & reg) {
-    // throw runtime_error("register already allocated");
     return 0;
   }
   used_regs |= reg;
   return reg;
 }
+
+// int Codegen::sralloc() {
+//   int reg = ralloc();
+//   if (!reg) {
+//     throw runtime_error("out of registers");
+//   }
+//   return reg;
+// }
+
+// int Codegen::sralloc(int reg) {
+//   if (used_regs & reg) {
+//     throw runtime_error("register already in use");
+//   }
+//   return ralloc(reg);
+// }
+
+void Codegen::rcpy(int dst, int src) {
+  string dstname = reg_names[dst];
+  string srcname = reg_names[src];
+
+  if (dst == src) {
+    return;
+  }
+
+  for (int i = 0; i < 2; i++) {
+    os << "\tld " << dstname[1 - i] << ", " << srcname[1 - i] << "\n";
+  }
+}
+
+bool Codegen::rused(int reg) { return used_regs & reg; }
 
 void Codegen::rfree(int reg) { used_regs &= ~reg; }
 
@@ -71,7 +100,7 @@ void Codegen::visit(const FunctionDefinition &node) {
 
 void Codegen::visit(const ReturnStatement &node) {
   if (node.expression) {
-    visit(*node.expression);
+    visit(*node.expression, R16_HL);
   }
   os << "\tret" << "\n";
 }
@@ -87,18 +116,20 @@ int Codegen::visit(const Expression &node, int reg) {
 }
 
 int Codegen::visit(const IntegerConstant &node, int reg) {
-  if (!reg) {
-    reg = ralloc();
-  } else {
-    reg = ralloc(reg);
-  }
   os << "\tld " << reg_names[reg] << ", " << node.value << "\n";
   return reg;
 }
 
 int Codegen::visit(const BinaryExpression &node, int reg) {
-  int lhs = visit(*node.left, R16_HL);
-  int rhs = visit(*node.right);
+  bool restore = false;
+  if (rused(R16_HL)) {
+    os << "\tpush hl\n";
+    restore = true;
+    rfree(R16_HL);
+  }
+
+  int lhs = visit(*node.left, ralloc(R16_HL));
+  int rhs = visit(*node.right, ralloc());
 
   switch (node.op) {
   case BinaryExpression::Add:
@@ -130,11 +161,22 @@ int Codegen::visit(const BinaryExpression &node, int reg) {
 
     // TODO: Not use a register for stack cleanup
     int dump = ralloc();
-    os << "\tpop " << reg_names[dump] << "\n";
-    os << "\tpop " << reg_names[dump] << "\n";
-    rfree(dump);
+    if (dump) {
+      os << "\tpop " << reg_names[dump] << "\n";
+      os << "\tpop " << reg_names[dump] << "\n";
+      rfree(dump);
+    } else {
+      os << "\tinc sp\n";
+      os << "\tinc sp\n";
+      os << "\tinc sp\n";
+      os << "\tinc sp\n";
+    }
   }
 
+  rcpy(reg, lhs);
   rfree(rhs);
-  return lhs;
+  if (restore) {
+    os << "\tpop hl\n";
+  }
+  return reg;
 }

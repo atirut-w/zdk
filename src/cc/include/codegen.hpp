@@ -10,7 +10,13 @@ class Codegen {
 
   int ralloc();
   int ralloc(int reg);
+  // int sralloc();
+  // int sralloc(int reg);
+
+  bool rused(int reg);
   void rfree(int reg);
+
+  void rcpy(int dst, int src);
 
 public:
   Codegen(std::ostream &os) : os(os) {}
@@ -20,7 +26,7 @@ public:
 
   void visit(const ReturnStatement &node);
 
-  int visit(const Expression &node, int reg = 0);
-  int visit(const IntegerConstant &node, int reg = 0);
-  int visit(const BinaryExpression &node, int reg = 0);
+  int visit(const Expression &node, int reg);
+  int visit(const IntegerConstant &node, int reg);
+  int visit(const BinaryExpression &node, int reg);
 };
