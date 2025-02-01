@@ -26,7 +26,7 @@ public:
 
   void visit(const ReturnStatement &node);
 
-  int visit(const Expression &node, int reg);
-  int visit(const IntegerConstant &node, int reg);
-  int visit(const BinaryExpression &node, int reg);
+  void visit(const Expression &node, int reg);
+  void visit(const IntegerConstant &node, int reg);
+  void visit(const BinaryExpression &node, int reg);
 };

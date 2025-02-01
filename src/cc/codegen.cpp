@@ -105,31 +105,39 @@ void Codegen::visit(const ReturnStatement &node) {
   os << "\tret" << "\n";
 }
 
-int Codegen::visit(const Expression &node, int reg) {
+void Codegen::visit(const Expression &node, int reg) {
   if (auto *ic = dynamic_cast<const IntegerConstant *>(&node)) {
-    return visit(*ic, reg);
+    visit(*ic, reg);
   } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
-    return visit(*be, reg);
+    visit(*be, reg);
   } else {
     throw runtime_error("unhandled expression type");
   }
 }
 
-int Codegen::visit(const IntegerConstant &node, int reg) {
+void Codegen::visit(const IntegerConstant &node, int reg) {
   os << "\tld " << reg_names[reg] << ", " << node.value << "\n";
-  return reg;
 }
 
-int Codegen::visit(const BinaryExpression &node, int reg) {
+void Codegen::visit(const BinaryExpression &node, int reg) {
+  int lhs, rhs;
   bool restore = false;
-  if (rused(R16_HL)) {
-    os << "\tpush hl\n";
-    restore = true;
-    rfree(R16_HL);
-  }
 
-  int lhs = visit(*node.left, ralloc(R16_HL));
-  int rhs = visit(*node.right, ralloc());
+  if (reg == R16_HL) {
+    lhs = reg;
+    ralloc(lhs);
+  } else {
+    lhs = ralloc(R16_HL);
+    if (!lhs) {
+      lhs = R16_HL;
+      os << "\tpush hl\n";
+      restore = true;
+    }
+  }
+  visit(*node.left, lhs);
+
+  rhs = ralloc();
+  visit(*node.right, rhs);
 
   switch (node.op) {
   case BinaryExpression::Add:
@@ -159,7 +167,7 @@ int Codegen::visit(const BinaryExpression &node, int reg) {
     }
     os << "\tcall " << routine << "\n";
 
-    // TODO: Not use a register for stack cleanup
+    // TODO: Improve stack cleanup
     int dump = ralloc();
     if (dump) {
       os << "\tpop " << reg_names[dump] << "\n";
@@ -178,5 +186,4 @@ int Codegen::visit(const BinaryExpression &node, int reg) {
   if (restore) {
     os << "\tpop hl\n";
   }
-  return reg;
 }
