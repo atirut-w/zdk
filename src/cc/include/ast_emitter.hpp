@@ -11,4 +11,6 @@ public:
   virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
   virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
   virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+  virtual std::any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
+  virtual std::any visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
 };

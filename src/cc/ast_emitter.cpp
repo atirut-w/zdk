@@ -77,3 +77,37 @@ any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
 
   return static_cast<Expression *>(be);
 }
+
+any ASTEmitter::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
+  auto re = new RelationalExpression();
+
+  re->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
+  re->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  if (ctx->Less()) {
+    re->op = RelationalExpression::Lt;
+  } else if (ctx->LessEqual()) {
+    re->op = RelationalExpression::Le;
+  } else if (ctx->Greater()) {
+    re->op = RelationalExpression::Gt;
+  } else if (ctx->GreaterEqual()) {
+    re->op = RelationalExpression::Ge;
+  }
+
+  return static_cast<Expression *>(re);
+}
+
+any ASTEmitter::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
+  auto re = new RelationalExpression();
+
+  re->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
+  re->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  if (ctx->Equal()) {
+    re->op = RelationalExpression::Eq;
+  } else if (ctx->NotEqual()) {
+    re->op = RelationalExpression::Ne;
+  }
+
+  return static_cast<Expression *>(re);
+}

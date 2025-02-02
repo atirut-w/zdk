@@ -27,6 +27,22 @@ public:
   Operator op;
 };
 
+class RelationalExpression : public Expression {
+public:
+  enum Operator {
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+  };
+
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
+  Operator op;
+};
+
 class IntegerConstant : public Expression {
 public:
   int value;
