@@ -35,6 +35,13 @@ any ASTEmitter::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   return static_cast<Statement *>(rs);
 }
 
+any ASTEmitter::visitExpressionStatement(CParser::ExpressionStatementContext *ctx) {
+  auto es = new ExpressionStatement();
+  es->expression = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
+
+  return static_cast<Statement *>(es);
+}
+
 any ASTEmitter::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
   auto ic = new IntegerConstant();
   ic->value = stoi(ctx->getText());

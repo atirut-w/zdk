@@ -57,6 +57,11 @@ public:
   std::unique_ptr<Expression> expression;
 };
 
+class ExpressionStatement : public Statement {
+public:
+  std::unique_ptr<Expression> expression;
+};
+
 // External declarations
 
 class ExternalDeclaration : public ASTNode {
