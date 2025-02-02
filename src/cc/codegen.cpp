@@ -79,6 +79,8 @@ bool Codegen::rused(int reg) { return used_regs & reg; }
 
 void Codegen::rfree(int reg) { used_regs &= ~reg; }
 
+int Codegen::new_label() { return label++; }
+
 void Codegen::visit(const TranslationUnit &node) {
   for (const auto &decl : node.declarations) {
     if (auto *fd = dynamic_cast<const FunctionDefinition *>(decl.get())) {
@@ -110,6 +112,8 @@ void Codegen::visit(const Expression &node, int reg) {
     visit(*ic, reg);
   } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
     visit(*be, reg);
+  } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
+    visit(*re, reg);
   } else {
     throw runtime_error("unhandled expression type");
   }
@@ -182,6 +186,69 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
   }
 
   rcpy(reg, lhs);
+  rfree(rhs);
+  if (restore) {
+    os << "\tpop hl\n";
+  }
+}
+
+void Codegen::visit(const RelationalExpression &node, int reg) {
+  int lhs, rhs;
+  bool restore = false;
+
+  if (reg == R16_HL) {
+    lhs = reg;
+    ralloc(lhs);
+  } else {
+    lhs = ralloc(R16_HL);
+    if (!lhs) {
+      lhs = R16_HL;
+      os << "\tpush hl\n";
+      restore = true;
+    }
+  }
+  visit(*node.left, lhs);
+
+  rhs = ralloc();
+  visit(*node.right, rhs);
+
+  os << "\tor a\n";
+  os << "\tsbc " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+
+  // Set 0...
+  os << "\tld " << reg_names[reg] << ", 0\n";
+  int skip = new_label();
+
+  // ...if not flag
+  switch (node.op) {
+  default:
+    throw runtime_error("unhandled relational operator");
+  case RelationalExpression::Eq:
+    os << "\tjr nz, " << skip << "f\n";
+    break;
+  case RelationalExpression::Ne:
+    os << "\tjr z, " << skip << "f\n";
+    break;
+  case RelationalExpression::Lt:
+    os << "\tjr nc, " << skip << "f\n";
+    break;
+  case RelationalExpression::Le:
+    os << "\tjr nc, " << skip << "f\n";
+    os << "\tjr nz, " << skip << "f\n";
+    break;
+  case RelationalExpression::Gt:
+    os << "\tjr c, " << skip << "f\n";
+    os << "\tjr z, " << skip << "f\n";
+    break;
+  case RelationalExpression::Ge:
+    os << "\tjr c, " << skip << "f\n";
+    break;
+  }
+
+  // Otherwise, set 1
+  os << "\tld " << reg_names[reg] << ", 1\n";
+  os << skip << ":\n";
+
   rfree(rhs);
   if (restore) {
     os << "\tpop hl\n";
