@@ -232,10 +232,13 @@ void Codegen::visit(const RelationalExpression &node, int reg) {
   case RelationalExpression::Lt:
     os << "\tjr nc, " << skip << "f\n";
     break;
-  case RelationalExpression::Le:
+  case RelationalExpression::Le: {
+    int run = new_label();
+    os << "\tjr z, " << run << "f\n";
     os << "\tjr nc, " << skip << "f\n";
-    os << "\tjr nz, " << skip << "f\n";
+    os << run << ":\n";
     break;
+  }
   case RelationalExpression::Gt:
     os << "\tjr c, " << skip << "f\n";
     os << "\tjr z, " << skip << "f\n";
