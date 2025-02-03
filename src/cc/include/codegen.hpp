@@ -10,11 +10,11 @@ class Codegen {
   int label = 0;
 
   int ralloc();
-  int ralloc(int reg);
+  int ralloc(int regs);
   // int sralloc();
   // int sralloc(int reg);
-  bool rused(int reg);
-  void rfree(int reg);
+  bool rused(int regs);
+  void rfree(int regs);
   void rcpy(int dst, int src);
 
   int new_label();

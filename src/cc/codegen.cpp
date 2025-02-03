@@ -29,8 +29,10 @@ map<int, string> reg_names = {
     {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
 };
 
+vector<int> GPR16 = {R16_BC, R16_DE, R16_HL};
+
 int Codegen::ralloc() {
-  for (int reg : {R16_BC, R16_DE, R16_HL}) {
+  for (int reg : GPR16) {
     if (!(used_regs & reg)) {
       used_regs |= reg;
       return reg;
@@ -39,12 +41,12 @@ int Codegen::ralloc() {
   return 0;
 }
 
-int Codegen::ralloc(int reg) {
-  if (used_regs & reg) {
+int Codegen::ralloc(int regs) {
+  if (used_regs & regs) {
     return 0;
   }
-  used_regs |= reg;
-  return reg;
+  used_regs |= regs;
+  return regs;
 }
 
 // int Codegen::sralloc() {
@@ -75,9 +77,9 @@ void Codegen::rcpy(int dst, int src) {
   }
 }
 
-bool Codegen::rused(int reg) { return used_regs & reg; }
+bool Codegen::rused(int regs) { return used_regs & regs; }
 
-void Codegen::rfree(int reg) { used_regs &= ~reg; }
+void Codegen::rfree(int regs) { used_regs &= ~regs; }
 
 int Codegen::new_label() { return label++; }
 
