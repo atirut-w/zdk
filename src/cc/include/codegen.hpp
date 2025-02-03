@@ -16,6 +16,8 @@ class Codegen {
   bool rused(int regs);
   void rfree(int regs);
   void rcpy(int dst, int src);
+  void rsave(int except = 0);
+  void rrestore(int except = 0);
 
   int new_label();
 

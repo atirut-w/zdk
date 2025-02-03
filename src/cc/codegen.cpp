@@ -81,6 +81,22 @@ bool Codegen::rused(int regs) { return used_regs & regs; }
 
 void Codegen::rfree(int regs) { used_regs &= ~regs; }
 
+void Codegen::rsave(int except) {
+  for (int reg : GPR16) {
+    if ((used_regs & ~except) & reg) {
+      os << "\tpush " << reg_names[reg] << "\n";
+    }
+  }
+}
+
+void Codegen::rrestore(int except) {
+  for (int reg : GPR16) {
+    if ((used_regs & ~except) & reg) {
+      os << "\tpop " << reg_names[reg] << "\n";
+    }
+  }
+}
+
 int Codegen::new_label() { return label++; }
 
 void Codegen::visit(const TranslationUnit &node) {
@@ -162,6 +178,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
   case BinaryExpression::Mul:
   case BinaryExpression::Div:
   case BinaryExpression::Mod:
+    rsave(lhs | rhs);
     os << "\tpush " << reg_names[rhs] << "\n";
     os << "\tpush " << reg_names[lhs] << "\n";
     
@@ -191,6 +208,8 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
       os << "\tinc sp\n";
       os << "\tinc sp\n";
     }
+
+    rrestore(lhs | rhs);
   }
 
   rcpy(reg, lhs);
