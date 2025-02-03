@@ -181,6 +181,9 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
     rsave(lhs | rhs);
     os << "\tpush " << reg_names[rhs] << "\n";
     os << "\tpush " << reg_names[lhs] << "\n";
+
+    // Freeing RHS early helps with stack cleanup
+    rfree(rhs);
     
     string routine;
     switch (node.op) {
