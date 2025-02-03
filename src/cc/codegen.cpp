@@ -178,7 +178,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
   case BinaryExpression::Mul:
   case BinaryExpression::Div:
   case BinaryExpression::Mod:
-    rsave(lhs | rhs);
+    rsave(lhs | rhs | reg);
     os << "\tpush " << reg_names[rhs] << "\n";
     os << "\tpush " << reg_names[lhs] << "\n";
 
@@ -212,7 +212,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
       os << "\tinc sp\n";
     }
 
-    rrestore(lhs | rhs);
+    rrestore(lhs | rhs | reg);
   }
 
   rcpy(reg, lhs);
