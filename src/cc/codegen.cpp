@@ -33,8 +33,8 @@ vector<int> GPR16 = {R16_BC, R16_DE, R16_HL};
 
 int Codegen::ralloc() {
   for (int reg : GPR16) {
-    if (!(used_regs & reg)) {
-      used_regs |= reg;
+    if (!(fctx.used_regs & reg)) {
+      fctx.used_regs |= reg;
       return reg;
     }
   }
@@ -42,10 +42,10 @@ int Codegen::ralloc() {
 }
 
 int Codegen::ralloc(int regs) {
-  if (used_regs & regs) {
+  if (fctx.used_regs & regs) {
     return 0;
   }
-  used_regs |= regs;
+  fctx.used_regs |= regs;
   return regs;
 }
 
@@ -77,9 +77,9 @@ void Codegen::rcpy(int dst, int src) {
   }
 }
 
-bool Codegen::rused(int regs) { return used_regs & regs; }
+bool Codegen::rused(int regs) { return fctx.used_regs & regs; }
 
-void Codegen::rfree(int regs) { used_regs &= ~regs; }
+void Codegen::rfree(int regs) { fctx.used_regs &= ~regs; }
 
 void Codegen::rsave(int regs) {
   for (int reg : GPR16) {
@@ -97,7 +97,7 @@ void Codegen::rrestore(int regs) {
   }
 }
 
-int Codegen::new_label() { return label++; }
+int Codegen::new_label() { return fctx.label++; }
 
 void Codegen::visit(const TranslationUnit &node) {
   for (const auto &decl : node.declarations) {
@@ -112,6 +112,8 @@ void Codegen::visit(const TranslationUnit &node) {
 }
 
 void Codegen::visit(const FunctionDefinition &node) {
+  fctx = {};
+
   os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
   for (const auto &stmt : node.body) {
@@ -191,7 +193,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
   case BinaryExpression::Mul:
   case BinaryExpression::Div:
   case BinaryExpression::Mod:
-    rsave(used_regs & ~(lhs | rhs | reg));
+    rsave(fctx.used_regs & ~(lhs | rhs | reg));
     os << "\tpush " << reg_names[rhs] << "\n";
     os << "\tpush " << reg_names[lhs] << "\n";
 
@@ -225,7 +227,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
       os << "\tinc sp\n";
     }
 
-    rrestore(used_regs & ~(lhs | rhs | reg));
+    rrestore(fctx.used_regs & ~(lhs | rhs | reg));
   }
 
   rcpy(reg, lhs);

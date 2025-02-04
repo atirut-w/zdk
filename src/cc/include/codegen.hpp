@@ -14,8 +14,10 @@ class Codegen {
 
   std::vector<Symbol> symbols;
 
-  int used_regs = 0;
-  int label = 0;
+  struct {
+    int used_regs = 0;
+    int label = 0;
+  } fctx;
 
   int ralloc();
   int ralloc(int regs);
