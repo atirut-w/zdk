@@ -103,11 +103,16 @@ void Codegen::visit(const TranslationUnit &node) {
   for (const auto &decl : node.declarations) {
     if (auto *fd = dynamic_cast<const FunctionDefinition *>(decl.get())) {
       visit(*fd);
+    } else if (auto *gd = dynamic_cast<const GlobalDeclaration *>(decl.get())) {
+      visit(*gd);
+    } else {
+      throw runtime_error("unhandled external declaration type");
     }
   }
 }
 
 void Codegen::visit(const FunctionDefinition &node) {
+  os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
   for (const auto &stmt : node.body) {
     if (auto *rs = dynamic_cast<const ReturnStatement *>(stmt.get())) {
@@ -118,6 +123,14 @@ void Codegen::visit(const FunctionDefinition &node) {
       throw runtime_error("unhandled statement type");
     }
   }
+}
+
+void Codegen::visit(const GlobalDeclaration &node) {
+  os << "\t.section .bss" << "\n";
+  os << node.name << ":" << "\n";
+  os << "\t.skip 2\n";
+
+  symbols.push_back({node.name});
 }
 
 void Codegen::visit(const ReturnStatement &node) {

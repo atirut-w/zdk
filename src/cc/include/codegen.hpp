@@ -3,9 +3,17 @@
 #include <any>
 #include <ostream>
 #include <string>
+#include <vector>
+
+struct Symbol {
+  std::string name;
+};
 
 class Codegen {
   std::ostream &os;
+
+  std::vector<Symbol> symbols;
+
   int used_regs = 0;
   int label = 0;
 
@@ -26,6 +34,7 @@ public:
 
   void visit(const TranslationUnit &node);
   void visit(const FunctionDefinition &node);
+  void visit(const GlobalDeclaration &node);
 
   void visit(const ReturnStatement &node);
   void visit(const ExpressionStatement &node);
