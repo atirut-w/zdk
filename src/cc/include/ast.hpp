@@ -74,6 +74,9 @@ public:
   std::vector<std::unique_ptr<Statement>> body;
 };
 
+class GlobalDeclaration : public ExternalDeclaration {
+};
+
 class TranslationUnit : public ASTNode {
 public:
   std::vector<std::unique_ptr<ExternalDeclaration>> declarations;

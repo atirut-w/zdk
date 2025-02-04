@@ -5,10 +5,14 @@ grammar C;
 
 translationUnit: externalDeclaration+;
 
-externalDeclaration: functionDefinition;
+externalDeclaration: functionDefinition | globalDeclaration;
 
 functionDefinition:
 	specifier* declarator declaration* '{' declaration* statement* '}';
+
+globalDeclaration:
+	specifier+ ';'				# GlobalDeclarationWithoutInit;
+	// | specifier* initDeclarator	# GlobalDeclarationWithInit;
 
 specifier: typeSpecifier;
 

@@ -25,6 +25,13 @@ any ASTEmitter::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
   return static_cast<ExternalDeclaration *>(fd);
 }
 
+any ASTEmitter::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) {
+  auto gd = new GlobalDeclaration();
+  gd->name = ctx->specifier(ctx->specifier().size() - 1)->getText();
+
+  return static_cast<ExternalDeclaration *>(gd);
+}
+
 any ASTEmitter::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   auto rs = new ReturnStatement();
 
