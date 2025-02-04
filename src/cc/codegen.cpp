@@ -81,17 +81,17 @@ bool Codegen::rused(int regs) { return used_regs & regs; }
 
 void Codegen::rfree(int regs) { used_regs &= ~regs; }
 
-void Codegen::rsave(int except) {
+void Codegen::rsave(int regs) {
   for (int reg : GPR16) {
-    if ((used_regs & ~except) & reg) {
+    if (regs & reg) {
       os << "\tpush " << reg_names[reg] << "\n";
     }
   }
 }
 
-void Codegen::rrestore(int except) {
+void Codegen::rrestore(int regs) {
   for (int reg : GPR16) {
-    if ((used_regs & ~except) & reg) {
+    if (regs & reg) {
       os << "\tpop " << reg_names[reg] << "\n";
     }
   }
@@ -178,7 +178,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
   case BinaryExpression::Mul:
   case BinaryExpression::Div:
   case BinaryExpression::Mod:
-    rsave(lhs | rhs | reg);
+    rsave(used_regs & ~(lhs | rhs | reg));
     os << "\tpush " << reg_names[rhs] << "\n";
     os << "\tpush " << reg_names[lhs] << "\n";
 
@@ -212,7 +212,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
       os << "\tinc sp\n";
     }
 
-    rrestore(lhs | rhs | reg);
+    rrestore(used_regs & ~(lhs | rhs | reg));
   }
 
   rcpy(reg, lhs);
