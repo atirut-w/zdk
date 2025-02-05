@@ -68,6 +68,15 @@ any ASTEmitter::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
   return static_cast<Statement *>(is);
 }
 
+any ASTEmitter::visitWhileStatement(CParser::WhileStatementContext *ctx) {
+  auto ws = new WhileStatement();
+
+  ws->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
+  ws->body = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement())));
+
+  return static_cast<Statement *>(ws);
+}
+
 any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
   auto id = new Identifier();
   id->name = ctx->Identifier()->getText();

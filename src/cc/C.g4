@@ -41,6 +41,7 @@ statement:
 	| expression ';'										# ExpressionStatement
 	| 'if' '(' expression ')' statement						# IfStatement
 	| 'if' '(' expression ')' statement 'else' statement	# IfElseStatement
+	| 'while' '(' expression ')' statement					# WhileStatement
 	| ';'													# NullStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence

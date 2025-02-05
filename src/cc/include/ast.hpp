@@ -80,6 +80,12 @@ public:
   std::unique_ptr<Statement> else_statement;
 };
 
+class WhileStatement : public Statement {
+public:
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Statement> body;
+};
+
 // External declarations
 
 class ExternalDeclaration : public ASTNode {
