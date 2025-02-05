@@ -47,6 +47,6 @@ public:
   void visit(const IntegerConstant &node, int reg);
   void visit(const BinaryExpression &node, int reg);
   void visit(const RelationalExpression &node, int reg);
-  void visit(const Identifier &node, int reg);
+  void visit(const IdentifierExpression &node, int reg);
   void visit(const Assignment &node, int reg);
 };

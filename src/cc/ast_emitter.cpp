@@ -93,7 +93,7 @@ any ASTEmitter::visitNullStatement(CParser::NullStatementContext *ctx) {
 }
 
 any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
-  auto id = new Identifier();
+  auto id = new IdentifierExpression();
   id->name = ctx->Identifier()->getText();
 
   return static_cast<Expression *>(id);

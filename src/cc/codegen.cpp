@@ -230,8 +230,8 @@ void Codegen::visit(const Expression &node, int reg) {
     visit(*be, reg);
   } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
     visit(*re, reg);
-  } else if (auto *id = dynamic_cast<const Identifier *>(&node)) {
-    visit(*id, reg);
+  } else if (auto *ie = dynamic_cast<const IdentifierExpression *>(&node)) {
+    visit(*ie, reg);
   } else if (auto *as = dynamic_cast<const Assignment *>(&node)) {
     visit(*as, reg);
   } else {
@@ -384,7 +384,7 @@ void Codegen::visit(const RelationalExpression &node, int reg) {
   }
 }
 
-void Codegen::visit(const Identifier &node, int reg) {
+void Codegen::visit(const IdentifierExpression &node, int reg) {
   auto it = symbols.find(node.name);
   if (it == symbols.end()) {
     throw runtime_error("undeclared identifier");
@@ -393,10 +393,10 @@ void Codegen::visit(const Identifier &node, int reg) {
 }
 
 void Codegen::visit(const Assignment &node, int reg) {
-  if (auto *id = dynamic_cast<const Identifier *>(node.lvalue.get())) {
+  if (auto *ie = dynamic_cast<const IdentifierExpression *>(node.lvalue.get())) {
     visit(*node.rvalue, reg);
     
-    auto it = symbols.find(id->name);
+    auto it = symbols.find(ie->name);
     if (it == symbols.end()) {
       throw runtime_error("undeclared identifier");
     }

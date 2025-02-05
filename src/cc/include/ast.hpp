@@ -48,7 +48,7 @@ public:
   int value;
 };
 
-class Identifier : public Expression {
+class IdentifierExpression : public Expression {
 public:
   std::string name;
 };
