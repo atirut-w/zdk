@@ -147,6 +147,8 @@ void Codegen::visit(const Statement &node) {
     visit(*is);
   } else if (auto *ws = dynamic_cast<const WhileStatement *>(&node)) {
     visit(*ws);
+  } else if (auto *fs = dynamic_cast<const ForStatement *>(&node)) {
+    visit(*fs);
   } else {
     throw runtime_error("unhandled statement type");
   }
@@ -196,6 +198,28 @@ void Codegen::visit(const WhileStatement &node) {
   visit(*node.body);
   os << "\tjp " << loop_label << "b\n";
 
+  os << skip_label << ":\n";
+}
+
+void Codegen::visit(const ForStatement &node) {
+  int reg = R16_HL;
+  visit(*node.init, reg);
+  int loop_label = new_label();
+  int skip_label = new_label();
+
+  os << loop_label << ":\n";
+  visit(*node.condition, reg);
+
+  os << "\tld a, " << reg_names[reg][0] << "\n";
+  os << "\tor " << reg_names[reg][1] << "\n";
+  os << "\tjr z, " << skip_label << "f\n";
+
+  if (node.body) {
+    visit(*node.body);
+  }
+
+  visit(*node.update, reg);
+  os << "\tjp " << loop_label << "b\n";
   os << skip_label << ":\n";
 }
 
