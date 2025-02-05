@@ -126,7 +126,9 @@ void Codegen::visit(const FunctionDefinition &node) {
   os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
   for (const auto &stmt : node.body) {
-    visit(*stmt);
+    if (stmt) {
+      visit(*stmt);
+    }
   }
 }
 
