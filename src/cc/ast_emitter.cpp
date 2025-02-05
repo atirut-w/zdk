@@ -49,6 +49,25 @@ any ASTEmitter::visitExpressionStatement(CParser::ExpressionStatementContext *ct
   return static_cast<Statement *>(es);
 }
 
+any ASTEmitter::visitIfStatement(CParser::IfStatementContext *ctx) {
+  auto is = new IfStatement();
+
+  is->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
+  is->then_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement())));
+
+  return static_cast<Statement *>(is);
+}
+
+any ASTEmitter::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
+  auto is = new IfStatement();
+
+  is->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
+  is->then_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement(0))));
+  is->else_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement(1))));
+
+  return static_cast<Statement *>(is);
+}
+
 any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
   auto id = new Identifier();
   id->name = ctx->Identifier()->getText();

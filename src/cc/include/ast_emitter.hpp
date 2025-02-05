@@ -6,8 +6,11 @@ public:
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
   virtual std::any visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) override;
+  
   virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
   virtual std::any visitExpressionStatement(CParser::ExpressionStatementContext *ctx) override;
+  virtual std::any visitIfStatement(CParser::IfStatementContext *ctx) override;
+  virtual std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
 
   virtual std::any visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) override;
   virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;

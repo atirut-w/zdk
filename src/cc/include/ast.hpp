@@ -73,6 +73,13 @@ public:
   std::unique_ptr<Expression> expression;
 };
 
+class IfStatement : public Statement {
+public:
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Statement> then_statement;
+  std::unique_ptr<Statement> else_statement;
+};
+
 // External declarations
 
 class ExternalDeclaration : public ASTNode {
