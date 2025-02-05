@@ -132,7 +132,7 @@ void Codegen::visit(const GlobalDeclaration &node) {
   os << node.name << ":" << "\n";
   os << "\t.skip 2\n";
 
-  symbols.push_back({node.name});
+  symbols[node.name] = Symbol{};
 }
 
 void Codegen::visit(const ReturnStatement &node) {
@@ -153,6 +153,10 @@ void Codegen::visit(const Expression &node, int reg) {
     visit(*be, reg);
   } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
     visit(*re, reg);
+  } else if (auto *id = dynamic_cast<const Identifier *>(&node)) {
+    visit(*id, reg);
+  } else if (auto *as = dynamic_cast<const Assignment *>(&node)) {
+    visit(*as, reg);
   } else {
     throw runtime_error("unhandled expression type");
   }
@@ -300,5 +304,28 @@ void Codegen::visit(const RelationalExpression &node, int reg) {
   rfree(rhs);
   if (restore) {
     os << "\tpop hl\n";
+  }
+}
+
+void Codegen::visit(const Identifier &node, int reg) {
+  auto it = symbols.find(node.name);
+  if (it == symbols.end()) {
+    throw runtime_error("undeclared identifier");
+  }
+  os << "\tld " << reg_names[reg] << ", (" << it->first << ")\n";
+}
+
+void Codegen::visit(const Assignment &node, int reg) {
+  if (auto *id = dynamic_cast<const Identifier *>(node.lvalue.get())) {
+    visit(*node.rvalue, reg);
+    
+    auto it = symbols.find(id->name);
+    if (it == symbols.end()) {
+      throw runtime_error("undeclared identifier");
+    }
+
+    os << "\tld (" << it->first << "), " << reg_names[reg] << "\n";
+  } else {
+    throw runtime_error("unhandled assignment type");
   }
 }

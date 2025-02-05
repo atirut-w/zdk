@@ -1,18 +1,16 @@
 #pragma once
 #include "ast.hpp"
-#include <any>
+#include <map>
 #include <ostream>
 #include <string>
-#include <vector>
 
 struct Symbol {
-  std::string name;
 };
 
 class Codegen {
   std::ostream &os;
 
-  std::vector<Symbol> symbols;
+  std::map<std::string, Symbol> symbols;
 
   struct {
     int used_regs = 0;
@@ -45,4 +43,6 @@ public:
   void visit(const IntegerConstant &node, int reg);
   void visit(const BinaryExpression &node, int reg);
   void visit(const RelationalExpression &node, int reg);
+  void visit(const Identifier &node, int reg);
+  void visit(const Assignment &node, int reg);
 };
