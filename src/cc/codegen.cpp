@@ -126,13 +126,7 @@ void Codegen::visit(const FunctionDefinition &node) {
   os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
   for (const auto &stmt : node.body) {
-    if (auto *rs = dynamic_cast<const ReturnStatement *>(stmt.get())) {
-      visit(*rs);
-    } else if (auto *es = dynamic_cast<const ExpressionStatement *>(stmt.get())) {
-      visit(*es);
-    } else {
-      throw runtime_error("unhandled statement type");
-    }
+    visit(*stmt);
   }
 }
 
@@ -144,6 +138,18 @@ void Codegen::visit(const GlobalDeclaration &node) {
   symbols[node.name] = Symbol{};
 }
 
+void Codegen::visit(const Statement &node) {
+  if (auto *rs = dynamic_cast<const ReturnStatement *>(&node)) {
+    visit(*rs);
+  } else if (auto *es = dynamic_cast<const ExpressionStatement *>(&node)) {
+    visit(*es);
+  } else if (auto *is = dynamic_cast<const IfStatement *>(&node)) {
+    visit(*is);
+  } else {
+    throw runtime_error("unhandled statement type");
+  }
+}
+
 void Codegen::visit(const ReturnStatement &node) {
   if (node.expression) {
     visit(*node.expression, R16_HL);
@@ -153,6 +159,24 @@ void Codegen::visit(const ReturnStatement &node) {
 
 void Codegen::visit(const ExpressionStatement &node) {
   visit(*node.expression, R16_HL);
+}
+
+void Codegen::visit(const IfStatement &node) {
+  int reg = R16_HL;
+  visit(*node.condition, reg);
+
+  int skip_label = new_label();
+
+  os << "\tld a, " << reg_names[reg][0] << "\n";
+  os << "\tor " << reg_names[reg][1] << "\n";
+  os << "\tjr z, " << skip_label << "f\n";
+
+  visit(*node.then_statement);
+
+  os << skip_label << ":\n";
+  if (node.else_statement) {
+    visit(*node.else_statement);
+  }
 }
 
 void Codegen::visit(const Expression &node, int reg) {
