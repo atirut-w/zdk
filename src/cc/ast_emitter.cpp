@@ -49,6 +49,13 @@ any ASTEmitter::visitExpressionStatement(CParser::ExpressionStatementContext *ct
   return static_cast<Statement *>(es);
 }
 
+any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
+  auto id = new Identifier();
+  id->name = ctx->Identifier()->getText();
+
+  return static_cast<Expression *>(id);
+}
+
 any ASTEmitter::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
   auto ic = new IntegerConstant();
   ic->value = stoi(ctx->getText());
@@ -124,4 +131,13 @@ any ASTEmitter::visitEqualityExpression(CParser::EqualityExpressionContext *ctx)
   }
 
   return static_cast<Expression *>(re);
+}
+
+any ASTEmitter::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) {
+  auto as = new Assignment();
+
+  as->lvalue = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
+  as->rvalue = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  return static_cast<Expression *>(as);
 }

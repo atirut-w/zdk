@@ -48,6 +48,17 @@ public:
   int value;
 };
 
+class Identifier : public Expression {
+public:
+  std::string name;
+};
+
+class Assignment : public Expression {
+public:
+  std::unique_ptr<Expression> lvalue;
+  std::unique_ptr<Expression> rvalue;
+};
+
 // Statements
 
 class Statement : public ASTNode {};
