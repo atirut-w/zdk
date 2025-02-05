@@ -145,6 +145,8 @@ void Codegen::visit(const Statement &node) {
     visit(*es);
   } else if (auto *is = dynamic_cast<const IfStatement *>(&node)) {
     visit(*is);
+  } else if (auto *ws = dynamic_cast<const WhileStatement *>(&node)) {
+    visit(*ws);
   } else {
     throw runtime_error("unhandled statement type");
   }
@@ -177,6 +179,24 @@ void Codegen::visit(const IfStatement &node) {
   if (node.else_statement) {
     visit(*node.else_statement);
   }
+}
+
+void Codegen::visit(const WhileStatement &node) {
+  int reg = R16_HL;
+  int loop_label = new_label();
+  int skip_label = new_label();
+
+  os << loop_label << ":\n";
+  visit(*node.condition, reg);
+
+  os << "\tld a, " << reg_names[reg][0] << "\n";
+  os << "\tor " << reg_names[reg][1] << "\n";
+  os << "\tjr z, " << skip_label << "f\n";
+
+  visit(*node.body);
+  os << "\tjp " << loop_label << "b\n";
+
+  os << skip_label << ":\n";
 }
 
 void Codegen::visit(const Expression &node, int reg) {

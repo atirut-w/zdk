@@ -40,6 +40,7 @@ public:
   void visit(const ReturnStatement &node);
   void visit(const ExpressionStatement &node);
   void visit(const IfStatement &node);
+  void visit(const WhileStatement &node);
 
   void visit(const Expression &node, int reg);
   void visit(const IntegerConstant &node, int reg);
