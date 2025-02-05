@@ -58,6 +58,7 @@ expression:
 // === Lexer rules ===
 
 Whitespace: [ \t\r\n] -> skip;
+Comment: '/*' .*? '*/' -> skip;
 
 // Keywords
 KeywordIf: 'if';
