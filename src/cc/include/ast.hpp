@@ -86,6 +86,14 @@ public:
   std::unique_ptr<Statement> body;
 };
 
+class ForStatement : public Statement {
+public:
+  std::unique_ptr<Expression> init;
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Expression> update;
+  std::unique_ptr<Statement> body;
+};
+
 // External declarations
 
 class ExternalDeclaration : public ASTNode {

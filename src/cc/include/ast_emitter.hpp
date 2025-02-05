@@ -12,6 +12,8 @@ public:
   virtual std::any visitIfStatement(CParser::IfStatementContext *ctx) override;
   virtual std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
   virtual std::any visitWhileStatement(CParser::WhileStatementContext *ctx) override;
+  virtual std::any visitForStatement(CParser::ForStatementContext *ctx) override;
+  virtual std::any visitNullStatement(CParser::NullStatementContext *ctx) override;
 
   virtual std::any visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) override;
   virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
