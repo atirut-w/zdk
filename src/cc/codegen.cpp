@@ -205,22 +205,30 @@ void Codegen::visit(const WhileStatement &node) {
 
 void Codegen::visit(const ForStatement &node) {
   int reg = R16_HL;
-  visit(*node.init, reg);
+
+  if (node.init) {
+    visit(*node.init, reg);
+  }
+
   int loop_label = new_label();
   int skip_label = new_label();
 
   os << loop_label << ":\n";
-  visit(*node.condition, reg);
+  
+  if (node.condition) {
+    visit(*node.condition, reg);
 
-  os << "\tld a, " << reg_names[reg][0] << "\n";
-  os << "\tor " << reg_names[reg][1] << "\n";
-  os << "\tjr z, " << skip_label << "f\n";
-
+    os << "\tld a, " << reg_names[reg][0] << "\n";
+    os << "\tor " << reg_names[reg][1] << "\n";
+    os << "\tjr z, " << skip_label << "f\n";
+  }
   if (node.body) {
     visit(*node.body);
   }
+  if (node.update) {
+    visit(*node.update, reg);
+  }
 
-  visit(*node.update, reg);
   os << "\tjp " << loop_label << "b\n";
   os << skip_label << ":\n";
 }
