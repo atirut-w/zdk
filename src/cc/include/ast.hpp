@@ -10,7 +10,16 @@ public:
 
 // Expressions
 
-class Expression : public ASTNode {};
+class Expression : public ASTNode {
+public:
+  enum Type {
+    Void,
+    Char,
+    Int,
+  };
+
+  Type type;
+};
 
 class BinaryExpression : public Expression {
 public:
