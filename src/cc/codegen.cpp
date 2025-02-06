@@ -133,6 +133,10 @@ void Codegen::visit(const FunctionDefinition &node) {
 
   os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
+  os << "\tpush ix\n";
+  os << "\tld ix, 0\n";
+  os << "\tadd ix, sp\n";
+
   for (const auto &stmt : node.body) {
     if (stmt) {
       visit(*stmt);
@@ -168,6 +172,8 @@ void Codegen::visit(const ReturnStatement &node) {
   if (node.expression) {
     visit(*node.expression, R16_HL);
   }
+  os << "\tld sp, ix\n";
+  os << "\tpop ix\n";
   os << "\tret" << "\n";
 }
 
