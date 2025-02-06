@@ -108,6 +108,13 @@ void Codegen::rrestore(int regs) {
 
 int Codegen::new_label() { return fctx.label++; }
 
+void Codegen::add_global(const string &name, const Symbol &symbol) {
+  if (symbols.find(name) != symbols.end()) {
+    throw runtime_error("duplicate symbol");
+  }
+  symbols[name] = symbol;
+}
+
 void Codegen::visit(const TranslationUnit &node) {
   for (const auto &decl : node.declarations) {
     if (auto *fd = dynamic_cast<const FunctionDefinition *>(decl.get())) {
@@ -122,6 +129,7 @@ void Codegen::visit(const TranslationUnit &node) {
 
 void Codegen::visit(const FunctionDefinition &node) {
   fctx = {};
+  add_global(node.name, Symbol{});
 
   os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
@@ -133,11 +141,11 @@ void Codegen::visit(const FunctionDefinition &node) {
 }
 
 void Codegen::visit(const GlobalDeclaration &node) {
+  add_global(node.name, Symbol{});
+
   os << "\t.section .bss" << "\n";
   os << node.name << ":" << "\n";
   os << "\t.skip 2\n";
-
-  symbols[node.name] = Symbol{};
 }
 
 void Codegen::visit(const Statement &node) {

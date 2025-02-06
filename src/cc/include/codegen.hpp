@@ -28,6 +28,7 @@ class Codegen {
   void rrestore(int regs = 0);
 
   int new_label();
+  void add_global(const std::string &name, const Symbol &symbol);
 
 public:
   Codegen(std::ostream &os) : os(os) {}
