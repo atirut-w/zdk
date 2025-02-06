@@ -5,6 +5,12 @@
 #include <string>
 
 struct Symbol {
+  enum Type {
+    Variable,
+    Function,
+  };
+
+  Type type;
 };
 
 class Codegen {

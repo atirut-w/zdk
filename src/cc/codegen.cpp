@@ -132,7 +132,7 @@ void Codegen::visit(const TranslationUnit &node) {
 
 void Codegen::visit(const FunctionDefinition &node) {
   fctx = {};
-  add_global(node.name, Symbol{});
+  add_global(node.name, Symbol{.type = Symbol::Function});
 
   os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
@@ -148,7 +148,7 @@ void Codegen::visit(const FunctionDefinition &node) {
 }
 
 void Codegen::visit(const GlobalDeclaration &node) {
-  add_global(node.name, Symbol{});
+  add_global(node.name, Symbol{.type = Symbol::Variable});
 
   os << "\t.section .bss" << "\n";
   os << node.name << ":" << "\n";
