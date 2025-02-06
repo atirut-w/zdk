@@ -5,18 +5,22 @@ grammar C;
 
 translationUnit: externalDeclaration+;
 
-externalDeclaration: functionDefinition;
+externalDeclaration: functionDefinition | globalDeclaration;
 
 functionDefinition:
 	specifier* declarator declaration* '{' declaration* statement* '}';
+
+globalDeclaration:
+	specifier+ ';' # GlobalDeclarationWithoutInit;
+// | specifier* initDeclarator	# GlobalDeclarationWithInit;
 
 specifier: typeSpecifier;
 
 typeSpecifier: Identifier | 'void' | 'int';
 
 declarator:
-	Identifier							# IdentifierDeclarator
-	| Identifier '(' parameters? ')'	# FunctionDeclarator;
+	Identifier						# IdentifierDeclarator
+	| Identifier '(' parameters ')'	# FunctionDeclarator;
 
 parameters: parameter (',' parameter)* (',' '...')? | 'void';
 
@@ -33,11 +37,13 @@ initializer: nonCommaExpression;
 nonCommaExpression: expression;
 
 statement:
-	'return' expression? ';'								# ReturnStatement
-	| expression ';'										# ExpressionStatement
-	| 'if' '(' expression ')' statement						# IfStatement
-	| 'if' '(' expression ')' statement 'else' statement	# IfElseStatement
-	| ';'													# NullStatement;
+	'return' expression? ';'												# ReturnStatement
+	| expression ';'														# ExpressionStatement
+	| 'if' '(' expression ')' statement										# IfStatement
+	| 'if' '(' expression ')' statement 'else' statement					# IfElseStatement
+	| 'while' '(' expression ')' statement									# WhileStatement
+	| 'for' '(' expression? ';' expression? ';' expression? ')' statement	# ForStatement
+	| ';'																	# NullStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
@@ -77,9 +83,9 @@ Semicolon: ';';
 
 // Arithmetic operators
 Increment: '++';
-Plus: '+';
+Add: '+';
 Decrement: '--';
-Minus: '-';
+Subtract: '-';
 Multiply: '*';
 Divide: '/';
 Modulo: '%';

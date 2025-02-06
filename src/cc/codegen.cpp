@@ -1,260 +1,432 @@
 #include "codegen.hpp"
-#include "CParser.h"
-#include "error.hpp"
-// #include "zir/instruction.hpp"
-#include <any>
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Value.h>
+#include "ast.hpp"
+#include <cassert>
+#include <iostream>
+#include <map>
+#include <string>
 
 using namespace std;
-using namespace antlr4;
-using namespace llvm;
 
-std::any Codegen::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
-  LLVMContext &context = module.getContext();
-  string name = dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())->Identifier()->getText();
+enum R8 {
+  R8_A = 1 << 6,
+  R8_B = 1 << 5,
+  R8_C = 1 << 4,
+  R8_D = 1 << 3,
+  R8_E = 1 << 2,
+  R8_H = 1 << 1,
+  R8_L = 1 << 0,
+};
 
-  FunctionType *function_type = FunctionType::get(Type::getInt16Ty(context), false);
-  current_function = Function::Create(function_type, Function::ExternalLinkage, name, &module);
-  current_block = BasicBlock::Create(context, "", current_function);
-  builder.SetInsertPoint(current_block);
-  variables.clear();
+enum R16 {
+  R16_BC = R8_B | R8_C,
+  R16_DE = R8_D | R8_E,
+  R16_HL = R8_H | R8_L,
+};
 
-  for (auto *declaration : ctx->declaration()) {
-    visit(declaration);
+map<int, string> reg_names = {
+    {R8_A, "a"},    {R8_B, "b"},    {R8_C, "c"},    {R8_D, "d"}, {R8_E, "e"}, {R8_H, "h"}, {R8_L, "l"},
+
+    {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
+};
+
+vector<int> GPR16 = {R16_BC, R16_DE, R16_HL};
+
+int Codegen::ralloc() {
+  for (int reg : GPR16) {
+    if (!(fctx.used_regs & reg)) {
+      fctx.used_regs |= reg;
+      return reg;
+    }
   }
-
-  for (auto *stmnt : ctx->statement()) {
-    visit(stmnt);
-  }
-
-  if (!current_block->getTerminator()) {
-    builder.CreateRet(ConstantInt::get(Type::getInt16Ty(context), 0));
-  }
-
-  return {};
+  return 0;
 }
 
-std::any Codegen::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
-  if (ctx->expression()) {
-    Value *value = any_cast<Value *>(visit(ctx->expression()));
-    builder.CreateRet(value);
+int Codegen::ralloc(int regs) {
+  if (fctx.used_regs & regs) {
+    return 0;
+  }
+  fctx.used_regs |= regs;
+  return regs;
+}
+
+// int Codegen::sralloc() {
+//   int reg = ralloc();
+//   if (!reg) {
+//     throw runtime_error("out of registers");
+//   }
+//   return reg;
+// }
+
+// int Codegen::sralloc(int reg) {
+//   if (used_regs & reg) {
+//     throw runtime_error("register already in use");
+//   }
+//   return ralloc(reg);
+// }
+
+void Codegen::rcpy(int dst, int src) {
+  string dstname = reg_names[dst];
+  string srcname = reg_names[src];
+
+  if (dst == src) {
+    return;
+  }
+
+  for (int i = 0; i < 2; i++) {
+    os << "\tld " << dstname[1 - i] << ", " << srcname[1 - i] << "\n";
+  }
+}
+
+bool Codegen::rused(int regs) { return fctx.used_regs & regs; }
+
+void Codegen::rfree(int regs) { fctx.used_regs &= ~regs; }
+
+void Codegen::rsave(int regs) {
+  if (regs & R8_A) {
+    os << "\tpush af\n";
+  }
+
+  for (int reg : GPR16) {
+    if (regs & reg) {
+      os << "\tpush " << reg_names[reg] << "\n";
+    }
+  }
+}
+
+void Codegen::rrestore(int regs) {
+  for (int i = GPR16.size() - 1; i >= 0; i--) {
+    int reg = GPR16[i];
+    if (regs & reg) {
+      os << "\tpop " << reg_names[reg] << "\n";
+    }
+  }
+
+  if (regs & R8_A) {
+    os << "\tpop af\n";
+  }
+}
+
+int Codegen::new_label() { return fctx.label++; }
+
+void Codegen::add_global(const string &name, const Symbol &symbol) {
+  if (symbols.find(name) != symbols.end()) {
+    throw runtime_error("duplicate symbol");
+  }
+  symbols[name] = symbol;
+}
+
+void Codegen::visit(const TranslationUnit &node) {
+  for (const auto &decl : node.declarations) {
+    if (auto *fd = dynamic_cast<const FunctionDefinition *>(decl.get())) {
+      visit(*fd);
+    } else if (auto *gd = dynamic_cast<const GlobalDeclaration *>(decl.get())) {
+      visit(*gd);
+    } else {
+      throw runtime_error("unhandled external declaration type");
+    }
+  }
+}
+
+void Codegen::visit(const FunctionDefinition &node) {
+  fctx = {};
+  add_global(node.name, Symbol{});
+
+  os << "\t.section .text" << "\n";
+  os << node.name << ":" << "\n";
+  os << "\tpush ix\n";
+  os << "\tld ix, 0\n";
+  os << "\tadd ix, sp\n";
+
+  for (const auto &stmt : node.body) {
+    if (stmt) {
+      visit(*stmt);
+    }
+  }
+}
+
+void Codegen::visit(const GlobalDeclaration &node) {
+  add_global(node.name, Symbol{});
+
+  os << "\t.section .bss" << "\n";
+  os << node.name << ":" << "\n";
+  os << "\t.skip 2\n";
+}
+
+void Codegen::visit(const Statement &node) {
+  if (auto *rs = dynamic_cast<const ReturnStatement *>(&node)) {
+    visit(*rs);
+  } else if (auto *es = dynamic_cast<const ExpressionStatement *>(&node)) {
+    visit(*es);
+  } else if (auto *is = dynamic_cast<const IfStatement *>(&node)) {
+    visit(*is);
+  } else if (auto *ws = dynamic_cast<const WhileStatement *>(&node)) {
+    visit(*ws);
+  } else if (auto *fs = dynamic_cast<const ForStatement *>(&node)) {
+    visit(*fs);
   } else {
-    builder.CreateRetVoid();
+    throw runtime_error("unhandled statement type");
   }
-  return {};
 }
 
-std::any Codegen::visitIfStatement(CParser::IfStatementContext *ctx) {
-  LLVMContext &context = module.getContext();
-  BasicBlock *then_block = BasicBlock::Create(context, "", current_function);
-  BasicBlock *end_block = BasicBlock::Create(context, "", current_function);
-
-  Value *condition = any_cast<Value *>(visit(ctx->expression()));
-  auto *cmp = builder.CreateICmpNE(condition, ConstantInt::get(Type::getInt16Ty(context), 0));
-  builder.CreateCondBr(cmp, then_block, end_block);
-
-  builder.SetInsertPoint(then_block);
-  visit(ctx->statement());
-  if (!then_block->getTerminator()) {
-    builder.CreateBr(end_block);
+void Codegen::visit(const ReturnStatement &node) {
+  if (node.expression) {
+    visit(*node.expression, R16_HL);
   }
-
-  builder.SetInsertPoint(end_block);
-  return {};
+  os << "\tld sp, ix\n";
+  os << "\tpop ix\n";
+  os << "\tret" << "\n";
 }
 
-std::any Codegen::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
-  LLVMContext &context = module.getContext();
-  BasicBlock *then_block = BasicBlock::Create(context, "", current_function);
-  BasicBlock *else_block = BasicBlock::Create(context, "", current_function);
-  BasicBlock *end_block = BasicBlock::Create(context, "", current_function);
-
-  Value *condition = any_cast<Value *>(visit(ctx->expression()));
-  auto *cmp = builder.CreateICmpNE(condition, ConstantInt::get(Type::getInt16Ty(context), 0));
-  builder.CreateCondBr(cmp, then_block, else_block);
-
-  builder.SetInsertPoint(then_block);
-  visit(ctx->statement(0));
-  if (!then_block->getTerminator()) {
-    builder.CreateBr(end_block);
-  }
-
-  builder.SetInsertPoint(else_block);
-  visit(ctx->statement(1));
-  if (!else_block->getTerminator()) {
-    builder.CreateBr(end_block);
-  }
-
-  builder.SetInsertPoint(end_block);
-  return {};
+void Codegen::visit(const ExpressionStatement &node) {
+  visit(*node.expression, R16_HL);
 }
 
-std::any Codegen::visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) {
-  for (auto *declarator : ctx->initDeclarator()) {
-    string name = declarator->declarator()->getText();
-    variables[name] = {Type::getInt16Ty(module.getContext()), builder.CreateAlloca(Type::getInt16Ty(module.getContext()))};
+void Codegen::visit(const IfStatement &node) {
+  int reg = R16_HL;
+  visit(*node.condition, reg);
+
+  int skip_label = new_label();
+
+  os << "\tld a, " << reg_names[reg][0] << "\n";
+  os << "\tor " << reg_names[reg][1] << "\n";
+  os << "\tjr z, " << skip_label << "f\n";
+
+  visit(*node.then_statement);
+
+  os << skip_label << ":\n";
+  if (node.else_statement) {
+    visit(*node.else_statement);
+  }
+}
+
+void Codegen::visit(const WhileStatement &node) {
+  int reg = R16_HL;
+  int loop_label = new_label();
+  int skip_label = new_label();
+
+  os << loop_label << ":\n";
+  visit(*node.condition, reg);
+
+  os << "\tld a, " << reg_names[reg][0] << "\n";
+  os << "\tor " << reg_names[reg][1] << "\n";
+  os << "\tjr z, " << skip_label << "f\n";
+
+  visit(*node.body);
+  os << "\tjp " << loop_label << "b\n";
+
+  os << skip_label << ":\n";
+}
+
+void Codegen::visit(const ForStatement &node) {
+  int reg = R16_HL;
+
+  if (node.init) {
+    visit(*node.init, reg);
+  }
+
+  int loop_label = new_label();
+  int skip_label = new_label();
+
+  os << loop_label << ":\n";
+  
+  if (node.condition) {
+    visit(*node.condition, reg);
+
+    os << "\tld a, " << reg_names[reg][0] << "\n";
+    os << "\tor " << reg_names[reg][1] << "\n";
+    os << "\tjr z, " << skip_label << "f\n";
+  }
+  if (node.body) {
+    visit(*node.body);
+  }
+  if (node.update) {
+    visit(*node.update, reg);
+  }
+
+  os << "\tjp " << loop_label << "b\n";
+  os << skip_label << ":\n";
+}
+
+void Codegen::visit(const Expression &node, int reg) {
+  if (auto *ic = dynamic_cast<const IntegerConstant *>(&node)) {
+    visit(*ic, reg);
+  } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
+    visit(*be, reg);
+  } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
+    visit(*re, reg);
+  } else if (auto *ie = dynamic_cast<const IdentifierExpression *>(&node)) {
+    visit(*ie, reg);
+  } else if (auto *as = dynamic_cast<const Assignment *>(&node)) {
+    visit(*as, reg);
+  } else {
+    throw runtime_error("unhandled expression type");
+  }
+}
+
+void Codegen::visit(const IntegerConstant &node, int reg) {
+  os << "\tld " << reg_names[reg] << ", " << node.value << "\n";
+}
+
+void Codegen::visit(const BinaryExpression &node, int reg) {
+  int lhs, rhs;
+  bool restore = false;
+
+  if (reg == R16_HL) {
+    lhs = reg;
+    ralloc(lhs);
+  } else {
+    lhs = ralloc(R16_HL);
+    if (!lhs) {
+      lhs = R16_HL;
+      os << "\tpush hl\n";
+      restore = true;
+    }
+  }
+  visit(*node.left, lhs);
+
+  rhs = ralloc();
+  visit(*node.right, rhs);
+
+  switch (node.op) {
+  case BinaryExpression::Add:
+    os << "\tadd " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+    break;
+  case BinaryExpression::Sub:
+    os << "\tor a\n";
+    os << "\tsbc " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+    break;
+  case BinaryExpression::Mul:
+  case BinaryExpression::Div:
+  case BinaryExpression::Mod:
+    rsave(fctx.used_regs & ~(lhs | rhs | reg));
+    os << "\tpush " << reg_names[rhs] << "\n";
+    os << "\tpush " << reg_names[lhs] << "\n";
+
+    // Freeing RHS early helps with stack cleanup
+    rfree(rhs);
     
-    Value *value = any_cast<Value *>(visit(declarator->initializer()));
-    builder.CreateStore(value, variables[name].alloca);
-  }
+    string routine;
+    switch (node.op) {
+    case BinaryExpression::Mul:
+      routine = "__mulsi3";
+      break;
+    case BinaryExpression::Div:
+      routine = "__divsi3";
+      break;
+    case BinaryExpression::Mod:
+      routine = "__modsi3";
+      break;
+    }
+    os << "\tcall " << routine << "\n";
 
-  return {};
-}
-
-std::any Codegen::visitDeclarationWithoutInit(CParser::DeclarationWithoutInitContext *ctx) {
-  string name = ctx->specifier().back()->getText();
-  variables[name] = {Type::getInt16Ty(module.getContext()), builder.CreateAlloca(Type::getInt16Ty(module.getContext()))};
-  return {};
-}
-
-std::any Codegen::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
-  string name = ctx->Identifier()->getText();
-  if (!variables.count(name)) {
-    throw SemanticError(ctx, "use of undeclared identifier '" + name + "'");
-  }
-
-  return static_cast<Value *>(builder.CreateLoad(variables[name].type, variables[name].alloca));
-}
-
-std::any Codegen::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
-  return static_cast<Value *>(ConstantInt::get(Type::getInt16Ty(module.getContext()), stoi(ctx->getText())));
-}
-
-std::any Codegen::visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) { return visit(ctx->expression()); }
-
-std::any Codegen::visitNegationExpression(CParser::NegationExpressionContext *ctx) {
-  Value *value = any_cast<Value *>(visit(ctx->expression()));
-  return builder.CreateNeg(value);
-}
-
-std::any Codegen::visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) {
-  Value *value = any_cast<Value *>(visit(ctx->expression()));
-  return builder.CreateNot(value);
-}
-
-std::any Codegen::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
-  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-
-  if (ctx->Multiply()) {
-    return builder.CreateMul(lhs, rhs);
-  } else if (ctx->Divide()) {
-    return builder.CreateSDiv(lhs, rhs);
-  } else if (ctx->Modulo()) {
-    return builder.CreateSRem(lhs, rhs);
-  }
-
-  throw runtime_error("unknown operator");
-}
-
-std::any Codegen::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
-  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-
-  if (ctx->Plus()) {
-    return builder.CreateAdd(lhs, rhs);
-  } else if (ctx->Minus()) {
-    return builder.CreateSub(lhs, rhs);
-  }
-
-  throw runtime_error("unknown operator");
-}
-
-std::any Codegen::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
-  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-
-  Value *cmp = nullptr;
-  if (ctx->Less()) {
-    cmp = builder.CreateICmpSLT(lhs, rhs);
-  } else if (ctx->LessEqual()) {
-    cmp = builder.CreateICmpSLE(lhs, rhs);
-  } else if (ctx->Greater()) {
-    cmp = builder.CreateICmpSGT(lhs, rhs);
-  } else if (ctx->GreaterEqual()) {
-    cmp = builder.CreateICmpSGE(lhs, rhs);
-  }
-
-  return builder.CreateZExt(cmp, Type::getInt16Ty(module.getContext()));
-}
-
-std::any Codegen::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
-  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-
-  Value *cmp = nullptr;
-  if (ctx->Equal()) {
-    cmp = builder.CreateICmpEQ(lhs, rhs);
-  } else if (ctx->NotEqual()) {
-    cmp = builder.CreateICmpNE(lhs, rhs);
-  }
-
-  return builder.CreateZExt(cmp, Type::getInt16Ty(module.getContext()));
-}
-
-std::any Codegen::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
-  LLVMContext &context = module.getContext();
-  BasicBlock *rhs_block = BasicBlock::Create(context, "", current_function);
-  BasicBlock *end_block = BasicBlock::Create(context, "", current_function);
-
-  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  auto *cmp = builder.CreateICmpNE(lhs, ConstantInt::get(Type::getInt16Ty(context), 0));
-  builder.CreateCondBr(cmp, rhs_block, end_block);
-
-  builder.SetInsertPoint(rhs_block);
-  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-  cmp = builder.CreateICmpNE(rhs, ConstantInt::get(Type::getInt16Ty(context), 0));
-  builder.CreateBr(end_block);
-
-  builder.SetInsertPoint(end_block);
-  PHINode *phi = builder.CreatePHI(Type::getInt16Ty(context), 2);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(context), 0), current_block);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(context), 1), rhs_block);
-
-  return static_cast<Value *>(phi);
-}
-
-std::any Codegen::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
-  LLVMContext &context = module.getContext();
-  BasicBlock *rhs_block = BasicBlock::Create(context, "", current_function);
-  BasicBlock *end_block = BasicBlock::Create(context, "", current_function);
-
-  Value *lhs = any_cast<Value *>(visit(ctx->expression(0)));
-  auto *cmp = builder.CreateICmpNE(lhs, ConstantInt::get(Type::getInt16Ty(context), 0));
-  builder.CreateCondBr(cmp, end_block, rhs_block);
-
-  builder.SetInsertPoint(rhs_block);
-  Value *rhs = any_cast<Value *>(visit(ctx->expression(1)));
-  cmp = builder.CreateICmpNE(rhs, ConstantInt::get(Type::getInt16Ty(context), 0));
-  builder.CreateBr(end_block);
-
-  builder.SetInsertPoint(end_block);
-  PHINode *phi = builder.CreatePHI(Type::getInt16Ty(context), 2);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(context), 1), current_block);
-  phi->addIncoming(ConstantInt::get(Type::getInt16Ty(context), 0), rhs_block);
-
-  return static_cast<Value *>(phi);
-}
-
-std::any Codegen::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) {
-  CParser::ExpressionContext *lhs_ctx = ctx->expression(0);
-  CParser::ExpressionContext *rhs_ctx = ctx->expression(1);
-
-  if (auto *ident_expr = dynamic_cast<CParser::IdentifierExpressionContext *>(lhs_ctx)) {
-    string name = ident_expr->Identifier()->getText();
-    if (!variables.count(name)) {
-      throw SemanticError(ctx, "use of undeclared identifier '" + name + "'");
+    // TODO: Improve stack cleanup
+    int dump = ralloc();
+    if (dump) {
+      os << "\tpop " << reg_names[dump] << "\n";
+      os << "\tpop " << reg_names[dump] << "\n";
+      rfree(dump);
+    } else {
+      os << "\tinc sp\n";
+      os << "\tinc sp\n";
+      os << "\tinc sp\n";
+      os << "\tinc sp\n";
     }
 
-    Value *value = any_cast<Value *>(visit(rhs_ctx));
-    builder.CreateStore(value, variables[name].alloca);
-    return value;
-  } else {
-    throw runtime_error("unsupported lvalue");
+    rrestore(fctx.used_regs & ~(lhs | rhs | reg));
   }
 
-  return {};
+  rcpy(reg, lhs);
+  rfree(rhs);
+  if (restore) {
+    os << "\tpop hl\n";
+  }
+}
+
+void Codegen::visit(const RelationalExpression &node, int reg) {
+  int lhs, rhs;
+  bool restore = false;
+
+  if (reg == R16_HL) {
+    lhs = reg;
+    ralloc(lhs);
+  } else {
+    lhs = ralloc(R16_HL);
+    if (!lhs) {
+      lhs = R16_HL;
+      os << "\tpush hl\n";
+      restore = true;
+    }
+  }
+  visit(*node.left, lhs);
+
+  rhs = ralloc();
+  visit(*node.right, rhs);
+
+  os << "\tor a\n";
+  os << "\tsbc " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+
+  // Set 0...
+  os << "\tld " << reg_names[reg] << ", 0\n";
+  int skip = new_label();
+
+  // ...if not flag
+  switch (node.op) {
+  default:
+    throw runtime_error("unhandled relational operator");
+  case RelationalExpression::Eq:
+    os << "\tjr nz, " << skip << "f\n";
+    break;
+  case RelationalExpression::Ne:
+    os << "\tjr z, " << skip << "f\n";
+    break;
+  case RelationalExpression::Lt:
+    os << "\tjr nc, " << skip << "f\n";
+    break;
+  case RelationalExpression::Le: {
+    int run = new_label();
+    os << "\tjr z, " << run << "f\n";
+    os << "\tjr nc, " << skip << "f\n";
+    os << run << ":\n";
+    break;
+  }
+  case RelationalExpression::Gt:
+    os << "\tjr c, " << skip << "f\n";
+    os << "\tjr z, " << skip << "f\n";
+    break;
+  case RelationalExpression::Ge:
+    os << "\tjr c, " << skip << "f\n";
+    break;
+  }
+
+  // Otherwise, set 1
+  os << "\tld " << reg_names[reg] << ", 1\n";
+  os << skip << ":\n";
+
+  rfree(rhs);
+  if (restore) {
+    os << "\tpop hl\n";
+  }
+}
+
+void Codegen::visit(const IdentifierExpression &node, int reg) {
+  auto it = symbols.find(node.name);
+  if (it == symbols.end()) {
+    throw runtime_error("undeclared identifier");
+  }
+  os << "\tld " << reg_names[reg] << ", (" << it->first << ")\n";
+}
+
+void Codegen::visit(const Assignment &node, int reg) {
+  if (auto *ie = dynamic_cast<const IdentifierExpression *>(node.lvalue.get())) {
+    visit(*node.rvalue, reg);
+    
+    auto it = symbols.find(ie->name);
+    if (it == symbols.end()) {
+      throw runtime_error("undeclared identifier");
+    }
+
+    os << "\tld (" << it->first << "), " << reg_names[reg] << "\n";
+  } else {
+    throw runtime_error("unhandled assignment type");
+  }
 }

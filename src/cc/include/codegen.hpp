@@ -1,49 +1,53 @@
 #pragma once
-#include "CBaseVisitor.h"
-#include "llvm/IR/IRBuilder.h"
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Value.h>
+#include "ast.hpp"
+#include <map>
+#include <ostream>
 #include <string>
 
-struct Variable {
-  llvm::Type *type;
-  llvm::AllocaInst *alloca;
+struct Symbol {
 };
 
-class Codegen : public CBaseVisitor {
-  llvm::Module &module;
+class Codegen {
+  std::ostream &os;
 
-  llvm::Function *current_function = nullptr;
-  llvm::BasicBlock *current_block = nullptr;
-  llvm::IRBuilder<> builder;
-  std::map<std::string, Variable> variables;
+  std::map<std::string, Symbol> symbols;
 
-  virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
-  virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
-  virtual std::any visitIfStatement(CParser::IfStatementContext *ctx) override;
-  virtual std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
+  struct {
+    int used_regs = 0;
+    int label = 0;
+  } fctx;
 
-  virtual std::any visitDeclarationWithInit(CParser::DeclarationWithInitContext *ctx) override;
-  virtual std::any visitDeclarationWithoutInit(CParser::DeclarationWithoutInitContext *ctx) override;
+  int ralloc();
+  int ralloc(int regs);
+  // int sralloc();
+  // int sralloc(int reg);
+  bool rused(int regs);
+  void rfree(int regs);
+  void rcpy(int dst, int src);
+  void rsave(int regs = 0);
+  void rrestore(int regs = 0);
 
-  // Expressions in order of precedence
-  virtual std::any visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) override;
-  virtual std::any visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) override;
-  virtual std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
-  virtual std::any visitNegationExpression(CParser::NegationExpressionContext *ctx) override;
-  virtual std::any visitBitwiseNotExpression(CParser::BitwiseNotExpressionContext *ctx) override;
-  virtual std::any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
-  virtual std::any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
-  virtual std::any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
-  virtual std::any visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
-  virtual std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
-  virtual std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
-  virtual std::any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
+  int new_label();
+  void add_global(const std::string &name, const Symbol &symbol);
 
 public:
-  Codegen(llvm::Module &module) : module(module), builder(module.getContext()) {}
+  Codegen(std::ostream &os) : os(os) {}
 
-  llvm::Module &get_module() { return module; }
+  void visit(const TranslationUnit &node);
+  void visit(const FunctionDefinition &node);
+  void visit(const GlobalDeclaration &node);
+
+  void visit(const Statement &node);
+  void visit(const ReturnStatement &node);
+  void visit(const ExpressionStatement &node);
+  void visit(const IfStatement &node);
+  void visit(const WhileStatement &node);
+  void visit(const ForStatement &node);
+
+  void visit(const Expression &node, int reg);
+  void visit(const IntegerConstant &node, int reg);
+  void visit(const BinaryExpression &node, int reg);
+  void visit(const RelationalExpression &node, int reg);
+  void visit(const IdentifierExpression &node, int reg);
+  void visit(const Assignment &node, int reg);
 };
