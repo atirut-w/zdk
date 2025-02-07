@@ -16,7 +16,7 @@ globalDeclaration:
 
 specifier: typeSpecifier;
 
-typeSpecifier: Identifier | 'void' | 'int';
+typeSpecifier: Identifier | 'void' | 'char' | 'int';
 
 declarator:
 	Identifier						# IdentifierDeclarator
@@ -71,6 +71,7 @@ KeywordIf: 'if';
 KeywordElse: 'else';
 KeywordReturn: 'return';
 KeywordVoid: 'void';
+KeywordChar: 'char';
 KeywordInt: 'int';
 
 // Punctuations
