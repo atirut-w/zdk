@@ -8,25 +8,27 @@
 using namespace std;
 
 enum R8 {
-  R8_A = 1 << 6,
-  R8_B = 1 << 5,
-  R8_C = 1 << 4,
-  R8_D = 1 << 3,
-  R8_E = 1 << 2,
-  R8_H = 1 << 1,
-  R8_L = 1 << 0,
+  R8_A = 1 << 0,
+  R8_F = 1 << 1,
+  R8_B = 1 << 2,
+  R8_C = 1 << 3,
+  R8_D = 1 << 4,
+  R8_E = 1 << 5,
+  R8_H = 1 << 6,
+  R8_L = 1 << 7,
 };
 
 enum R16 {
+  R16_AF = R8_A | R8_F,
   R16_BC = R8_B | R8_C,
   R16_DE = R8_D | R8_E,
   R16_HL = R8_H | R8_L,
 };
 
 map<int, string> reg_names = {
-    {R8_A, "a"},    {R8_B, "b"},    {R8_C, "c"},    {R8_D, "d"}, {R8_E, "e"}, {R8_H, "h"}, {R8_L, "l"},
+    {R8_A, "a"},    {R8_B, "b"},    {R8_C, "c"},    {R8_D, "d"},    {R8_E, "e"}, {R8_H, "h"}, {R8_L, "l"},
 
-    {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
+    {R16_AF, "af"}, {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
 };
 
 vector<int> GPR16 = {R16_BC, R16_DE, R16_HL};
@@ -86,7 +88,7 @@ void Codegen::rsave(int regs) {
     os << "\tpush af\n";
   }
 
-  for (int reg : GPR16) {
+  for (int reg : {R16_AF, R16_BC, R16_DE, R16_HL}) {
     if (regs & reg) {
       os << "\tpush " << reg_names[reg] << "\n";
     }
@@ -94,8 +96,9 @@ void Codegen::rsave(int regs) {
 }
 
 void Codegen::rrestore(int regs) {
-  for (int i = GPR16.size() - 1; i >= 0; i--) {
-    int reg = GPR16[i];
+  vector<int> list = {R16_AF, R16_BC, R16_DE, R16_HL};
+  for (int i = list.size() - 1; i >= 0; i--) {
+    int reg = list[i];
     if (regs & reg) {
       os << "\tpop " << reg_names[reg] << "\n";
     }
@@ -177,9 +180,7 @@ void Codegen::visit(const ReturnStatement &node) {
   os << "\tret" << "\n";
 }
 
-void Codegen::visit(const ExpressionStatement &node) {
-  visit(*node.expression, R16_HL);
-}
+void Codegen::visit(const ExpressionStatement &node) { visit(*node.expression, R16_HL); }
 
 void Codegen::visit(const IfStatement &node) {
   int reg = R16_HL;
@@ -228,7 +229,7 @@ void Codegen::visit(const ForStatement &node) {
   int skip_label = new_label();
 
   os << loop_label << ":\n";
-  
+
   if (node.condition) {
     visit(*node.condition, reg);
 
@@ -263,9 +264,7 @@ void Codegen::visit(const Expression &node, int reg) {
   }
 }
 
-void Codegen::visit(const IntegerConstant &node, int reg) {
-  os << "\tld " << reg_names[reg] << ", " << node.value << "\n";
-}
+void Codegen::visit(const IntegerConstant &node, int reg) { os << "\tld " << reg_names[reg] << ", " << node.value << "\n"; }
 
 void Codegen::visit(const BinaryExpression &node, int reg) {
   int lhs, rhs;
@@ -304,7 +303,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
 
     // Freeing RHS early helps with stack cleanup
     rfree(rhs);
-    
+
     string routine;
     switch (node.op) {
     case BinaryExpression::Mul:
@@ -419,7 +418,7 @@ void Codegen::visit(const IdentifierExpression &node, int reg) {
 void Codegen::visit(const Assignment &node, int reg) {
   if (auto *ie = dynamic_cast<const IdentifierExpression *>(node.lvalue.get())) {
     visit(*node.rvalue, reg);
-    
+
     auto it = symbols.find(ie->name);
     if (it == symbols.end()) {
       throw runtime_error("undeclared identifier");
