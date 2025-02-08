@@ -1,8 +1,17 @@
 #pragma once
 #include "CBaseVisitor.h"
+#include "CParser.h"
+#include "symtab.hpp"
+#include "type.hpp"
+#include <vector>
 
 class ASTEmitter : public CBaseVisitor {
+  Type parse_type(std::vector<CParser::TypeSpecifierContext *> specifiers);
+  void add_global(const std::string &name, const Symbol &sym);
+
 public:
+  Symtab symtab;
+
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
   virtual std::any visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) override;

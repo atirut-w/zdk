@@ -1,8 +1,50 @@
 #include "ast_emitter.hpp"
 #include "ast.hpp"
+#include "type.hpp"
 #include <memory>
 
 using namespace std;
+
+Type ASTEmitter::parse_type(vector<CParser::TypeSpecifierContext *> specifiers) {
+  Type type = Type::None;
+
+  for (auto specifier : specifiers) {
+    switch (type) {
+    default:
+      throw runtime_error("invalid type specifier");
+    case Type::None:
+      if (specifier->Void()) {
+        type = Type::Void;
+      } else if (specifier->Char()) {
+        type = Type::Char;
+      } else if (specifier->Int()) {
+        type = Type::Int;
+      } else {
+        throw runtime_error("invalid type specifier");
+      }
+      break;
+    case Type::Void:
+      // Allow no other type specifiers
+      throw runtime_error("too many type specifiers");
+    case Type::Char:
+      // TODO: Implement type modifiers
+      throw runtime_error("unimplemented");
+    case Type::Int:
+      // TODO: Implement type modifiers
+      throw runtime_error("unimplemented");
+    }
+  }
+
+  return type;
+}
+
+void ASTEmitter::add_global(const string &name, const Symbol &sym) {
+  if (symtab.gsym.find(name) != symtab.gsym.end()) {
+    throw runtime_error("redeclaration of global symbol");
+  }
+
+  symtab.gsym[name] = sym;
+}
 
 any ASTEmitter::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
   auto tu = new TranslationUnit();
@@ -18,6 +60,15 @@ any ASTEmitter::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
   auto fd = new FunctionDefinition();
   fd->name = dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())->Identifier()->getText();
 
+  vector<CParser::TypeSpecifierContext *> typespecs;
+  for (auto specifier : ctx->specifier()) {
+    if (auto *ts = specifier->typeSpecifier()) {
+      typespecs.push_back(ts);
+    }
+  }
+
+  add_global(fd->name, Symbol{.kind = Symbol::Function, .type = parse_type(typespecs)});
+
   for (auto stmt : ctx->statement()) {
     fd->body.push_back(unique_ptr<Statement>(any_cast<Statement *>(visit(stmt))));
   }
@@ -27,7 +78,18 @@ any ASTEmitter::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
 
 any ASTEmitter::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) {
   auto gd = new GlobalDeclaration();
-  gd->name = ctx->specifier(ctx->specifier().size() - 1)->getText();
+  string name = ctx->specifier(ctx->specifier().size() - 1)->getText();
+  gd->name = name;
+  
+  vector<CParser::TypeSpecifierContext *> typespecs;
+  for (auto specifier : ctx->specifier()) {
+    if (auto *ts = specifier->typeSpecifier()) {
+      typespecs.push_back(ts);
+    }
+  }
+  typespecs.pop_back(); // Pop trailing identifier
+  add_global(name, Symbol{.kind = Symbol::Function, .type = parse_type(typespecs)});
+
 
   return static_cast<ExternalDeclaration *>(gd);
 }

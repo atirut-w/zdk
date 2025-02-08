@@ -67,12 +67,12 @@ Whitespace: [ \t\r\n] -> skip;
 Comment: '/*' .*? '*/' -> skip;
 
 // Keywords
-KeywordIf: 'if';
-KeywordElse: 'else';
-KeywordReturn: 'return';
-KeywordVoid: 'void';
-KeywordChar: 'char';
-KeywordInt: 'int';
+If: 'if';
+Else: 'else';
+Return: 'return';
+Void: 'void';
+Char: 'char';
+Int: 'int';
 
 // Punctuations
 LeftParen: '(';

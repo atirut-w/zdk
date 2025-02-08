@@ -1,22 +1,13 @@
 #pragma once
 #include "ast.hpp"
+#include "symtab.hpp"
 #include <map>
 #include <ostream>
 #include <string>
 
-struct Symbol {
-  enum Type {
-    Variable,
-    Function,
-  };
-
-  Type type;
-};
-
 class Codegen {
   std::ostream &os;
-
-  std::map<std::string, Symbol> symbols;
+  Symtab symtab;
 
   struct {
     int used_regs = 0;
@@ -34,10 +25,10 @@ class Codegen {
   void rrestore(int regs = 0);
 
   int new_label();
-  void add_global(const std::string &name, const Symbol &symbol);
+  // void add_global(const std::string &name, const Symbol &symbol);
 
 public:
-  Codegen(std::ostream &os) : os(os) {}
+  Codegen(std::ostream &os, Symtab symtab) : os(os), symtab(symtab) {}
 
   void visit(const TranslationUnit &node);
   void visit(const FunctionDefinition &node);

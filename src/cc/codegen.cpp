@@ -111,30 +111,36 @@ void Codegen::rrestore(int regs) {
 
 int Codegen::new_label() { return fctx.label++; }
 
-void Codegen::add_global(const string &name, const Symbol &symbol) {
-  if (symbols.find(name) != symbols.end()) {
-    throw runtime_error("duplicate symbol");
-  }
-  symbols[name] = symbol;
-}
+// void Codegen::add_global(const string &name, const Symbol &symbol) {
+//   if (symtab.gsym.find(name) != symtab.gsym.end()) {
+//     throw runtime_error("duplicate symbol");
+//   }
+//   symtab.gsym[name] = symbol;
+// }
 
 void Codegen::visit(const TranslationUnit &node) {
+  vector<const GlobalDeclaration *> globals;
+
   for (const auto &decl : node.declarations) {
     if (auto *fd = dynamic_cast<const FunctionDefinition *>(decl.get())) {
       visit(*fd);
     } else if (auto *gd = dynamic_cast<const GlobalDeclaration *>(decl.get())) {
-      visit(*gd);
+      globals.push_back(gd);
     } else {
       throw runtime_error("unhandled external declaration type");
     }
+  }
+
+  os << "\t.section .bss\n";
+  for (const auto &gd : globals) {
+    visit(*gd);
   }
 }
 
 void Codegen::visit(const FunctionDefinition &node) {
   fctx = {};
-  add_global(node.name, Symbol{.type = Symbol::Function});
+  // add_global(node.name, Symbol{.kind = Symbol::Function});
 
-  os << "\t.section .text" << "\n";
   os << node.name << ":" << "\n";
   os << "\tpush ix\n";
   os << "\tld ix, 0\n";
@@ -148,9 +154,6 @@ void Codegen::visit(const FunctionDefinition &node) {
 }
 
 void Codegen::visit(const GlobalDeclaration &node) {
-  add_global(node.name, Symbol{.type = Symbol::Variable});
-
-  os << "\t.section .bss" << "\n";
   os << node.name << ":" << "\n";
   os << "\t.skip 2\n";
 }
@@ -412,8 +415,8 @@ void Codegen::visit(const RelationalExpression &node, int reg) {
 }
 
 void Codegen::visit(const IdentifierExpression &node, int reg) {
-  auto it = symbols.find(node.name);
-  if (it == symbols.end()) {
+  auto it = symtab.gsym.find(node.name);
+  if (it == symtab.gsym.end()) {
     throw runtime_error("undeclared identifier");
   }
   os << "\tld " << reg_names[reg] << ", (" << it->first << ")\n";
@@ -423,8 +426,8 @@ void Codegen::visit(const Assignment &node, int reg) {
   if (auto *ie = dynamic_cast<const IdentifierExpression *>(node.lvalue.get())) {
     visit(*node.rvalue, reg);
 
-    auto it = symbols.find(ie->name);
-    if (it == symbols.end()) {
+    auto it = symtab.gsym.find(ie->name);
+    if (it == symtab.gsym.end()) {
       throw runtime_error("undeclared identifier");
     }
 

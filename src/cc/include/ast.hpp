@@ -1,4 +1,5 @@
 #pragma once
+#include "type.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -12,12 +13,6 @@ public:
 
 class Expression : public ASTNode {
 public:
-  enum Type {
-    Void,
-    Char,
-    Int,
-  };
-
   Type type;
 };
 

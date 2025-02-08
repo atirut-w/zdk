@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
   ASTEmitter emitter;
   auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
   ofstream output(intermediate.replace_extension(".s"));
-  Codegen codegen(output);
+  Codegen codegen(output, emitter.symtab);
   codegen.visit(*ast);
 
   if (args->get<bool>("-S")) {
