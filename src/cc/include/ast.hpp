@@ -16,6 +16,12 @@ public:
   Type type;
 };
 
+class CastExpression : public Expression {
+public:
+  std::unique_ptr<Expression> expression;
+  Type cast_type;
+};
+
 class BinaryExpression : public Expression {
 public:
   enum Operator {

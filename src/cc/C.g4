@@ -53,6 +53,7 @@ expression:
 	| '-' expression									# NegationExpression
 	| '!' expression									# LogicalNotExpression
 	| '~' expression									# BitwiseNotExpression
+	| '(' typeName ')' expression						# CastExpression
 	| expression ('*' | '/' | '%') expression			# MultiplicativeExpression
 	| expression ('+' | '-') expression					# AdditiveExpression
 	| expression ('<' | '<=' | '>' | '>=') expression	# RelationalExpression
@@ -60,6 +61,8 @@ expression:
 	| expression '&&' expression						# LogicalAndExpression
 	| expression '||' expression						# LogicalOrExpression
 	| <assoc = right> expression '=' expression			# AssignmentExpression;
+
+typeName: specifier+; // TODO: This isn't compliant just yet
 
 // === Lexer rules ===
 

@@ -46,6 +46,34 @@ void ASTEmitter::add_global(const string &name, const Symbol &sym) {
   symtab.gsym[name] = sym;
 }
 
+bool ASTEmitter::type_compat(Type &lhs, Type &rhs, bool only_right) {
+  if (lhs == Type::Void || rhs == Type::Void) {
+    return false;
+  }
+
+  if (lhs == rhs) {
+    lhs = rhs = Type::None;
+    return true;
+  }
+
+  if (lhs == Type::Char && rhs == Type::Int) {
+    lhs = Type::Widen;
+    rhs = Type::None;
+    return true;
+  }
+  if (lhs == Type::Int && rhs == Type::Char) {
+    if (only_right) {
+      return false;
+    }
+    lhs = Type::None;
+    rhs = Type::Widen;
+    return true;
+  }
+
+  lhs = rhs = Type::None;
+  return true;
+}
+
 any ASTEmitter::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
   auto tu = new TranslationUnit();
 
@@ -89,7 +117,6 @@ any ASTEmitter::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWith
   }
   typespecs.pop_back(); // Pop trailing identifier
   add_global(name, Symbol{.kind = Symbol::Function, .type = parse_type(typespecs)});
-
 
   return static_cast<ExternalDeclaration *>(gd);
 }
@@ -157,6 +184,7 @@ any ASTEmitter::visitNullStatement(CParser::NullStatementContext *ctx) {
 any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
   auto id = new IdentifierExpression();
   id->name = ctx->Identifier()->getText();
+  id->type = symtab.gsym[id->name].type;
 
   return static_cast<Expression *>(id);
 }
@@ -164,6 +192,7 @@ any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *
 any ASTEmitter::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
   auto ic = new IntegerConstant();
   ic->value = stoi(ctx->getText());
+  ic->type = Type::Int;
 
   return static_cast<Expression *>(ic);
 }
@@ -177,6 +206,27 @@ any ASTEmitter::visitMultiplicativeExpression(CParser::MultiplicativeExpressionC
 
   be->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
   be->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  Type lt = be->left->type;
+  Type rt = be->right->type;
+  if (!type_compat(lt, rt, 0)) {
+    throw runtime_error("incompatible types");
+  }
+
+  if (lt == Type::Widen) {
+    auto *ce = new CastExpression();
+    ce->type = Type::Int;
+    ce->expression = std::move(be->left);
+
+    be->left = unique_ptr<Expression>(ce);
+  }
+  if (rt == Type::Widen) {
+    auto *ce = new CastExpression();
+    ce->type = Type::Int;
+    ce->expression = std::move(be->right);
+
+    be->right = unique_ptr<Expression>(ce);
+  }
 
   if (ctx->Multiply()) {
     be->op = BinaryExpression::Mul;
@@ -194,6 +244,27 @@ any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
 
   be->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
   be->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+
+  Type lt = be->left->type;
+  Type rt = be->right->type;
+  if (!type_compat(lt, rt, 0)) {
+    throw runtime_error("incompatible types");
+  }
+
+  if (lt == Type::Widen) {
+    auto *ce = new CastExpression();
+    ce->type = Type::Int;
+    ce->expression = std::move(be->left);
+
+    be->left = unique_ptr<Expression>(ce);
+  }
+  if (rt == Type::Widen) {
+    auto *ce = new CastExpression();
+    ce->type = Type::Int;
+    ce->expression = std::move(be->right);
+
+    be->right = unique_ptr<Expression>(ce);
+  }
 
   if (ctx->Add()) {
     be->op = BinaryExpression::Add;

@@ -8,6 +8,7 @@
 class ASTEmitter : public CBaseVisitor {
   Type parse_type(std::vector<CParser::TypeSpecifierContext *> specifiers);
   void add_global(const std::string &name, const Symbol &sym);
+  bool type_compat(Type &lhs, Type &rhs, bool only_right);
 
 public:
   Symtab symtab;
