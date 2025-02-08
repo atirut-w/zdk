@@ -28,10 +28,10 @@ Type ASTEmitter::parse_type(vector<CParser::TypeSpecifierContext *> specifiers) 
       throw runtime_error("too many type specifiers");
     case Type::Char:
       // TODO: Implement type modifiers
-      throw runtime_error("unimplemented");
+      throw runtime_error("too many type specifiers");
     case Type::Int:
       // TODO: Implement type modifiers
-      throw runtime_error("unimplemented");
+      throw runtime_error("too many type specifiers");
     }
   }
 
