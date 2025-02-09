@@ -116,7 +116,7 @@ any ASTEmitter::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWith
     }
   }
   typespecs.pop_back(); // Pop trailing identifier
-  add_global(name, Symbol{.kind = Symbol::Function, .type = parse_type(typespecs)});
+  add_global(name, Symbol{.kind = Symbol::Variable, .type = parse_type(typespecs)});
 
   return static_cast<ExternalDeclaration *>(gd);
 }
