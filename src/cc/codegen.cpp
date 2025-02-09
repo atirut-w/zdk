@@ -186,18 +186,22 @@ void Codegen::visit(const IfStatement &node) {
   int reg = R16_HL;
   visit(*node.condition, reg);
 
-  int skip_label = new_label();
+  int else_label = new_label();
+  int end_label = new_label();
 
   os << "\tld a, " << reg_names[reg][0] << "\n";
   os << "\tor " << reg_names[reg][1] << "\n";
-  os << "\tjr z, " << skip_label << "f\n";
+  os << "\tjr z, " << else_label << "f\n";
 
   visit(*node.then_statement);
+  os << "\tjr " << end_label << "f\n";
 
-  os << skip_label << ":\n";
+  os << else_label << ":\n";
   if (node.else_statement) {
     visit(*node.else_statement);
   }
+
+  os << end_label << ":\n";
 }
 
 void Codegen::visit(const WhileStatement &node) {
