@@ -106,10 +106,6 @@ bool Codegen::rused(int regs) { return fctx.used_regs & regs; }
 void Codegen::rfree(int regs) { fctx.used_regs &= ~regs; }
 
 void Codegen::rsave(int regs) {
-  if (regs & R8_A) {
-    os << "\tpush af\n";
-  }
-
   for (int reg : {R16_AF, R16_BC, R16_DE, R16_HL}) {
     if (regs & reg) {
       os << "\tpush " << reg_names[reg] << "\n";
@@ -124,10 +120,6 @@ void Codegen::rrestore(int regs) {
     if (regs & reg) {
       os << "\tpop " << reg_names[reg] << "\n";
     }
-  }
-
-  if (regs & R8_A) {
-    os << "\tpop af\n";
   }
 }
 
