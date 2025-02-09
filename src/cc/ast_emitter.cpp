@@ -227,6 +227,7 @@ any ASTEmitter::visitMultiplicativeExpression(CParser::MultiplicativeExpressionC
 
     be->right = unique_ptr<Expression>(ce);
   }
+  be->type = Type::Int;
 
   if (ctx->Multiply()) {
     be->op = BinaryExpression::Mul;
@@ -265,6 +266,7 @@ any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
 
     be->right = unique_ptr<Expression>(ce);
   }
+  be->type = Type::Int;
 
   if (ctx->Add()) {
     be->op = BinaryExpression::Add;
@@ -280,6 +282,7 @@ any ASTEmitter::visitRelationalExpression(CParser::RelationalExpressionContext *
 
   re->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
   re->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+  re->type = Type::Int;
 
   if (ctx->Less()) {
     re->op = RelationalExpression::Lt;
@@ -299,6 +302,7 @@ any ASTEmitter::visitEqualityExpression(CParser::EqualityExpressionContext *ctx)
 
   re->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
   re->right = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+  re->type = Type::Int;
 
   if (ctx->Equal()) {
     re->op = RelationalExpression::Eq;
@@ -314,6 +318,7 @@ any ASTEmitter::visitAssignmentExpression(CParser::AssignmentExpressionContext *
 
   as->lvalue = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
   as->rvalue = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+  as->type = as->lvalue->type;
 
   return static_cast<Expression *>(as);
 }

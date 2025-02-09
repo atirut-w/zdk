@@ -1,5 +1,7 @@
 #include "codegen.hpp"
 #include "ast.hpp"
+#include "type.hpp"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
@@ -31,15 +33,31 @@ map<int, string> reg_names = {
     {R16_AF, "af"}, {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
 };
 
+vector<int> GPR8 = {R8_A, R8_B, R8_C, R8_D, R8_E, R8_H, R8_L};
 vector<int> GPR16 = {R16_BC, R16_DE, R16_HL};
 
-int Codegen::ralloc() {
-  for (int reg : GPR16) {
-    if (!(fctx.used_regs & reg)) {
-      fctx.used_regs |= reg;
-      return reg;
+int Codegen::ralloc(Type type) {
+  switch (type) {
+  default:
+    throw runtime_error("unhandled type");
+  case Type::Char:
+    for (int reg : GPR8) {
+      if (!(fctx.used_regs & reg)) {
+        fctx.used_regs |= reg;
+        return reg;
+      }
     }
+    break;
+  case Type::Int:
+    for (int reg : GPR16) {
+      if (!(fctx.used_regs & reg)) {
+        fctx.used_regs |= reg;
+        return reg;
+      }
+    }
+    break;
   }
+
   return 0;
 }
 
@@ -74,8 +92,12 @@ void Codegen::rcpy(int dst, int src) {
     return;
   }
 
-  for (int i = 0; i < 2; i++) {
-    os << "\tld " << dstname[1 - i] << ", " << srcname[1 - i] << "\n";
+  for (int i = 0; i < std::min(dstname.size(), srcname.size()); i++) {
+    os << "\tld " << dstname[i] << ", " << srcname[i] << "\n";
+  }
+
+  for (int i = std::min(dstname.size(), srcname.size()); i < dstname.size(); i++) {
+    os << "\tld " << dstname[i] << ", 0\n";
   }
 }
 
@@ -106,6 +128,17 @@ void Codegen::rrestore(int regs) {
 
   if (regs & R8_A) {
     os << "\tpop af\n";
+  }
+}
+
+int Codegen::rabi(Type type) {
+  switch (type) {
+  default:
+    throw runtime_error("unhandled type");
+  case Type::Char:
+    return R8_A;
+  case Type::Int:
+    return R16_HL;
   }
 }
 
@@ -266,6 +299,8 @@ void Codegen::visit(const Expression &node, int reg) {
     visit(*ie, reg);
   } else if (auto *as = dynamic_cast<const Assignment *>(&node)) {
     visit(*as, reg);
+  } else if (auto *ce = dynamic_cast<const CastExpression *>(&node)) {
+    visit(*ce, reg);
   } else {
     throw runtime_error("unhandled expression type");
   }
@@ -277,20 +312,20 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
   int lhs, rhs;
   bool restore = false;
 
-  if (reg == R16_HL) {
+  if (reg == rabi(node.type)) {
     lhs = reg;
     ralloc(lhs);
   } else {
-    lhs = ralloc(R16_HL);
+    lhs = ralloc(rabi(node.type));
     if (!lhs) {
-      lhs = R16_HL;
+      lhs = rabi(node.type);
       os << "\tpush hl\n";
       restore = true;
     }
   }
   visit(*node.left, lhs);
 
-  rhs = ralloc();
+  rhs = ralloc(node.right->type);
   visit(*node.right, rhs);
 
   switch (node.op) {
@@ -326,7 +361,7 @@ void Codegen::visit(const BinaryExpression &node, int reg) {
     os << "\tcall " << routine << "\n";
 
     // TODO: Improve stack cleanup
-    int dump = ralloc();
+    int dump = ralloc(Type::Int);
     if (dump) {
       os << "\tpop " << reg_names[dump] << "\n";
       os << "\tpop " << reg_names[dump] << "\n";
@@ -352,20 +387,20 @@ void Codegen::visit(const RelationalExpression &node, int reg) {
   int lhs, rhs;
   bool restore = false;
 
-  if (reg == R16_HL) {
+  if (reg == rabi(node.type)) {
     lhs = reg;
     ralloc(lhs);
   } else {
-    lhs = ralloc(R16_HL);
+    lhs = ralloc(rabi(node.type));
     if (!lhs) {
-      lhs = R16_HL;
+      lhs = rabi(node.type);
       os << "\tpush hl\n";
       restore = true;
     }
   }
   visit(*node.left, lhs);
 
-  rhs = ralloc();
+  rhs = ralloc(node.right->type);
   visit(*node.right, rhs);
 
   os << "\tor a\n";
@@ -435,4 +470,9 @@ void Codegen::visit(const Assignment &node, int reg) {
   } else {
     throw runtime_error("unhandled assignment type");
   }
+}
+
+void Codegen::visit(const CastExpression &node, int reg) {
+  visit(*node.expression, rabi(node.expression->type));
+  rcpy(reg, rabi(node.expression->type));
 }

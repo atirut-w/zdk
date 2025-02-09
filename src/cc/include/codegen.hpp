@@ -1,6 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "symtab.hpp"
+#include "type.hpp"
 #include <map>
 #include <ostream>
 #include <string>
@@ -14,7 +15,7 @@ class Codegen {
     int label = 0;
   } fctx;
 
-  int ralloc();
+  int ralloc(Type type);
   int ralloc(int regs);
   // int sralloc();
   // int sralloc(int reg);
@@ -23,6 +24,7 @@ class Codegen {
   void rcpy(int dst, int src);
   void rsave(int regs = 0);
   void rrestore(int regs = 0);
+  int rabi(Type type);
 
   int new_label();
   // void add_global(const std::string &name, const Symbol &symbol);
@@ -47,4 +49,5 @@ public:
   void visit(const RelationalExpression &node, int reg);
   void visit(const IdentifierExpression &node, int reg);
   void visit(const Assignment &node, int reg);
+  void visit(const CastExpression &node, int reg);
 };
