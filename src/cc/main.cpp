@@ -1,7 +1,6 @@
 #include "ANTLRInputStream.h"
 #include "ast.hpp"
 #include "ast_emitter.hpp"
-#include "backend/asm_printer.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
@@ -12,10 +11,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Support/raw_ostream.h>
 #include <memory>
 #include <string>
 #include <sys/wait.h>
@@ -25,7 +20,6 @@
 using namespace std;
 using namespace argparse;
 using namespace antlr4;
-using namespace llvm;
 // using namespace ZIR;
 
 unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
@@ -64,8 +58,8 @@ unique_ptr<const ArgumentParser> parse_args(int argc, char *argv[]) {
   // Dump AST
   parser->add_argument("--dump-tree").help("Dump parse tree to stdout").flag();
 
-  // Emit LLVM IR
-  parser->add_argument("--emit-llvm").help("Emit LLVM IR").flag();
+  // // Emit LLVM IR
+  // parser->add_argument("--emit-llvm").help("Emit LLVM IR").flag();
 
   try {
     parser->parse_args(argc, argv);
