@@ -1,8 +1,8 @@
-.vscode/
-build/
-.cache/
-compile_commands.json
+/.vscode/
+/build/
+/.cache/
+/compile_commands.json
 
 # TODO: Bother ANTLR devs enough to not generate this directory outside of CWD
 .antlr/
-dist/
+/dist/

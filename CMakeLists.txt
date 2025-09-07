@@ -6,4 +6,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory("3rd/argparse")
 add_subdirectory("3rd/antlr4-cpp-runtime")
 
-add_subdirectory("src")
+add_subdirectory("cc")
