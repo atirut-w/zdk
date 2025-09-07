@@ -53,6 +53,11 @@ struct Assignment : public Expression {
   std::unique_ptr<Expression> rvalue;
 };
 
+struct FunctionCall : public Expression {
+  std::string name;
+  std::vector<std::unique_ptr<Expression>> arguments;
+};
+
 // Statements
 
 struct Statement : public ASTNode {};
