@@ -47,19 +47,20 @@ statement:
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
-	Identifier											# IdentifierExpression
-	| IntegerConstant									# IntegerConstantExpression
-	| '(' expression ')'								# ParenthesizedExpression
-	| '-' expression									# NegationExpression
-	| '!' expression									# LogicalNotExpression
-	| '~' expression									# BitwiseNotExpression
-	| expression ('*' | '/' | '%') expression			# MultiplicativeExpression
-	| expression ('+' | '-') expression					# AdditiveExpression
-	| expression ('<' | '<=' | '>' | '>=') expression	# RelationalExpression
-	| expression ('==' | '!=') expression				# EqualityExpression
-	| expression '&&' expression						# LogicalAndExpression
-	| expression '||' expression						# LogicalOrExpression
-	| <assoc = right> expression '=' expression			# AssignmentExpression;
+	Identifier												# IdentifierExpression
+	| IntegerConstant										# IntegerConstantExpression
+	| '(' expression ')'									# ParenthesizedExpression
+	| expression '(' (expression (',' expression)*)? ')'	# FunctionCallExpression
+	| <assoc = right> '-' expression						# NegationExpression
+	| <assoc = right> '!' expression						# LogicalNotExpression
+	| <assoc = right> '~' expression						# BitwiseNotExpression
+	| expression ('*' | '/' | '%') expression				# MultiplicativeExpression
+	| expression ('+' | '-') expression						# AdditiveExpression
+	| expression ('<' | '<=' | '>' | '>=') expression		# RelationalExpression
+	| expression ('==' | '!=') expression					# EqualityExpression
+	| expression '&&' expression							# LogicalAndExpression
+	| expression '||' expression							# LogicalOrExpression
+	| <assoc = right> expression '=' expression				# AssignmentExpression;
 
 // === Lexer rules ===
 
