@@ -3,17 +3,15 @@
 #include <string>
 #include <vector>
 
-class ASTNode {
-public:
+struct ASTNode {
   virtual ~ASTNode() = default;
 };
 
 // Expressions
 
-class Expression : public ASTNode {};
+struct Expression : public ASTNode {};
 
-class BinaryExpression : public Expression {
-public:
+struct BinaryExpression : public Expression {
   enum Operator {
     Add,
     Sub,
@@ -27,8 +25,7 @@ public:
   Operator op;
 };
 
-class RelationalExpression : public Expression {
-public:
+struct RelationalExpression : public Expression {
   enum Operator {
     Eq,
     Ne,
@@ -43,51 +40,43 @@ public:
   Operator op;
 };
 
-class IntegerConstant : public Expression {
-public:
+struct IntegerConstant : public Expression {
   int value;
 };
 
-class IdentifierExpression : public Expression {
-public:
+struct IdentifierExpression : public Expression {
   std::string name;
 };
 
-class Assignment : public Expression {
-public:
+struct Assignment : public Expression {
   std::unique_ptr<Expression> lvalue;
   std::unique_ptr<Expression> rvalue;
 };
 
 // Statements
 
-class Statement : public ASTNode {};
+struct Statement : public ASTNode {};
 
-class ReturnStatement : public Statement {
-public:
+struct ReturnStatement : public Statement {
   std::unique_ptr<Expression> expression;
 };
 
-class ExpressionStatement : public Statement {
-public:
+struct ExpressionStatement : public Statement {
   std::unique_ptr<Expression> expression;
 };
 
-class IfStatement : public Statement {
-public:
+struct IfStatement : public Statement {
   std::unique_ptr<Expression> condition;
   std::unique_ptr<Statement> then_statement;
   std::unique_ptr<Statement> else_statement;
 };
 
-class WhileStatement : public Statement {
-public:
+struct WhileStatement : public Statement {
   std::unique_ptr<Expression> condition;
   std::unique_ptr<Statement> body;
 };
 
-class ForStatement : public Statement {
-public:
+struct ForStatement : public Statement {
   std::unique_ptr<Expression> init;
   std::unique_ptr<Expression> condition;
   std::unique_ptr<Expression> update;
@@ -96,20 +85,17 @@ public:
 
 // External declarations
 
-class ExternalDeclaration : public ASTNode {
-public:
+struct ExternalDeclaration : public ASTNode {
   std::string name;
 };
 
-class FunctionDefinition : public ExternalDeclaration {
-public:
+struct FunctionDefinition : public ExternalDeclaration {
   std::vector<std::unique_ptr<Statement>> body;
 };
 
-class GlobalDeclaration : public ExternalDeclaration {
+struct GlobalDeclaration : public ExternalDeclaration {
 };
 
-class TranslationUnit : public ASTNode {
-public:
+struct TranslationUnit : public ASTNode {
   std::vector<std::unique_ptr<ExternalDeclaration>> declarations;
 };
