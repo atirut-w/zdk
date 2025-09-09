@@ -7,109 +7,7 @@
 
 using namespace std;
 
-enum R8 {
-  R8_A = 1 << 0,
-  R8_F = 1 << 1,
-  R8_B = 1 << 2,
-  R8_C = 1 << 3,
-  R8_D = 1 << 4,
-  R8_E = 1 << 5,
-  R8_H = 1 << 6,
-  R8_L = 1 << 7,
-};
-
-enum R16 {
-  R16_AF = R8_A | R8_F,
-  R16_BC = R8_B | R8_C,
-  R16_DE = R8_D | R8_E,
-  R16_HL = R8_H | R8_L,
-};
-
-map<int, string> reg_names = {
-    {R8_A, "a"},    {R8_B, "b"},    {R8_C, "c"},    {R8_D, "d"},    {R8_E, "e"}, {R8_H, "h"}, {R8_L, "l"},
-
-    {R16_AF, "af"}, {R16_BC, "bc"}, {R16_DE, "de"}, {R16_HL, "hl"},
-};
-
-vector<int> GPR16 = {R16_BC, R16_DE, R16_HL};
-
-int Codegen::ralloc() {
-  for (int reg : GPR16) {
-    if (!(fctx.used_regs & reg)) {
-      fctx.used_regs |= reg;
-      return reg;
-    }
-  }
-  return 0;
-}
-
-int Codegen::ralloc(int regs) {
-  if (fctx.used_regs & regs) {
-    return 0;
-  }
-  fctx.used_regs |= regs;
-  return regs;
-}
-
-// int Codegen::sralloc() {
-//   int reg = ralloc();
-//   if (!reg) {
-//     throw runtime_error("out of registers");
-//   }
-//   return reg;
-// }
-
-// int Codegen::sralloc(int reg) {
-//   if (used_regs & reg) {
-//     throw runtime_error("register already in use");
-//   }
-//   return ralloc(reg);
-// }
-
-void Codegen::rcpy(int dst, int src) {
-  string dstname = reg_names[dst];
-  string srcname = reg_names[src];
-
-  if (dst == src) {
-    return;
-  }
-
-  for (int i = 0; i < 2; i++) {
-    os << "\tld " << dstname[1 - i] << ", " << srcname[1 - i] << "\n";
-  }
-}
-
-bool Codegen::rused(int regs) { return fctx.used_regs & regs; }
-
-void Codegen::rfree(int regs) { fctx.used_regs &= ~regs; }
-
-void Codegen::rsave(int regs) {
-  if (regs & R8_A) {
-    os << "\tpush af\n";
-  }
-
-  for (int reg : {R16_AF, R16_BC, R16_DE, R16_HL}) {
-    if (regs & reg) {
-      os << "\tpush " << reg_names[reg] << "\n";
-    }
-  }
-}
-
-void Codegen::rrestore(int regs) {
-  vector<int> list = {R16_AF, R16_BC, R16_DE, R16_HL};
-  for (int i = list.size() - 1; i >= 0; i--) {
-    int reg = list[i];
-    if (regs & reg) {
-      os << "\tpop " << reg_names[reg] << "\n";
-    }
-  }
-
-  if (regs & R8_A) {
-    os << "\tpop af\n";
-  }
-}
-
-int Codegen::new_label() { return fctx.label++; }
+int Codegen::new_label() { return next_label++; }
 
 void Codegen::add_global(const string &name, const Symbol &symbol) {
   if (symbols.find(name) != symbols.end()) {
@@ -131,7 +29,9 @@ void Codegen::visit(const TranslationUnit &node) {
 }
 
 void Codegen::visit(const FunctionDefinition &node) {
-  fctx = {};
+  next_label = 0;
+  expr_state.hl_free = true;
+  expr_state.de_free = true;
   add_global(node.name, Symbol{});
 
   os << "\t.section .text" << "\n";
@@ -173,24 +73,24 @@ void Codegen::visit(const Statement &node) {
 
 void Codegen::visit(const ReturnStatement &node) {
   if (node.expression) {
-    visit(*node.expression, R16_HL);
+    visit(*node.expression);
   }
   os << "\tld sp, ix\n";
   os << "\tpop ix\n";
   os << "\tret" << "\n";
 }
 
-void Codegen::visit(const ExpressionStatement &node) { visit(*node.expression, R16_HL); }
+void Codegen::visit(const ExpressionStatement &node) { visit(*node.expression); }
 
 void Codegen::visit(const IfStatement &node) {
-  int reg = R16_HL;
-  visit(*node.condition, reg);
+  visit(*node.condition);
 
   int else_label = new_label();
   int end_label = new_label();
 
-  os << "\tld a, " << reg_names[reg][0] << "\n";
-  os << "\tor " << reg_names[reg][1] << "\n";
+  // TODO: Handle different types
+  os << "\tld a, l\n";
+  os << "\tor h\n";
   os << "\tjr z, " << else_label << "f\n";
 
   visit(*node.then_statement);
@@ -205,15 +105,15 @@ void Codegen::visit(const IfStatement &node) {
 }
 
 void Codegen::visit(const WhileStatement &node) {
-  int reg = R16_HL;
   int loop_label = new_label();
   int skip_label = new_label();
 
   os << loop_label << ":\n";
-  visit(*node.condition, reg);
+  visit(*node.condition);
 
-  os << "\tld a, " << reg_names[reg][0] << "\n";
-  os << "\tor " << reg_names[reg][1] << "\n";
+  // TODO: Handle different types
+  os << "\tld a, l\n";
+  os << "\tor h\n";
   os << "\tjr z, " << skip_label << "f\n";
 
   visit(*node.body);
@@ -223,10 +123,8 @@ void Codegen::visit(const WhileStatement &node) {
 }
 
 void Codegen::visit(const ForStatement &node) {
-  int reg = R16_HL;
-
   if (node.init) {
-    visit(*node.init, reg);
+    visit(*node.init);
   }
 
   int loop_label = new_label();
@@ -235,141 +133,140 @@ void Codegen::visit(const ForStatement &node) {
   os << loop_label << ":\n";
 
   if (node.condition) {
-    visit(*node.condition, reg);
+    visit(*node.condition);
 
-    os << "\tld a, " << reg_names[reg][0] << "\n";
-    os << "\tor " << reg_names[reg][1] << "\n";
+    // TODO: Handle different types
+    os << "\tld a, l\n";
+    os << "\tor h\n";
     os << "\tjr z, " << skip_label << "f\n";
   }
   if (node.body) {
     visit(*node.body);
   }
   if (node.update) {
-    visit(*node.update, reg);
+    visit(*node.update);
   }
 
   os << "\tjp " << loop_label << "b\n";
   os << skip_label << ":\n";
 }
 
-void Codegen::visit(const Expression &node, int reg) {
+void Codegen::visit(const Expression &node, bool rhs) {
+  expr_stack.push_back(expr_state);
+
   if (auto *ic = dynamic_cast<const IntegerConstant *>(&node)) {
-    visit(*ic, reg);
+    visit(*ic, rhs);
   } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
-    visit(*be, reg);
+    visit(*be, rhs);
   } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
-    visit(*re, reg);
+    visit(*re, rhs);
   } else if (auto *ie = dynamic_cast<const IdentifierExpression *>(&node)) {
-    visit(*ie, reg);
+    visit(*ie, rhs);
   } else if (auto *as = dynamic_cast<const Assignment *>(&node)) {
-    visit(*as, reg);
+    visit(*as, rhs);
   } else {
     throw runtime_error("unhandled expression type");
   }
+
+  if (!expr_stack.empty()) {
+    expr_state = expr_stack.back();
+    expr_stack.pop_back();
+  }
 }
 
-void Codegen::visit(const IntegerConstant &node, int reg) { os << "\tld " << reg_names[reg] << ", " << node.value << "\n"; }
-
-void Codegen::visit(const BinaryExpression &node, int reg) {
-  int lhs, rhs;
-  bool restore = false;
-
-  if (reg == R16_HL) {
-    lhs = reg;
-    ralloc(lhs);
+void Codegen::visit(const IntegerConstant &node, bool rhs) {
+  if (rhs) {
+    os << "\tld de, " << node.value << "\n";
   } else {
-    lhs = ralloc(R16_HL);
-    if (!lhs) {
-      lhs = R16_HL;
-      os << "\tpush hl\n";
-      restore = true;
-    }
+    os << "\tld hl, " << node.value << "\n";
   }
-  visit(*node.left, lhs);
+}
 
-  rhs = ralloc();
-  visit(*node.right, rhs);
+void Codegen::visit(const BinaryExpression &node, bool rhs) {
+  bool pushed_hl = !expr_state.hl_free;
+  if (pushed_hl) {
+    os << "\tpush hl\n";
+  }
+  visit(*node.left);
+  expr_state.hl_free = false;
+
+  bool pushed_de = !expr_state.de_free;
+  if (pushed_de) {
+    os << "\tpush de\n";
+  }
+  visit(*node.right, true);
+  expr_state.de_free = false;
 
   switch (node.op) {
-  case BinaryExpression::Add:
-    os << "\tadd " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
-    break;
-  case BinaryExpression::Sub:
-    os << "\tor a\n";
-    os << "\tsbc " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
-    break;
-  case BinaryExpression::Mul:
-  case BinaryExpression::Div:
-  case BinaryExpression::Mod:
-    rsave(fctx.used_regs & ~(lhs | rhs | reg));
-    os << "\tpush " << reg_names[rhs] << "\n";
-    os << "\tpush " << reg_names[lhs] << "\n";
-
-    // Freeing RHS early helps with stack cleanup
-    rfree(rhs);
-
-    string routine;
-    switch (node.op) {
+    default:
+      throw runtime_error("unhandled binary operator");
+    case BinaryExpression::Add:
+      os << "\tadd hl, de\n";
+      break;
+    case BinaryExpression::Sub:
+      os << "\tor a\n";
+      os << "\tsbc hl, de\n";
+      break;
     case BinaryExpression::Mul:
-      routine = "__mulsi3";
-      break;
     case BinaryExpression::Div:
-      routine = "__divsi3";
-      break;
     case BinaryExpression::Mod:
-      routine = "__modsi3";
+      os << "\tpush de\n";
+      os << "\tpush hl\n";
+
+      switch (node.op) {
+        default:
+          throw runtime_error("unhandled binary operator");
+        case BinaryExpression::Mul:
+          os << "\tcall __mulsi3\n";
+          break;
+        case BinaryExpression::Div:
+          os << "\tcall __divsi3\n";
+          break;
+        case BinaryExpression::Mod:
+          os << "\tcall __modsi3\n";
+          break;
+      }
+
+      os << "\tpop bc\n";
+      os << "\tpop bc\n";
       break;
-    }
-    os << "\tcall " << routine << "\n";
-
-    // TODO: Improve stack cleanup
-    int dump = ralloc();
-    if (dump) {
-      os << "\tpop " << reg_names[dump] << "\n";
-      os << "\tpop " << reg_names[dump] << "\n";
-      rfree(dump);
-    } else {
-      os << "\tinc sp\n";
-      os << "\tinc sp\n";
-      os << "\tinc sp\n";
-      os << "\tinc sp\n";
-    }
-
-    rrestore(fctx.used_regs & ~(lhs | rhs | reg));
   }
 
-  rcpy(reg, lhs);
-  rfree(rhs);
-  if (restore) {
+  if (rhs) {
+    os << "\tld e, l\n";
+    os << "\tld d, h\n";
+  }
+
+  if (pushed_de) {
+    os << "\tpop de\n";
+    expr_state.de_free = true;
+  }
+  if (pushed_hl) {
     os << "\tpop hl\n";
+    expr_state.hl_free = true;
   }
 }
 
-void Codegen::visit(const RelationalExpression &node, int reg) {
-  int lhs, rhs;
-  bool restore = false;
-
-  if (reg == R16_HL) {
-    lhs = reg;
-    ralloc(lhs);
-  } else {
-    lhs = ralloc(R16_HL);
-    if (!lhs) {
-      lhs = R16_HL;
-      os << "\tpush hl\n";
-      restore = true;
-    }
+void Codegen::visit(const RelationalExpression &node, bool rhs) {
+  bool pushed_hl = !expr_state.hl_free;
+  if (pushed_hl) {
+    os << "\tpush hl\n";
   }
-  visit(*node.left, lhs);
+  visit(*node.left);
+  expr_state.hl_free = false;
 
-  rhs = ralloc();
-  visit(*node.right, rhs);
+  bool pushed_de = !expr_state.de_free;
+  if (pushed_de) {
+    os << "\tpush de\n";
+  }
+  visit(*node.right, true);
+  expr_state.de_free = false;
 
   os << "\tor a\n";
-  os << "\tsbc " << reg_names[lhs] << ", " << reg_names[rhs] << "\n";
+  os << "\tsbc hl, de\n";
 
   // Set 0...
-  os << "\tld " << reg_names[reg] << ", 0\n";
+  os << "\tld hl, 0\n";
   int skip = new_label();
 
   // ...if not flag
@@ -402,33 +299,50 @@ void Codegen::visit(const RelationalExpression &node, int reg) {
   }
 
   // Otherwise, set 1
-  os << "\tld " << reg_names[reg] << ", 1\n";
+  os << "\tld hl, 1\n";
   os << skip << ":\n";
 
-  rfree(rhs);
-  if (restore) {
+  if (rhs) {
+    os << "\tld e, l\n";
+    os << "\tld d, h\n";
+  }
+
+  if (pushed_de) {
+    os << "\tpop de\n";
+    expr_state.de_free = true;
+  }
+  if (pushed_hl) {
     os << "\tpop hl\n";
+    expr_state.hl_free = true;
   }
 }
 
-void Codegen::visit(const IdentifierExpression &node, int reg) {
+void Codegen::visit(const IdentifierExpression &node, bool rhs) {
   auto it = symbols.find(node.name);
   if (it == symbols.end()) {
     throw runtime_error("undeclared identifier");
   }
-  os << "\tld " << reg_names[reg] << ", (" << it->first << ")\n";
+  if (rhs) {
+    os << "\tld de, (" << it->first << ")\n";
+  } else {
+    os << "\tld hl, (" << it->first << ")\n";
+  }
 }
 
-void Codegen::visit(const Assignment &node, int reg) {
+void Codegen::visit(const Assignment &node, bool rhs) {
   if (auto *ie = dynamic_cast<const IdentifierExpression *>(node.lvalue.get())) {
-    visit(*node.rvalue, reg);
+    visit(*node.rvalue, rhs);
 
     auto it = symbols.find(ie->name);
     if (it == symbols.end()) {
       throw runtime_error("undeclared identifier");
     }
 
-    os << "\tld (" << it->first << "), " << reg_names[reg] << "\n";
+    if (rhs) {
+      os << "\tld (" << it->first << "), de\n";
+    } else {
+      os << "\tld (" << it->first << "), hl\n";
+    }
   } else {
     throw runtime_error("unhandled assignment type");
   }
