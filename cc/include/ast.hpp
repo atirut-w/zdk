@@ -9,7 +9,10 @@ struct ASTNode {
 
 // Expressions
 
-struct Expression : public ASTNode {};
+struct Expression : public ASTNode {
+  bool clobbers_hl = false;
+  bool rhs = false;
+};
 
 struct BinaryExpression : public Expression {
   enum Operator {
