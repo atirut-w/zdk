@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
+#include "analyzer.hpp"
 
 using namespace std;
 using namespace argparse;
@@ -178,8 +179,9 @@ int main(int argc, char *argv[]) {
   ASTEmitter emitter;
   auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
   ofstream output(intermediate.replace_extension(".s"));
-  Codegen codegen(output);
-  codegen.visit(*ast);
+  
+  Analyzer analyzer;
+  analyzer.visit(*ast);
 
   if (args->get<bool>("-S")) {
     return 0;
