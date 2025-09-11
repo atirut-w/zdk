@@ -13,7 +13,6 @@ struct ASTVisitor {
   virtual void visit(const BinaryExpression &node);
   virtual void visit(const RelationalExpression &node);
   virtual void visit(const IntegerConstant &node);
-  virtual void visit(const CharacterConstant &node);
   virtual void visit(const IdentifierExpression &node);
   virtual void visit(const Assignment &node);
   virtual void visit(const FunctionCall &node);

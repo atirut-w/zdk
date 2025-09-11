@@ -39,8 +39,6 @@ void ASTVisitor::visit(const Statement &node) {
 void ASTVisitor::visit(const Expression &node) {
   if (auto *ic = dynamic_cast<const IntegerConstant *>(&node)) {
     visit(*ic);
-  } else if (auto *cc = dynamic_cast<const CharacterConstant *>(&node)) {
-    visit(*cc);
   } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
     visit(*be);
   } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
@@ -69,10 +67,6 @@ void ASTVisitor::visit(const RelationalExpression &node) {
 }
 
 void ASTVisitor::visit(const IntegerConstant &node) {
-  // Leaf node
-}
-
-void ASTVisitor::visit(const CharacterConstant &node) {
   // Leaf node
 }
 
