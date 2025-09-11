@@ -1,2 +1,6 @@
 /.vscode/
 /build/
+
+# TODO: Bother ANTLR devs enough to not generate this directory outside of CWD
+.antlr/
+/dist/

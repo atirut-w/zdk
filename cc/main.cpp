@@ -1,6 +1,12 @@
+#include <ANTLRFileStream.h>
+#include <ANTLRInputStream.h>
+#include <CLexer.h>
+#include <CParser.h>
+#include <CommonTokenStream.h>
 #include <argparse/argparse.hpp>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <memory>
 
@@ -27,15 +33,28 @@ std::unique_ptr<ArgumentParser> parseArguments(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  auto parser = parseArguments(argc, argv);
-  if (!parser) {
+  auto args = parseArguments(argc, argv);
+  if (!args) {
     return 1;
   }
 
-  auto input = parser->get<std::filesystem::path>("input");
-  system((std::format("cpp -P {} -o {}", input.string(),
-                      input.replace_extension(".i").string()))
-             .c_str());
+  auto input = args->get<std::filesystem::path>("input");
+  if (system((std::format("cpp -P {} -o {}", input.string(),
+                          input.replace_extension(".i").string()))
+                 .c_str())) {
+    return 1;
+  }
+
+  antlr4::ANTLRFileStream inputStream;
+  inputStream.loadFromFile(input.replace_extension(".i").string());
+
+  CLexer lexer(&inputStream);
+  antlr4::CommonTokenStream tokens(&lexer);
+
+  tokens.fill();
+
+  CParser parser(&tokens);
+  auto tree = parser.program();
 
   return 0;
 }
