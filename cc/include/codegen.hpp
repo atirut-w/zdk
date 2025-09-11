@@ -1,5 +1,6 @@
 #pragma once
 #include "ast.hpp"
+#include "ast_visitor.hpp"
 #include <map>
 #include <ostream>
 #include <string>
@@ -7,17 +8,10 @@
 struct Symbol {
 };
 
-struct ExpressionState {
-  bool hl_free;
-  bool de_free;
-};
-
-class Codegen {
+class Codegen : public ASTVisitor {
   std::ostream &os;
   std::map<std::string, Symbol> symbols;
   int next_label = 0;
-  std::vector<ExpressionState> expr_stack;
-  ExpressionState expr_state;
 
   int new_label();
   void add_global(const std::string &name, const Symbol &symbol);
@@ -25,21 +19,20 @@ class Codegen {
 public:
   Codegen(std::ostream &os) : os(os) {}
 
-  void visit(const TranslationUnit &node);
-  void visit(const FunctionDefinition &node);
-  void visit(const GlobalDeclaration &node);
+  using ASTVisitor::visit;
 
-  void visit(const Statement &node);
-  void visit(const ReturnStatement &node);
-  void visit(const ExpressionStatement &node);
-  void visit(const IfStatement &node);
-  void visit(const WhileStatement &node);
-  void visit(const ForStatement &node);
+  void visit(FunctionDefinition &node) override;
+  void visit(GlobalDeclaration &node) override;
 
-  void visit(const Expression &node, bool rhs = false);
-  void visit(const IntegerConstant &node, bool rhs = false);
-  void visit(const BinaryExpression &node, bool rhs = false);
-  void visit(const RelationalExpression &node, bool rhs = false);
-  void visit(const IdentifierExpression &node, bool rhs = false);
-  void visit(const Assignment &node, bool rhs = false);
+  void visit(ReturnStatement &node) override;
+  void visit(ExpressionStatement &node) override;
+  void visit(IfStatement &node) override;
+  void visit(WhileStatement &node) override;
+  void visit(ForStatement &node) override;
+
+  void visit(IntegerConstant &node) override;
+  void visit(BinaryExpression &node) override;
+  void visit(RelationalExpression &node) override;
+  void visit(IdentifierExpression &node) override;
+  void visit(Assignment &node) override;
 };

@@ -178,10 +178,13 @@ int main(int argc, char *argv[]) {
 
   ASTBuilder emitter;
   auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
-  ofstream output(intermediate.replace_extension(".s"));
-  
+
   Analyzer analyzer;
   analyzer.visit(*ast);
+
+  ofstream output(intermediate.replace_extension(".s"));
+  Codegen codegen(output);
+  codegen.visit(*ast);
 
   if (args->get<bool>("-S")) {
     return 0;
