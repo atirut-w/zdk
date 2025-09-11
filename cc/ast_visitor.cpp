@@ -1,101 +1,101 @@
 #include "ast_visitor.hpp"
 
-void ASTVisitor::visit(const TranslationUnit &node) {
-  for (const auto &decl : node.declarations) {
+void ASTVisitor::visit(TranslationUnit &node) {
+  for (auto &decl : node.declarations) {
     visit(*decl);
   }
 }
 
-void ASTVisitor::visit(const ExternalDeclaration &node) {
-  if (auto *fd = dynamic_cast<const FunctionDefinition *>(&node)) {
+void ASTVisitor::visit(ExternalDeclaration &node) {
+  if (auto *fd = dynamic_cast<FunctionDefinition *>(&node)) {
     visit(*fd);
-  } else if (auto *gd = dynamic_cast<const GlobalDeclaration *>(&node)) {
+  } else if (auto *gd = dynamic_cast<GlobalDeclaration *>(&node)) {
     visit(*gd);
   }
 }
 
-void ASTVisitor::visit(const FunctionDefinition &node) {
-  for (const auto &stmt : node.body) {
+void ASTVisitor::visit(FunctionDefinition &node) {
+  for (auto &stmt : node.body) {
     if (stmt) {
       visit(*stmt);
     }
   }
 }
 
-void ASTVisitor::visit(const Statement &node) {
-  if (auto *rs = dynamic_cast<const ReturnStatement *>(&node)) {
+void ASTVisitor::visit(Statement &node) {
+  if (auto *rs = dynamic_cast<ReturnStatement *>(&node)) {
     visit(*rs);
-  } else if (auto *es = dynamic_cast<const ExpressionStatement *>(&node)) {
+  } else if (auto *es = dynamic_cast<ExpressionStatement *>(&node)) {
     visit(*es);
-  } else if (auto *is = dynamic_cast<const IfStatement *>(&node)) {
+  } else if (auto *is = dynamic_cast<IfStatement *>(&node)) {
     visit(*is);
-  } else if (auto *ws = dynamic_cast<const WhileStatement *>(&node)) {
+  } else if (auto *ws = dynamic_cast<WhileStatement *>(&node)) {
     visit(*ws);
-  } else if (auto *fs = dynamic_cast<const ForStatement *>(&node)) {
+  } else if (auto *fs = dynamic_cast<ForStatement *>(&node)) {
     visit(*fs);
   }
 }
 
-void ASTVisitor::visit(const Expression &node) {
-  if (auto *ic = dynamic_cast<const IntegerConstant *>(&node)) {
+void ASTVisitor::visit(Expression &node) {
+  if (auto *ic = dynamic_cast<IntegerConstant *>(&node)) {
     visit(*ic);
-  } else if (auto *be = dynamic_cast<const BinaryExpression *>(&node)) {
+  } else if (auto *be = dynamic_cast<BinaryExpression *>(&node)) {
     visit(*be);
-  } else if (auto *re = dynamic_cast<const RelationalExpression *>(&node)) {
+  } else if (auto *re = dynamic_cast<RelationalExpression *>(&node)) {
     visit(*re);
-  } else if (auto *ie = dynamic_cast<const IdentifierExpression *>(&node)) {
+  } else if (auto *ie = dynamic_cast<IdentifierExpression *>(&node)) {
     visit(*ie);
-  } else if (auto *as = dynamic_cast<const Assignment *>(&node)) {
+  } else if (auto *as = dynamic_cast<Assignment *>(&node)) {
     visit(*as);
-  } else if (auto *fc = dynamic_cast<const FunctionCall *>(&node)) {
+  } else if (auto *fc = dynamic_cast<FunctionCall *>(&node)) {
     visit(*fc);
   }
 }
 
-void ASTVisitor::visit(const GlobalDeclaration &node) {
+void ASTVisitor::visit(GlobalDeclaration &node) {
   // No traversal needed
 }
 
-void ASTVisitor::visit(const BinaryExpression &node) {
+void ASTVisitor::visit(BinaryExpression &node) {
   visit(*node.left);
   visit(*node.right);
 }
 
-void ASTVisitor::visit(const RelationalExpression &node) {
+void ASTVisitor::visit(RelationalExpression &node) {
   visit(*node.left);
   visit(*node.right);
 }
 
-void ASTVisitor::visit(const IntegerConstant &node) {
+void ASTVisitor::visit(IntegerConstant &node) {
   // Leaf node
 }
 
-void ASTVisitor::visit(const IdentifierExpression &node) {
+void ASTVisitor::visit(IdentifierExpression &node) {
   // Leaf node
 }
 
-void ASTVisitor::visit(const Assignment &node) {
+void ASTVisitor::visit(Assignment &node) {
   visit(*node.lvalue);
   visit(*node.rvalue);
 }
 
-void ASTVisitor::visit(const FunctionCall &node) {
-  for (const auto &arg : node.arguments) {
+void ASTVisitor::visit(FunctionCall &node) {
+  for (auto &arg : node.arguments) {
     visit(*arg);
   }
 }
 
-void ASTVisitor::visit(const ReturnStatement &node) {
+void ASTVisitor::visit(ReturnStatement &node) {
   if (node.expression) {
     visit(*node.expression);
   }
 }
 
-void ASTVisitor::visit(const ExpressionStatement &node) {
+void ASTVisitor::visit(ExpressionStatement &node) {
   visit(*node.expression);
 }
 
-void ASTVisitor::visit(const IfStatement &node) {
+void ASTVisitor::visit(IfStatement &node) {
   visit(*node.condition);
   visit(*node.then_statement);
   if (node.else_statement) {
@@ -103,12 +103,12 @@ void ASTVisitor::visit(const IfStatement &node) {
   }
 }
 
-void ASTVisitor::visit(const WhileStatement &node) {
+void ASTVisitor::visit(WhileStatement &node) {
   visit(*node.condition);
   visit(*node.body);
 }
 
-void ASTVisitor::visit(const ForStatement &node) {
+void ASTVisitor::visit(ForStatement &node) {
   if (node.init) {
     visit(*node.init);
   }
