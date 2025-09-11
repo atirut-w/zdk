@@ -1,7 +1,7 @@
 #pragma once
 #include "CBaseVisitor.h"
 
-class ASTEmitter : public CBaseVisitor {
+class ASTBuilder : public CBaseVisitor {
 public:
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
   virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;

@@ -31,7 +31,7 @@ add_executable(zdk-cc
     analyzer.cpp
     codegen.cpp
     ast.cpp
-    ast_emitter.cpp
+    ast_builder.cpp
     ast_visitor.cpp
 
     parser/CBaseListener.cpp

@@ -1,6 +1,6 @@
 #include "ANTLRInputStream.h"
 #include "ast.hpp"
-#include "ast_emitter.hpp"
+#include "ast_builder.hpp"
 #include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  ASTEmitter emitter;
+  ASTBuilder emitter;
   auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
   ofstream output(intermediate.replace_extension(".s"));
   

@@ -1,10 +1,10 @@
-#include "ast_emitter.hpp"
+#include "ast_builder.hpp"
 #include "ast.hpp"
 #include <memory>
 
 using namespace std;
 
-any ASTEmitter::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
+any ASTBuilder::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
   auto tu = new TranslationUnit();
 
   for (auto decl : ctx->externalDeclaration()) {
@@ -14,7 +14,7 @@ any ASTEmitter::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
   return tu;
 }
 
-any ASTEmitter::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
+any ASTBuilder::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
   auto fd = new FunctionDefinition();
   fd->name = dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())->Identifier()->getText();
 
@@ -25,14 +25,14 @@ any ASTEmitter::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx)
   return static_cast<ExternalDeclaration *>(fd);
 }
 
-any ASTEmitter::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) {
+any ASTBuilder::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) {
   auto gd = new GlobalDeclaration();
   gd->name = ctx->specifier(ctx->specifier().size() - 1)->getText();
 
   return static_cast<ExternalDeclaration *>(gd);
 }
 
-any ASTEmitter::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
+any ASTBuilder::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   auto rs = new ReturnStatement();
 
   if (ctx->expression()) {
@@ -42,14 +42,14 @@ any ASTEmitter::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
   return static_cast<Statement *>(rs);
 }
 
-any ASTEmitter::visitExpressionStatement(CParser::ExpressionStatementContext *ctx) {
+any ASTBuilder::visitExpressionStatement(CParser::ExpressionStatementContext *ctx) {
   auto es = new ExpressionStatement();
   es->expression = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
 
   return static_cast<Statement *>(es);
 }
 
-any ASTEmitter::visitIfStatement(CParser::IfStatementContext *ctx) {
+any ASTBuilder::visitIfStatement(CParser::IfStatementContext *ctx) {
   auto is = new IfStatement();
 
   is->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
@@ -58,7 +58,7 @@ any ASTEmitter::visitIfStatement(CParser::IfStatementContext *ctx) {
   return static_cast<Statement *>(is);
 }
 
-any ASTEmitter::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
+any ASTBuilder::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
   auto is = new IfStatement();
 
   is->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
@@ -68,7 +68,7 @@ any ASTEmitter::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
   return static_cast<Statement *>(is);
 }
 
-any ASTEmitter::visitWhileStatement(CParser::WhileStatementContext *ctx) {
+any ASTBuilder::visitWhileStatement(CParser::WhileStatementContext *ctx) {
   auto ws = new WhileStatement();
 
   ws->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
@@ -77,7 +77,7 @@ any ASTEmitter::visitWhileStatement(CParser::WhileStatementContext *ctx) {
   return static_cast<Statement *>(ws);
 }
 
-any ASTEmitter::visitForStatement(CParser::ForStatementContext *ctx) {
+any ASTBuilder::visitForStatement(CParser::ForStatementContext *ctx) {
   auto fs = new ForStatement();
 
   fs->init = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
@@ -88,29 +88,29 @@ any ASTEmitter::visitForStatement(CParser::ForStatementContext *ctx) {
   return static_cast<Statement *>(fs);
 }
 
-any ASTEmitter::visitNullStatement(CParser::NullStatementContext *ctx) {
+any ASTBuilder::visitNullStatement(CParser::NullStatementContext *ctx) {
   return static_cast<Statement *>(0);
 }
 
-any ASTEmitter::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
+any ASTBuilder::visitIdentifierExpression(CParser::IdentifierExpressionContext *ctx) {
   auto id = new IdentifierExpression();
   id->name = ctx->Identifier()->getText();
 
   return static_cast<Expression *>(id);
 }
 
-any ASTEmitter::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
+any ASTBuilder::visitIntegerConstantExpression(CParser::IntegerConstantExpressionContext *ctx) {
   auto ic = new IntegerConstant();
   ic->value = stoi(ctx->getText());
 
   return static_cast<Expression *>(ic);
 }
 
-any ASTEmitter::visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) {
+any ASTBuilder::visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) {
   return visit(ctx->expression());
 }
 
-any ASTEmitter::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
+any ASTBuilder::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
   auto be = new BinaryExpression();
 
   be->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
@@ -127,7 +127,7 @@ any ASTEmitter::visitMultiplicativeExpression(CParser::MultiplicativeExpressionC
   return static_cast<Expression *>(be);
 }
 
-any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+any ASTBuilder::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
   auto be = new BinaryExpression();
 
   be->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
@@ -142,7 +142,7 @@ any ASTEmitter::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx)
   return static_cast<Expression *>(be);
 }
 
-any ASTEmitter::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
+any ASTBuilder::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
   auto re = new RelationalExpression();
 
   re->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
@@ -161,7 +161,7 @@ any ASTEmitter::visitRelationalExpression(CParser::RelationalExpressionContext *
   return static_cast<Expression *>(re);
 }
 
-any ASTEmitter::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
+any ASTBuilder::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
   auto re = new RelationalExpression();
 
   re->left = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
@@ -176,7 +176,7 @@ any ASTEmitter::visitEqualityExpression(CParser::EqualityExpressionContext *ctx)
   return static_cast<Expression *>(re);
 }
 
-any ASTEmitter::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) {
+any ASTBuilder::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) {
   auto as = new Assignment();
 
   as->lvalue = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
