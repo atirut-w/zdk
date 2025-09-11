@@ -1,5 +1,6 @@
 #include <argparse/argparse.hpp>
 #include <filesystem>
+#include <format>
 #include <iostream>
 #include <memory>
 
@@ -30,6 +31,11 @@ int main(int argc, char **argv) {
   if (!parser) {
     return 1;
   }
+
+  auto input = parser->get<std::filesystem::path>("input");
+  system((std::format("cpp -P {} -o {}", input.string(),
+                      input.replace_extension(".i").string()))
+             .c_str());
 
   return 0;
 }
