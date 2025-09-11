@@ -24,6 +24,7 @@ add_custom_command(
 
 add_executable(zdk-cc
     main.cpp
+    ast_builder.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp
@@ -33,6 +34,7 @@ add_executable(zdk-cc
     parser/CVisitor.cpp
 )
 target_include_directories(zdk-cc PRIVATE
+    include
     ${CMAKE_SOURCE_DIR}/3rd/antlr4-cpp-runtime/runtime/src
     ${CMAKE_BINARY_DIR}/cc/parser
 )

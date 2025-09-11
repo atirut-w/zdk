@@ -1,5 +1,6 @@
 #include <ANTLRFileStream.h>
 #include <ANTLRInputStream.h>
+#include <ast_builder.hpp>
 #include <CLexer.h>
 #include <CParser.h>
 #include <CommonTokenStream.h>
@@ -47,14 +48,14 @@ int main(int argc, char **argv) {
 
   antlr4::ANTLRFileStream inputStream;
   inputStream.loadFromFile(input.replace_extension(".i").string());
-
   CLexer lexer(&inputStream);
   antlr4::CommonTokenStream tokens(&lexer);
-
   tokens.fill();
-
   CParser parser(&tokens);
   auto tree = parser.program();
+
+  ASTBuilder astBuilder;
+  auto ast = std::any_cast<Program *>(astBuilder.visit(tree));
 
   return 0;
 }

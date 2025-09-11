@@ -6,9 +6,9 @@ program: function;
 
 function: 'int' Identifier '(' 'void' ')' '{' statement '}';
 
-statement: 'return' expression ';';
+statement: 'return' expression ';' # ReturnStatement;
 
-expression: Integer;
+expression: Integer # IntegerExpr;
 
 // Lexer rules
 
