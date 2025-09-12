@@ -6,8 +6,8 @@ struct ASTVisitor {
 
   virtual void visit(TranslationUnit &node);
   virtual void visit(ExternalDeclaration &node);
-  virtual void visit(FunctionDefinition &node);
-  virtual void visit(GlobalDeclaration &node);
+  virtual void visit(FunctionDeclaration &node);
+  virtual void visit(VariableDeclaration &node);
   virtual void visit(Expression &node);
   virtual void visit(Statement &node);
   virtual void visit(BinaryExpression &node);
@@ -20,5 +20,6 @@ struct ASTVisitor {
   virtual void visit(ExpressionStatement &node);
   virtual void visit(IfStatement &node);
   virtual void visit(WhileStatement &node);
+  virtual void visit(DoWhileStatement &node);
   virtual void visit(ForStatement &node);
 };

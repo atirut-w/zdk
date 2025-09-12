@@ -16,7 +16,7 @@ void Codegen::add_global(const string &name, const Symbol &symbol) {
   symbols[name] = symbol;
 }
 
-void Codegen::visit(FunctionDefinition &node) {
+void Codegen::visit(FunctionDeclaration &node) {
   next_label = 0;
   add_global(node.name, Symbol{});
 
@@ -26,14 +26,16 @@ void Codegen::visit(FunctionDefinition &node) {
   os << "\tld ix, 0\n";
   os << "\tadd ix, sp\n";
 
-  for (auto &stmt : node.body) {
-    if (stmt) {
+  for (auto &item : node.body) {
+    if (auto *stmt = dynamic_cast<Statement *>(item.get())) {
       visit(*stmt);
+    } else if (auto *decl = dynamic_cast<ExternalDeclaration *>(item.get())) {
+      visit(*decl);
     }
   }
 }
 
-void Codegen::visit(GlobalDeclaration &node) {
+void Codegen::visit(VariableDeclaration &node) {
   add_global(node.name, Symbol{});
 
   os << "\t.section .bss" << "\n";
@@ -94,7 +96,12 @@ void Codegen::visit(WhileStatement &node) {
 
 void Codegen::visit(ForStatement &node) {
   if (node.init) {
-    visit(*node.init);
+    // Handle init as ASTNode - could be Expression or VariableDeclaration
+    if (auto *expr = dynamic_cast<Expression *>(node.init.get())) {
+      visit(*expr);
+    } else if (auto *vd = dynamic_cast<VariableDeclaration *>(node.init.get())) {
+      visit(*vd);
+    }
   }
 
   int loop_label = new_label();

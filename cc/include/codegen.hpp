@@ -21,8 +21,8 @@ public:
 
   using ASTVisitor::visit;
 
-  void visit(FunctionDefinition &node) override;
-  void visit(GlobalDeclaration &node) override;
+  void visit(FunctionDeclaration &node) override;
+  void visit(VariableDeclaration &node) override;
 
   void visit(ReturnStatement &node) override;
   void visit(ExpressionStatement &node) override;

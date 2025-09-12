@@ -7,29 +7,49 @@ using namespace std;
 any ASTBuilder::visitTranslationUnit(CParser::TranslationUnitContext *ctx) {
   auto tu = new TranslationUnit();
 
-  for (auto decl : ctx->externalDeclaration()) {
+  for (auto decl : ctx->declaration()) {
     tu->declarations.push_back(unique_ptr<ExternalDeclaration>(any_cast<ExternalDeclaration *>(visit(decl))));
   }
 
   return tu;
 }
 
-any ASTBuilder::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
-  auto fd = new FunctionDefinition();
-  fd->name = dynamic_cast<CParser::FunctionDeclaratorContext *>(ctx->declarator())->Identifier()->getText();
+any ASTBuilder::visitVariableDeclaration(CParser::VariableDeclarationContext *ctx) {
+  auto vd = new VariableDeclaration();
+  vd->name = ctx->Identifier()->getText();
+  
+  if (!ctx->specifier().empty()) {
+    vd->type = ctx->specifier(0)->getText();
+  }
+  
+  if (ctx->expression()) {
+    vd->initializer = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
+  }
 
-  for (auto stmt : ctx->statement()) {
-    fd->body.push_back(unique_ptr<Statement>(any_cast<Statement *>(visit(stmt))));
+  return static_cast<ExternalDeclaration *>(vd);
+}
+
+any ASTBuilder::visitFunctionDeclaration(CParser::FunctionDeclarationContext *ctx) {
+  auto fd = new FunctionDeclaration();
+  fd->name = ctx->Identifier()->getText();
+  
+  if (!ctx->specifier().empty()) {
+    fd->return_type = ctx->specifier(0)->getText();
+  }
+
+  if (ctx->block()) {
+    // Process block items directly into the function body
+    for (auto item : ctx->block()->blockItem()) {
+      auto result = visit(item);
+      if (auto *stmt = any_cast<Statement *>(&result)) {
+        fd->body.push_back(unique_ptr<ASTNode>(static_cast<ASTNode *>(*stmt)));
+      } else if (auto *decl = any_cast<ExternalDeclaration *>(&result)) {
+        fd->body.push_back(unique_ptr<ASTNode>(static_cast<ASTNode *>(*decl)));
+      }
+    }
   }
 
   return static_cast<ExternalDeclaration *>(fd);
-}
-
-any ASTBuilder::visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) {
-  auto gd = new GlobalDeclaration();
-  gd->name = ctx->specifier(ctx->specifier().size() - 1)->getText();
-
-  return static_cast<ExternalDeclaration *>(gd);
 }
 
 any ASTBuilder::visitReturnStatement(CParser::ReturnStatementContext *ctx) {
@@ -53,19 +73,23 @@ any ASTBuilder::visitIfStatement(CParser::IfStatementContext *ctx) {
   auto is = new IfStatement();
 
   is->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
-  is->then_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement())));
+  is->then_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement(0))));
+  
+  // Handle optional else clause
+  if (ctx->statement().size() > 1) {
+    is->else_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement(1))));
+  }
 
   return static_cast<Statement *>(is);
 }
 
-any ASTBuilder::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
-  auto is = new IfStatement();
+any ASTBuilder::visitDoWhileStatement(CParser::DoWhileStatementContext *ctx) {
+  auto dws = new DoWhileStatement();
+  
+  dws->body = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement())));
+  dws->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
 
-  is->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression())));
-  is->then_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement(0))));
-  is->else_statement = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement(1))));
-
-  return static_cast<Statement *>(is);
+  return static_cast<Statement *>(dws);
 }
 
 any ASTBuilder::visitWhileStatement(CParser::WhileStatementContext *ctx) {
@@ -80,9 +104,17 @@ any ASTBuilder::visitWhileStatement(CParser::WhileStatementContext *ctx) {
 any ASTBuilder::visitForStatement(CParser::ForStatementContext *ctx) {
   auto fs = new ForStatement();
 
-  fs->init = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
-  fs->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
-  fs->update = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(2))));
+  if (ctx->forInit()) {
+    fs->init = unique_ptr<ASTNode>(any_cast<ASTNode *>(visit(ctx->forInit())));
+  }
+  
+  if (ctx->expression().size() >= 1) {
+    fs->condition = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(0))));
+  }
+  if (ctx->expression().size() >= 2) {
+    fs->update = unique_ptr<Expression>(any_cast<Expression *>(visit(ctx->expression(1))));
+  }
+  
   fs->body = unique_ptr<Statement>(any_cast<Statement *>(visit(ctx->statement())));
 
   return static_cast<Statement *>(fs);

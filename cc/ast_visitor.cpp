@@ -7,17 +7,19 @@ void ASTVisitor::visit(TranslationUnit &node) {
 }
 
 void ASTVisitor::visit(ExternalDeclaration &node) {
-  if (auto *fd = dynamic_cast<FunctionDefinition *>(&node)) {
+  if (auto *fd = dynamic_cast<FunctionDeclaration *>(&node)) {
     visit(*fd);
-  } else if (auto *gd = dynamic_cast<GlobalDeclaration *>(&node)) {
-    visit(*gd);
+  } else if (auto *vd = dynamic_cast<VariableDeclaration *>(&node)) {
+    visit(*vd);
   }
 }
 
-void ASTVisitor::visit(FunctionDefinition &node) {
-  for (auto &stmt : node.body) {
-    if (stmt) {
+void ASTVisitor::visit(FunctionDeclaration &node) {
+  for (auto &item : node.body) {
+    if (auto *stmt = dynamic_cast<Statement *>(item.get())) {
       visit(*stmt);
+    } else if (auto *decl = dynamic_cast<ExternalDeclaration *>(item.get())) {
+      visit(*decl);
     }
   }
 }
@@ -31,6 +33,8 @@ void ASTVisitor::visit(Statement &node) {
     visit(*is);
   } else if (auto *ws = dynamic_cast<WhileStatement *>(&node)) {
     visit(*ws);
+  } else if (auto *dws = dynamic_cast<DoWhileStatement *>(&node)) {
+    visit(*dws);
   } else if (auto *fs = dynamic_cast<ForStatement *>(&node)) {
     visit(*fs);
   }
@@ -52,8 +56,10 @@ void ASTVisitor::visit(Expression &node) {
   }
 }
 
-void ASTVisitor::visit(GlobalDeclaration &node) {
-  // No traversal needed
+void ASTVisitor::visit(VariableDeclaration &node) {
+  if (node.initializer) {
+    visit(*node.initializer);
+  }
 }
 
 void ASTVisitor::visit(BinaryExpression &node) {
@@ -108,9 +114,19 @@ void ASTVisitor::visit(WhileStatement &node) {
   visit(*node.body);
 }
 
+void ASTVisitor::visit(DoWhileStatement &node) {
+  visit(*node.body);
+  visit(*node.condition);
+}
+
 void ASTVisitor::visit(ForStatement &node) {
   if (node.init) {
-    visit(*node.init);
+    // Handle init as ASTNode - could be Expression or VariableDeclaration
+    if (auto *expr = dynamic_cast<Expression *>(node.init.get())) {
+      visit(*expr);
+    } else if (auto *vd = dynamic_cast<VariableDeclaration *>(node.init.get())) {
+      visit(*vd);
+    }
   }
   if (node.condition) {
     visit(*node.condition);
@@ -122,3 +138,4 @@ void ASTVisitor::visit(ForStatement &node) {
     visit(*node.body);
   }
 }
+

@@ -4,14 +4,14 @@
 class ASTBuilder : public CBaseVisitor {
 public:
   virtual std::any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
-  virtual std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
-  virtual std::any visitGlobalDeclarationWithoutInit(CParser::GlobalDeclarationWithoutInitContext *ctx) override;
+  virtual std::any visitVariableDeclaration(CParser::VariableDeclarationContext *ctx) override;
+  virtual std::any visitFunctionDeclaration(CParser::FunctionDeclarationContext *ctx) override;
 
   virtual std::any visitReturnStatement(CParser::ReturnStatementContext *ctx) override;
   virtual std::any visitExpressionStatement(CParser::ExpressionStatementContext *ctx) override;
   virtual std::any visitIfStatement(CParser::IfStatementContext *ctx) override;
-  virtual std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
   virtual std::any visitWhileStatement(CParser::WhileStatementContext *ctx) override;
+  virtual std::any visitDoWhileStatement(CParser::DoWhileStatementContext *ctx) override;
   virtual std::any visitForStatement(CParser::ForStatementContext *ctx) override;
   virtual std::any visitNullStatement(CParser::NullStatementContext *ctx) override;
 

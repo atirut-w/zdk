@@ -84,12 +84,18 @@ struct WhileStatement : public Statement {
   std::unique_ptr<Statement> body;
 };
 
+struct DoWhileStatement : public Statement {
+  std::unique_ptr<Statement> body;
+  std::unique_ptr<Expression> condition;
+};
+
 struct ForStatement : public Statement {
-  std::unique_ptr<Expression> init;
+  std::unique_ptr<ASTNode> init;  // Can be Expression or VariableDeclaration
   std::unique_ptr<Expression> condition;
   std::unique_ptr<Expression> update;
   std::unique_ptr<Statement> body;
 };
+
 
 // External declarations
 
@@ -97,11 +103,15 @@ struct ExternalDeclaration : public ASTNode {
   std::string name;
 };
 
-struct FunctionDefinition : public ExternalDeclaration {
-  std::vector<std::unique_ptr<Statement>> body;
+struct VariableDeclaration : public ExternalDeclaration {
+  std::string type;
+  std::unique_ptr<Expression> initializer;
 };
 
-struct GlobalDeclaration : public ExternalDeclaration {
+struct FunctionDeclaration : public ExternalDeclaration {
+  std::string return_type;
+  std::vector<std::string> parameters;
+  std::vector<std::unique_ptr<ASTNode>> body;  // Can contain both statements and declarations
 };
 
 struct TranslationUnit : public ASTNode {

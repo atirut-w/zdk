@@ -3,47 +3,34 @@ grammar C;
 
 // === Parser rules ===
 
-translationUnit: externalDeclaration+;
+translationUnit: declaration+;
 
-externalDeclaration: functionDefinition | globalDeclaration;
+declaration: variableDeclaration | functionDeclaration;
 
-functionDefinition:
-	specifier* declarator declaration* '{' declaration* statement* '}';
+variableDeclaration:
+	specifier+ Identifier ('=' expression)? ';';
 
-globalDeclaration:
-	specifier+ ';' # GlobalDeclarationWithoutInit;
-// | specifier* initDeclarator	# GlobalDeclarationWithInit;
+functionDeclaration:
+	specifier+ Identifier '(' paramList ')' (block | ';');
 
-specifier: typeSpecifier;
+paramList: 'void' | 'int' Identifier (',' 'int' Identifier)*;
 
-typeSpecifier: Identifier | 'void' | 'int';
+specifier: 'int' | 'static' | 'extern';
 
-declarator:
-	Identifier						# IdentifierDeclarator
-	| Identifier '(' parameters ')'	# FunctionDeclarator;
+block: '{' blockItem* '}';
 
-parameters: parameter (',' parameter)* (',' '...')? | 'void';
+blockItem: statement | declaration;
 
-parameter: specifier* declarator;
-
-declaration:
-	specifier+ ';'												# DeclarationWithoutInit
-	| specifier+ (initDeclarator (',' initDeclarator)*)? ';'	# DeclarationWithInit;
-
-initDeclarator: declarator ('=' initializer)?;
-
-initializer: nonCommaExpression;
-
-nonCommaExpression: expression;
+forInit: variableDeclaration | expression? ';';
 
 statement:
-	'return' expression? ';'												# ReturnStatement
-	| expression ';'														# ExpressionStatement
-	| 'if' '(' expression ')' statement										# IfStatement
-	| 'if' '(' expression ')' statement 'else' statement					# IfElseStatement
-	| 'while' '(' expression ')' statement									# WhileStatement
-	| 'for' '(' expression? ';' expression? ';' expression? ')' statement	# ForStatement
-	| ';'																	# NullStatement;
+	'return' expression? ';'										# ReturnStatement
+	| expression ';'												# ExpressionStatement
+	| 'if' '(' expression ')' statement ('else' statement)?			# IfStatement
+	| 'while' '(' expression ')' statement							# WhileStatement
+	| 'do' statement 'while' '(' expression ')' ';'					# DoWhileStatement
+	| 'for' '(' forInit expression? ';' expression? ')' statement	# ForStatement
+	| ';'															# NullStatement;
 
 // For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
 expression:
@@ -73,6 +60,8 @@ KeywordElse: 'else';
 KeywordReturn: 'return';
 KeywordVoid: 'void';
 KeywordInt: 'int';
+KeywordStatic: 'static';
+KeywordExtern: 'extern';
 
 // Punctuations
 LeftParen: '(';
