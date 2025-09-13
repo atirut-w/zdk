@@ -28,11 +28,11 @@ add_custom_command(
 add_executable(zdk-cc
     main.cpp
     error.cpp
-    analyzer.cpp
-    codegen.cpp
+    # analyzer.cpp
+    # codegen.cpp
     ast.cpp
     ast_builder.cpp
-    ast_visitor.cpp
+    # ast_visitor.cpp
 
     parser/CBaseListener.cpp
     parser/CBaseVisitor.cpp

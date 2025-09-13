@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
   lexer.addErrorListener(listener.get());
   parser.addErrorListener(listener.get());
 
-  tree::ParseTree *tree = parser.translationUnit();
+  tree::ParseTree *tree = parser.expression();
   input.close();
   filesystem::remove(intermediate.replace_extension(".i"));
 
@@ -176,15 +176,15 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  ASTBuilder emitter;
-  auto ast = unique_ptr<TranslationUnit>(any_cast<TranslationUnit *>(emitter.visit(tree)));
+  ASTBuilder builder;
+  auto ast = unique_ptr<Expression>(any_cast<Expression *>(builder.visit(tree)));
 
-  Analyzer analyzer;
-  analyzer.visit(*ast);
+  // Analyzer analyzer;
+  // analyzer.visit(*ast);
 
-  ofstream output(intermediate.replace_extension(".s"));
-  Codegen codegen(output);
-  codegen.visit(*ast);
+  // ofstream output(intermediate.replace_extension(".s"));
+  // Codegen codegen(output);
+  // codegen.visit(*ast);
 
   if (args->get<bool>("-S")) {
     return 0;
