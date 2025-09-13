@@ -1,116 +1,137 @@
-// C90 grammar, based on https://slebok.github.io/zoo/c/c90/rascal/extracted/index.html and https://slebok.github.io/zoo/c/c90/sdf/extracted/index.html
+// C90 grammar, based on https://www.lysator.liu.se/c/ANSI-C-grammar-y.html
 grammar C;
 
 // === Parser rules ===
 
-translationUnit: externalDeclaration+;
+primaryExpression:
+	Identifier				# IdPrimary
+	| Constant				# ConstPrimary
+	| StringLiteral			# StrPrimary
+	| '(' expression ')'	# ParenPrimary;
 
-externalDeclaration: functionDefinition | globalDeclaration;
+postfixExpression:
+	primaryExpression									# PostfixPrimary
+	| postfixExpression '[' expression ']'				# PostfixArray
+	| postfixExpression '(' argumentExpressionList? ')'	# PostfixFuncCall
+	| postfixExpression '.' Identifier					# PostfixMember
+	| postfixExpression PtrOp Identifier				# PostfixPtrMember
+	| postfixExpression IncOp							# PostfixInc
+	| postfixExpression DecOp							# PostfixDec;
 
-functionDefinition:
-	specifier* declarator declaration* '{' declaration* statement* '}';
+argumentExpressionList:
+	assignmentExpression (',' assignmentExpression)*;
 
-globalDeclaration:
-	specifier+ ';' # GlobalDeclarationWithoutInit;
-// | specifier* initDeclarator	# GlobalDeclarationWithInit;
+unaryExpression:
+	postfixExpression				# UnaryPostfix
+	| IncOp unaryExpression			# UnaryInc
+	| DecOp unaryExpression			# UnaryDec
+	| unaryOperator castExpression	# UnaryOp
+	| 'sizeof' unaryExpression		# UnarySizeofExpr
+	/*| 'sizeof' '(' typeName ')'		# UnarySizeofType*/;
 
-specifier: typeSpecifier;
+unaryOperator: '&' | '*' | '+' | '-' | '~' | '!';
 
-typeSpecifier: Identifier | 'void' | 'int';
+castExpression:
+	unaryExpression # CastUnary
+	/*| '(' typeName ')' castExpression	# CastType*/;
 
-declarator:
-	Identifier						# IdentifierDeclarator
-	| Identifier '(' parameters ')'	# FunctionDeclarator;
+multiplicativeExpression:
+	castExpression									# MulCast
+	| multiplicativeExpression '*' castExpression	# MulMul
+	| multiplicativeExpression '/' castExpression	# MulDiv
+	| multiplicativeExpression '%' castExpression	# MulMod;
 
-parameters: parameter (',' parameter)* (',' '...')? | 'void';
+additiveExpression:
+	multiplicativeExpression							# AddMul
+	| additiveExpression '+' multiplicativeExpression	# AddAdd
+	| additiveExpression '-' multiplicativeExpression	# AddSub;
 
-parameter: specifier* declarator;
+shiftExpression:
+	additiveExpression								# ShiftAdd
+	| shiftExpression LeftOp additiveExpression		# ShiftLeft
+	| shiftExpression RightOp additiveExpression	# ShiftRight;
 
-declaration:
-	specifier+ ';'												# DeclarationWithoutInit
-	| specifier+ (initDeclarator (',' initDeclarator)*)? ';'	# DeclarationWithInit;
+relationalExpression:
+	shiftExpression								# RelShift
+	| relationalExpression '<' shiftExpression	# RelLT
+	| relationalExpression '>' shiftExpression	# RelGT
+	| relationalExpression LeOp shiftExpression	# RelLE
+	| relationalExpression GeOp shiftExpression	# RelGE;
 
-initDeclarator: declarator ('=' initializer)?;
+equalityExpression:
+	relationalExpression							# EqRel
+	| equalityExpression EqOp relationalExpression	# EqEQ
+	| equalityExpression NeOp relationalExpression	# EqNE;
 
-initializer: nonCommaExpression;
+andExpression:
+	equalityExpression						# AndEq
+	| andExpression '&' equalityExpression	# AndAnd;
 
-nonCommaExpression: expression;
+exclusiveOrExpression:
+	andExpression								# XorAnd
+	| exclusiveOrExpression '^' andExpression	# XorXor;
 
-statement:
-	'return' expression? ';'												# ReturnStatement
-	| expression ';'														# ExpressionStatement
-	| 'if' '(' expression ')' statement										# IfStatement
-	| 'if' '(' expression ')' statement 'else' statement					# IfElseStatement
-	| 'while' '(' expression ')' statement									# WhileStatement
-	| 'for' '(' expression? ';' expression? ';' expression? ')' statement	# ForStatement
-	| ';'																	# NullStatement;
+inclusiveOrExpression:
+	exclusiveOrExpression								# OrXor
+	| inclusiveOrExpression '|' exclusiveOrExpression	# OrOr;
 
-// For order of precedence, see https://en.cppreference.com/w/c/language/operator_precedence
+logicalAndExpression:
+	inclusiveOrExpression								# LandOr
+	| logicalAndExpression AndOp inclusiveOrExpression	# LandAnd;
+
+logicalOrExpression:
+	logicalAndExpression							# LorLand
+	| logicalOrExpression OrOp logicalAndExpression	# LorOr;
+
+conditionalExpression:
+	logicalOrExpression												# CondLor
+	| logicalOrExpression '?' expression ':' conditionalExpression	# CondTernary;
+
+assignmentExpression:
+	conditionalExpression										# AssignCond
+	| unaryExpression assignmentOperator assignmentExpression	# AssignOp;
+
+assignmentOperator:
+	'='
+	| MulAssign
+	| DivAssign
+	| ModAssign
+	| AddAssign
+	| SubAssign
+	| LeftAssign
+	| RightAssign
+	| AndAssign
+	| XorAssign
+	| OrAssign;
+
 expression:
-	Identifier												# IdentifierExpression
-	| IntegerConstant										# IntegerConstantExpression
-	| '(' expression ')'									# ParenthesizedExpression
-	| expression '(' (expression (',' expression)*)? ')'	# FunctionCallExpression
-	| <assoc = right> '-' expression						# NegationExpression
-	| <assoc = right> '!' expression						# LogicalNotExpression
-	| <assoc = right> '~' expression						# BitwiseNotExpression
-	| expression ('*' | '/' | '%') expression				# MultiplicativeExpression
-	| expression ('+' | '-') expression						# AdditiveExpression
-	| expression ('<' | '<=' | '>' | '>=') expression		# RelationalExpression
-	| expression ('==' | '!=') expression					# EqualityExpression
-	| expression '&&' expression							# LogicalAndExpression
-	| expression '||' expression							# LogicalOrExpression
-	| <assoc = right> expression '=' expression				# AssignmentExpression;
+	assignmentExpression (',' assignmentExpression)*;
 
-// === Lexer rules ===
+// Lexer rules
 
-Whitespace: [ \t\r\n] -> skip;
-Comment: '/*' .*? '*/' -> skip;
+MulAssign: '*=';
+DivAssign: '/=';
+ModAssign: '%=';
+AddAssign: '+=';
+SubAssign: '-=';
+LeftAssign: '<<=';
+RightAssign: '>>=';
+AndAssign: '&=';
+XorAssign: '^=';
+OrAssign: '|=';
 
-// Keywords
-KeywordIf: 'if';
-KeywordElse: 'else';
-KeywordReturn: 'return';
-KeywordVoid: 'void';
-KeywordInt: 'int';
+LeftOp: '<<';
+RightOp: '>>';
+LeOp: '<=';
+GeOp: '>=';
+EqOp: '==';
+NeOp: '!=';
+AndOp: '&&';
+OrOp: '||';
+IncOp: '++';
+DecOp: '--';
+PtrOp: '->';
 
-// Punctuations
-LeftParen: '(';
-RightParen: ')';
-LeftBrace: '{';
-RightBrace: '}';
-Comma: ',';
-Semicolon: ';';
-
-// Arithmetic operators
-Increment: '++';
-Add: '+';
-Decrement: '--';
-Subtract: '-';
-Multiply: '*';
-Divide: '/';
-Modulo: '%';
-
-// Bitwise operators
-BitwiseNot: '~';
-BitwiseAnd: '&';
-BitwiseOr: '|';
-BitwiseXor: '^';
-
-// Logical operators
-LogicalNot: '!';
-LogicalAnd: '&&';
-LogicalOr: '||';
-Equal: '==';
-NotEqual: '!=';
-Less: '<';
-LessEqual: '<=';
-Greater: '>';
-GreaterEqual: '>=';
-
-// Miscellaneous
-Assignment: '=';
-
-// Identifiers and constants
 Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
-IntegerConstant: '0' | [1-9][0-9]*;
+Constant: '0' | [1-9][0-9]*;
+StringLiteral: '"' (~["\r\n] | '\\"')* '"';
