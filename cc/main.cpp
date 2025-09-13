@@ -1,7 +1,7 @@
 #include "ANTLRInputStream.h"
 #include "ast.hpp"
 #include "ast_builder.hpp"
-#include "codegen.hpp"
+// #include "codegen.hpp"
 #include "error.hpp"
 #include <CLexer.h>
 #include <CParser.h>
@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
-#include "analyzer.hpp"
+// #include "analyzer.hpp"
 
 using namespace std;
 using namespace argparse;
@@ -176,8 +176,8 @@ int main(int argc, char *argv[]) {
     return {};
   }
 
-  ASTBuilder builder;
-  auto ast = unique_ptr<Expression>(any_cast<Expression *>(builder.visit(tree)));
+  // ASTBuilder builder;
+  // auto ast = unique_ptr<Expression>(any_cast<Expression *>(builder.visit(tree)));
 
   // Analyzer analyzer;
   // analyzer.visit(*ast);
