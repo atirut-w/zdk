@@ -27,13 +27,13 @@ unaryExpression:
 	| DecOp unaryExpression			# UnaryDec
 	| unaryOperator castExpression	# UnaryOp
 	| 'sizeof' unaryExpression		# UnarySizeofExpr
-	/*| 'sizeof' '(' typeName ')'		# UnarySizeofType*/;
+	| 'sizeof' '(' typeName ')'		# UnarySizeofType;
 
 unaryOperator: '&' | '*' | '+' | '-' | '~' | '!';
 
 castExpression:
-	unaryExpression # CastUnary
-	/*| '(' typeName ')' castExpression	# CastType*/;
+	unaryExpression						# CastUnary
+	| '(' typeName ')' castExpression	# CastType;
 
 multiplicativeExpression:
 	castExpression									# MulCast
@@ -104,37 +104,235 @@ assignmentOperator:
 	| XorAssign
 	| OrAssign;
 
-expression:
-	assignmentExpression (',' assignmentExpression)*;
+expression: assignmentExpression (',' assignmentExpression)*;
 
-// Lexer rules
+constantExpression: conditionalExpression;
 
-Whitespace: [ \t\r\n]+ -> skip;
+declaration: declarationSpecifiers initDeclaratorList? ';';
+
+declarationSpecifiers: (
+		storageClassSpecifier
+		| typeSpecifier
+		| typeQualifier
+	)+;
+
+initDeclaratorList: initDeclarator (',' initDeclarator)*;
+
+initDeclarator: declarator ('=' initializer)?;
+
+storageClassSpecifier:
+	Typedef
+	| Extern
+	| Static
+	| Auto
+	| Register;
+
+typeSpecifier:
+	Void
+	| Char
+	| Short
+	| Int
+	| Long
+	| Float
+	| Double
+	| Signed
+	| Unsigned
+	| structOrUnionSpecifier
+	| enumSpecifier
+	| Identifier;
+
+structOrUnionSpecifier:
+	(structOrUnion Identifier? '{' structDeclarationList '}')	# StructDef
+	| (structOrUnion Identifier)								# StructRef;
+
+structOrUnion: Struct | Union;
+
+structDeclarationList: structDeclaration+;
+
+structDeclaration:
+	specifierQualifierList structDeclaratorList ';';
+
+specifierQualifierList: (typeSpecifier | typeQualifier)+;
+
+structDeclaratorList: structDeclarator (',' structDeclarator)*;
+
+structDeclarator:
+	declarator (':' constantExpression)?	# StructDec
+	| ':' constantExpression				# StructBitField;
+
+enumSpecifier:
+	Enum Identifier? '{' enumeratorList '}'	# EnumDef
+	| Enum Identifier						# EnumRef;
+
+enumeratorList: enumerator (',' enumerator)*;
+
+enumerator: Identifier ('=' constantExpression)?;
+
+typeQualifier: Const | Volatile;
+
+declarator: pointer? directDeclarator;
+
+directDeclarator:
+	Identifier										# DirId
+	| '(' declarator ')'							# DirParen
+	| directDeclarator '[' constantExpression? ']'	# DirArray
+	| directDeclarator '(' parameterTypeList? ')'	# DirFunc
+	| directDeclarator '(' identifierList? ')'		# DirOldFunc;
+
+pointer: '*' typeQualifier* pointer?;
+
+parameterTypeList: parameterList (',' Elipsis)?;
+
+parameterList: parameterDeclaration (',' parameterDeclaration)*;
+
+parameterDeclaration:
+	declarationSpecifiers declarator
+	| declarationSpecifiers abstractDeclarator
+	| declarationSpecifiers;
+
+identifierList: Identifier (',' Identifier)*;
+
+typeName:
+	specifierQualifierList
+	| specifierQualifierList abstractDeclarator;
+
+abstractDeclarator:
+	pointer directAbstractDeclarator?	# AbsPointer
+	| directAbstractDeclarator?			# AbsDirect;
+
+directAbstractDeclarator:
+	'(' abstractDeclarator ')'								# AbsParen
+	| '[' constantExpression? ']'							# AbsArray
+	| directAbstractDeclarator '[' constantExpression? ']'	# AbsArrayRec
+	| '(' parameterTypeList? ')'							# AbsFunc
+	| directAbstractDeclarator '(' parameterTypeList? ')'	# AbsFuncRec;
+
+initializer:
+	assignmentExpression				# InitAssign
+	| '{' initializerList (',')? '}'	# InitList
+	| '{' initializerList ',' '}'		# InitListComma;
+
+initializerList: initializer (',' initializer)*;
+
+statement:
+	labeledStatement
+	| compoundStatement
+	| expressionStatement
+	| selectionStatement
+	| iterationStatement
+	| jumpStatement;
+
+labeledStatement:
+	Identifier ':' statement				# LabelId
+	| Case constantExpression ':' statement	# LabelCase
+	| Default ':' statement					# LabelDefault;
+
+compoundStatement: '{' declaration* statement* '}';
+
+expressionStatement: expression? ';';
+
+selectionStatement:
+	'if' '(' expression ')' then = statement (
+		'else' else = statement
+	)?										# SelIf
+	| 'switch' '(' expression ')' statement	# SelSwitch;
+
+iterationStatement:
+	'while' '(' expression ')' statement			# IterWhile
+	| 'do' statement 'while' '(' expression ')' ';'	# IterDo
+	| 'for' '(' init = expressionStatement cond = expressionStatement update = expression? ')'
+		statement # IterFor;
+
+jumpStatement:
+	Goto Identifier ';'			# JumpGoto
+	| Continue ';'				# JumpContinue
+	| Break ';'					# JumpBreak
+	| Return expression? ';'	# JumpReturn;
+
+translationUnit: externalDeclaration+;
+
+externalDeclaration: functionDefinition | declaration;
+
+functionDefinition:
+	declarationSpecifiers? declarator declaration* compoundStatement;
+
+// === Lexer rules ===
+
+fragment D: [0-9];
+fragment L: [a-zA-Z_];
+fragment H: [a-fA-F0-9];
+fragment E: [Ee] [+-]? D+;
+fragment FS: [fFlL];
+fragment IS: [uUlL];
+
 Comment: '/*' .*? '*/' -> skip;
 
+Auto: 'auto';
+Break: 'break';
+Case: 'case';
+Char: 'char';
+Const: 'const';
+Continue: 'continue';
+Default: 'default';
+Do: 'do';
+Double: 'double';
+Else: 'else';
+Enum: 'enum';
+Extern: 'extern';
+Float: 'float';
+For: 'for';
+Goto: 'goto';
+If: 'if';
+Int: 'int';
+Long: 'long';
+Register: 'register';
+Return: 'return';
+Short: 'short';
+Signed: 'signed';
+Sizeof: 'sizeof';
+Static: 'static';
+Struct: 'struct';
+Switch: 'switch';
+Typedef: 'typedef';
+Union: 'union';
+Unsigned: 'unsigned';
+Void: 'void';
+Volatile: 'volatile';
+While: 'while';
+
+Identifier: L (L | D)*;
+Constant:
+	'0' [xX] H+ IS?
+	| '0' D+ IS?
+	| D+ IS?
+	| L? '\'' ('\\' . | ~['\\]) '\''
+	| D+ E FS?
+	| D* '.' D* E? FS?
+	| D+ '.' D* E? FS?;
+
+StringLiteral: L? '"' ('\\' . | ~["\\])* '"';
+
+Elipsis: '...';
+RightAssign: '>>=';
+LeftAssign: '<<=';
+AddAssign: '+=';
+SubAssign: '-=';
 MulAssign: '*=';
 DivAssign: '/=';
 ModAssign: '%=';
-AddAssign: '+=';
-SubAssign: '-=';
-LeftAssign: '<<=';
-RightAssign: '>>=';
 AndAssign: '&=';
 XorAssign: '^=';
 OrAssign: '|=';
-
-LeftOp: '<<';
 RightOp: '>>';
+LeftOp: '<<';
+IncOp: '++';
+DecOp: '--';
+PtrOp: '->';
+AndOp: '&&';
+OrOp: '||';
 LeOp: '<=';
 GeOp: '>=';
 EqOp: '==';
 NeOp: '!=';
-AndOp: '&&';
-OrOp: '||';
-IncOp: '++';
-DecOp: '--';
-PtrOp: '->';
 
-Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
-Constant: '0' | [1-9][0-9]*;
-StringLiteral: '"' (~["\r\n] | '\\"')* '"';
+Whitespace: [ \t\r\n]+ -> channel(HIDDEN);

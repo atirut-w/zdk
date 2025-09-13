@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
   parser.addErrorListener(listener.get());
 
   tokens.fill();
-  tree::ParseTree *tree = parser.expression();
+  tree::ParseTree *tree = parser.translationUnit();
   input.close();
   filesystem::remove(intermediate.replace_extension(".i"));
 
