@@ -164,6 +164,7 @@ int main(int argc, char *argv[]) {
   lexer.addErrorListener(listener.get());
   parser.addErrorListener(listener.get());
 
+  tokens.fill();
   tree::ParseTree *tree = parser.expression();
   input.close();
   filesystem::remove(intermediate.replace_extension(".i"));
