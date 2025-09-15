@@ -28,6 +28,15 @@ class CodeGen {
     }
     return nullptr;
   }
+  std::string format_ix(int offset) {
+    if (offset == 0) {
+      return "(ix)";
+    } else if (offset > 0) {
+      return std::format("(ix+{})", offset);
+    } else {
+      return std::format("(ix-{})", -offset);
+    }
+  }
 
 public:
   CodeGen(std::ostream &out) : out(out) {}

@@ -32,8 +32,8 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
 
     // Allocate space on stack
     out << std::format("\tld hl, -{}\n", size);
-    out << "\tadd sp, hl\n";
-    out << "\tld hl, sp\n";
+    out << "\tadd hl, sp\n";
+    out << "\tld sp, hl\n";
   }
 
   for (auto &stmt : func.body) {
@@ -310,14 +310,45 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
 }
 
 void CodeGen::visit(cparse::AssignmentExpression &assign_expr, bool rhs) {
+  // TODO: This whole thing can probably be "optimized" into just computing the
+  // address and putting it in IY.
   if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(assign_expr.left.get())) {
-    // TODO: Index into stack frame for local variables
-    visit(*assign_expr.right);
+    if (auto *symbol = find_symbol(id_expr->name)) {
+      if (auto *local = dynamic_cast<LocalVariable *>(symbol)) {
+        visit(*assign_expr.right);
+        out << std::format("\tld {}, l\n", format_ix(local->offset));
+        out << std::format("\tld {}, h\n", format_ix(local->offset + 1));
+
+        if (rhs) {
+          out << "\tld e, l\n";
+          out << "\tld d, h\n";
+        }
+      } else {
+        throw std::runtime_error("Unsupported symbol type");
+      }
+    } else {
+      throw std::runtime_error(std::format("Undefined variable '{}'", id_expr->name));
+    }
   } else {
     throw std::runtime_error("Left-hand side of assignment must be an identifier");
   }
 }
 
 void CodeGen::visit(cparse::IdentifierExpression &id_expr, bool rhs) {
-  // TODO: Index into stack frame for local variables
+  // TODO: Same with the IY stuff above.
+  if (auto *symbol = find_symbol(id_expr.name)) {
+    if (auto *local = dynamic_cast<LocalVariable *>(symbol)) {
+      out << std::format("\tld l, {}\n", format_ix(local->offset));
+      out << std::format("\tld h, {}\n", format_ix(local->offset + 1));
+
+      if (rhs) {
+        out << "\tld e, l\n";
+        out << "\tld d, h\n";
+      }
+    } else {
+      throw std::runtime_error("Unsupported symbol type");
+    }
+  } else {
+    throw std::runtime_error(std::format("Undefined variable '{}'", id_expr.name));
+  }
 }
