@@ -28,8 +28,11 @@ void CodeGen::visit(cparse::ReturnStatement &ret) {
 void CodeGen::visit(cparse::Expression &expr, bool rhs) {
   if (auto const_expr = dynamic_cast<cparse::ConstantExpression *>(&expr)) {
     visit(*const_expr, rhs);
-  } else if (auto *unary_expr = dynamic_cast<cparse::UnaryExpression *>(&expr)) {
+  } else if (auto *unary_expr =
+                 dynamic_cast<cparse::UnaryExpression *>(&expr)) {
     visit(*unary_expr, rhs);
+  } else if (auto *be = dynamic_cast<cparse::BinaryExpression *>(&expr)) {
+    visit(*be, rhs);
   } else {
     throw std::runtime_error("Unknown expression type");
   }
@@ -62,6 +65,55 @@ void CodeGen::visit(cparse::UnaryExpression &unary_expr, bool rhs) {
     break;
   default:
     throw std::runtime_error("Unknown unary operator");
+  }
+
+  if (rhs) {
+    out << "\tld e, l\n";
+    out << "\tld d, h\n";
+  }
+}
+
+void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
+  visit(*bin_expr.left);
+  bool clobbers = dynamic_cast<cparse::ConstantExpression *>(
+                      bin_expr.right.get()) == nullptr;
+  if (clobbers) {
+    out << "\tpush hl\n";
+  }
+  visit(*bin_expr.right, true);
+  if (clobbers) {
+    out << "\tpop hl\n";
+  }
+
+  switch (bin_expr.op) {
+  case cparse::BinaryExpression::Add:
+    out << "\tadd hl, de\n";
+    break;
+  case cparse::BinaryExpression::Subtract:
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    break;
+  case cparse::BinaryExpression::Multiply:
+  case cparse::BinaryExpression::Divide:
+  case cparse::BinaryExpression::Modulus:
+    out << "\tpush de\n";
+    out << "\tpush hl\n";
+
+    std::string routine;
+    switch (bin_expr.op) {
+    case cparse::BinaryExpression::Multiply:
+      routine = "__mulsi3";
+      break;
+    case cparse::BinaryExpression::Divide:
+      routine = "__divsi3";
+      break;
+    case cparse::BinaryExpression::Modulus:
+      routine = "__modsi3";
+      break;
+    }
+    out << std::format("\tcall {}\n", routine);
+    out << "\tpop bc\n";
+    out << "\tpop bc\n";
   }
 
   if (rhs) {

@@ -16,9 +16,11 @@ public:
   std::unique_ptr<FunctionDefinition> function_definition();
   std::unique_ptr<Statement> statement();
   std::unique_ptr<ReturnStatement> return_statement();
-  std::unique_ptr<Expression> expression();
 
-  UnaryExpression::Operator parse_unary_operator();
+  std::unique_ptr<Expression> factor();
+  std::unique_ptr<Expression> expression(int min_prec = 0);
+  UnaryExpression::Operator unary_operator();
+  BinaryExpression::Operator binary_operator();
 };
 
 }

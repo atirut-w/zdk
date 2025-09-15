@@ -26,6 +26,20 @@ struct UnaryExpression : public Expression {
   std::unique_ptr<Expression> operand;
 };
 
+struct BinaryExpression : public Expression {
+  enum Operator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulus,
+  };
+
+  Operator op;
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
+};
+
 // Statements
 
 struct Statement : public ASTNode {};

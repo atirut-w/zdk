@@ -1,7 +1,18 @@
 #include "cparse/parser.hpp"
 #include "cparse/error.hpp"
+#include <unordered_map>
+#include <vector>
 
 namespace cparse {
+
+static std::vector<Token::Kind> binops = {
+    Token::Plus, Token::Minus, Token::Asterisk, Token::Slash, Token::Percent,
+};
+
+static std::unordered_map<Token::Kind, int> precedence = {
+    {Token::Asterisk, 50}, {Token::Slash, 50}, {Token::Percent, 50},
+    {Token::Plus, 45},     {Token::Minus, 45},
+};
 
 static std::string kind_name(Token::Kind kind) {
   switch (kind) {
@@ -89,7 +100,7 @@ std::unique_ptr<ReturnStatement> Parser::return_statement() {
   return ret;
 }
 
-std::unique_ptr<Expression> Parser::expression() {
+std::unique_ptr<Expression> Parser::factor() {
   if (auto token = lexer.peek_token()) {
     if (token->kind == Token::Constant) {
       auto const_expr = std::make_unique<ConstantExpression>();
@@ -97,8 +108,8 @@ std::unique_ptr<Expression> Parser::expression() {
       return const_expr;
     } else if (token->kind == Token::Tilde || token->kind == Token::Minus) {
       auto unary_expr = std::make_unique<UnaryExpression>();
-      unary_expr->op = parse_unary_operator();
-      unary_expr->operand = expression();
+      unary_expr->op = unary_operator();
+      unary_expr->operand = factor();
       return unary_expr;
     } else if (token->kind == Token::LeftParen) {
       expect(Token::LeftParen);
@@ -113,7 +124,27 @@ std::unique_ptr<Expression> Parser::expression() {
   }
 }
 
-UnaryExpression::Operator Parser::parse_unary_operator() {
+std::unique_ptr<Expression> Parser::expression(int min_prec) {
+  auto lhs = factor();
+  auto next = lexer.peek_token();
+
+  while (next &&
+         std::find(binops.begin(), binops.end(), next->kind) != binops.end() &&
+         precedence[next->kind] >= min_prec) {
+    auto op = binary_operator();
+    auto rhs = expression(precedence[next->kind] + 1);
+    auto bin_expr = std::make_unique<BinaryExpression>();
+    bin_expr->op = op;
+    bin_expr->left = std::move(lhs);
+    bin_expr->right = std::move(rhs);
+    lhs = std::move(bin_expr);
+    next = lexer.peek_token();
+  }
+  
+  return lhs;
+}
+
+UnaryExpression::Operator Parser::unary_operator() {
   if (auto token = lexer.peek_token()) {
     if (token->kind == Token::Tilde) {
       expect(Token::Tilde);
@@ -123,6 +154,32 @@ UnaryExpression::Operator Parser::parse_unary_operator() {
       return UnaryExpression::Negate;
     } else {
       throw Error(token->position, "Expected unary operator");
+    }
+  } else {
+    throw Error(lexer.position, "Unexpected end of input");
+  }
+}
+
+BinaryExpression::Operator Parser::binary_operator() {
+  if (auto token = lexer.peek_token()) {
+    switch (token->kind) {
+    case Token::Plus:
+      expect(Token::Plus);
+      return BinaryExpression::Add;
+    case Token::Minus:
+      expect(Token::Minus);
+      return BinaryExpression::Subtract;
+    case Token::Asterisk:
+      expect(Token::Asterisk);
+      return BinaryExpression::Multiply;
+    case Token::Slash:
+      expect(Token::Slash);
+      return BinaryExpression::Divide;
+    case Token::Percent:
+      expect(Token::Percent);
+      return BinaryExpression::Modulus;
+    default:
+      throw Error(token->position, "Expected binary operator");
     }
   } else {
     throw Error(lexer.position, "Unexpected end of input");
