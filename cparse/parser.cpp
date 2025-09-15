@@ -25,6 +25,12 @@ static std::string kind_name(Token::Kind kind) {
     return "'('";
   case Token::RightParen:
     return "')'";
+  case Token::Tilde:
+    return "'~'";
+  case Token::Minus:
+    return "'-'";
+  case Token::MinusMinus:
+    return "'--'";
   default:
     throw std::runtime_error("BUG: Unhandled token kind");
   }

@@ -70,6 +70,19 @@ std::optional<Token> Lexer::next() {
       consume();
       current.kind = Token::RightParen;
       return current;
+    case '~':
+      consume();
+      current.kind = Token::Tilde;
+      return current;
+    case '-':
+      consume();
+      if (peek() == '-') {
+        consume();
+        current.kind = Token::MinusMinus;
+      } else {
+        current.kind = Token::Minus;
+      }
+      return current;
     case '\0':
       return std::nullopt;
     default:

@@ -18,6 +18,9 @@ struct Token {
     RightBrace,
     LeftParen,
     RightParen,
+    Tilde,
+    Minus,
+    MinusMinus,
   };
 
   Kind kind;
