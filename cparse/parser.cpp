@@ -15,6 +15,8 @@ static std::string kind_name(Token::Kind kind) {
     return "identifier";
   case Token::Constant:
     return "constant";
+  case Token::MinusMinus:
+    return "'--'";
   case Token::Semicolon:
     return "';'";
   case Token::LeftBrace:
@@ -29,8 +31,6 @@ static std::string kind_name(Token::Kind kind) {
     return "'~'";
   case Token::Minus:
     return "'-'";
-  case Token::MinusMinus:
-    return "'--'";
   default:
     throw std::runtime_error("BUG: Unhandled token kind");
   }

@@ -13,6 +13,7 @@ struct Token {
     Identifier,
     Constant,
 
+    MinusMinus,
     Semicolon,
     LeftBrace,
     RightBrace,
@@ -20,7 +21,6 @@ struct Token {
     RightParen,
     Tilde,
     Minus,
-    MinusMinus,
   };
 
   Kind kind;
