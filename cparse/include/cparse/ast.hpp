@@ -58,6 +58,12 @@ struct AssignmentExpression : public Expression {
   std::unique_ptr<Expression> right;
 };
 
+struct ConditionalExpression : public Expression {
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Expression> then_expr;
+  std::unique_ptr<Expression> else_expr;
+};
+
 // Statements
 
 struct Statement : public ASTNode {};
@@ -68,6 +74,12 @@ struct ReturnStatement : public Statement {
 
 struct ExpressionStatement : public Statement {
   std::unique_ptr<Expression> expression;
+};
+
+struct IfStatement : public Statement {
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Statement> then_branch;
+  std::unique_ptr<Statement> else_branch;
 };
 
 // Top-level constructs

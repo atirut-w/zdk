@@ -18,9 +18,11 @@ public:
   std::unique_ptr<Statement> statement();
   std::unique_ptr<ReturnStatement> return_statement();
   std::unique_ptr<Statement> expression_statement();
+  std::unique_ptr<IfStatement> if_statement();
 
   std::unique_ptr<Expression> factor();
   std::unique_ptr<Expression> expression(int min_prec = 0);
+  std::unique_ptr<Expression> conditional_expression();
   UnaryExpression::Operator unary_operator();
   BinaryExpression::Operator binary_operator();
 };

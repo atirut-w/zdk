@@ -42,10 +42,12 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
 }
 
 void CodeGen::visit(cparse::Statement &stmt) {
-  if (auto ret = dynamic_cast<cparse::ReturnStatement *>(&stmt)) {
+  if (auto *ret = dynamic_cast<cparse::ReturnStatement *>(&stmt)) {
     visit(*ret);
-  } else if (auto expr_stmt = dynamic_cast<cparse::ExpressionStatement *>(&stmt)) {
+  } else if (auto *expr_stmt = dynamic_cast<cparse::ExpressionStatement *>(&stmt)) {
     visit(*expr_stmt->expression);
+  } else if (auto *if_stmt = dynamic_cast<cparse::IfStatement *>(&stmt)) {
+    visit(*if_stmt);
   } else {
     throw std::runtime_error("Unknown statement type");
   }
@@ -59,6 +61,26 @@ void CodeGen::visit(cparse::ReturnStatement &ret) {
     out << "\tpop ix\n";
   }
   out << "\tret\n";
+}
+
+void CodeGen::visit(cparse::IfStatement &if_stmt) {
+  int else_label = generate_label();
+  int end_label = generate_label();
+
+  visit(*if_stmt.condition);
+  out << "\tld a, l\n";
+  out << "\tor h\n";
+  out << std::format("\tjp z, {}f\n", else_label);
+
+  visit(*if_stmt.then_branch);
+  out << std::format("\tjp {}f\n", end_label);
+
+  out << std::format("{}:\n", else_label);
+  if (if_stmt.else_branch) {
+    visit(*if_stmt.else_branch);
+  }
+
+  out << std::format("{}:\n", end_label);
 }
 
 void CodeGen::visit(cparse::Expression &expr, bool rhs) {

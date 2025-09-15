@@ -45,6 +45,7 @@ public:
   void visit(cparse::FunctionDefinition &func);
   void visit(cparse::Statement &stmt);
   void visit(cparse::ReturnStatement &ret);
+  void visit(cparse::IfStatement &if_stmt);
 
   void visit(cparse::Expression &expr, bool rhs = false);
   void visit(cparse::ConstantExpression &const_expr, bool rhs = false);

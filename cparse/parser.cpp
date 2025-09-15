@@ -155,7 +155,9 @@ std::unique_ptr<Declaration> Parser::declaration() {
 
 std::unique_ptr<Statement> Parser::statement() {
   if (auto token = lexer.peek_token()) {
-    if (token->kind == Token::Return) {
+    if (token->kind == Token::If) {
+      return if_statement();
+    } else if (token->kind == Token::Return) {
       return return_statement();
     } else {
       return expression_statement();
@@ -178,6 +180,20 @@ std::unique_ptr<ReturnStatement> Parser::return_statement() {
   ret->expression = expression();
   expect(Token::Semicolon);
   return ret;
+}
+
+std::unique_ptr<IfStatement> Parser::if_statement() {
+  auto if_stmt = std::make_unique<IfStatement>();
+  expect(Token::If);
+  expect(Token::LeftParen);
+  if_stmt->condition = expression();
+  expect(Token::RightParen);
+  if_stmt->then_branch = statement();
+  if (auto token = lexer.peek_token(); token && token->kind == Token::Else) {
+    expect(Token::Else);
+    if_stmt->else_branch = statement();
+  }
+  return if_stmt;
 }
 
 std::unique_ptr<Expression> Parser::factor() {
