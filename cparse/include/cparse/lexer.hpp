@@ -2,29 +2,9 @@
 #include "source_position.hpp"
 #include <istream>
 #include <optional>
+#include "token.hpp"
 
 namespace cparse {
-
-struct Token {
-  enum Kind {
-    Int,
-    Return,
-    Void,
-
-    Identifier,
-    Constant,
-
-    Semicolon,
-    LeftBrace,
-    RightBrace,
-    LeftParen,
-    RightParen,
-  };
-
-  Kind kind;
-  SourcePosition position;
-  std::string text;
-};
 
 struct Lexer {
   std::istream &input;
