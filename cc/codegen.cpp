@@ -95,6 +95,8 @@ void CodeGen::visit(cparse::Expression &expr, bool rhs) {
     visit(*as, rhs);
   } else if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(&expr)) {
     visit(*id_expr, rhs);
+  } else if (auto *cond_expr = dynamic_cast<cparse::ConditionalExpression *>(&expr)) {
+    visit(*cond_expr, rhs);
   } else {
     throw std::runtime_error("Unknown expression type");
   }
@@ -372,5 +374,28 @@ void CodeGen::visit(cparse::IdentifierExpression &id_expr, bool rhs) {
     }
   } else {
     throw std::runtime_error(std::format("Undefined variable '{}'", id_expr.name));
+  }
+}
+
+void CodeGen::visit(cparse::ConditionalExpression &cond_expr, bool rhs) {
+  int else_label = generate_label();
+  int end_label = generate_label();
+
+  visit(*cond_expr.condition);
+  out << "\tld a, l\n";
+  out << "\tor h\n";
+  out << std::format("\tjp z, {}f\n", else_label);
+
+  visit(*cond_expr.then_expr);
+  out << std::format("\tjp {}f\n", end_label);
+
+  out << std::format("{}:\n", else_label);
+  visit(*cond_expr.else_expr);
+
+  out << std::format("{}:\n", end_label);
+
+  if (rhs) {
+    out << "\tld e, l\n";
+    out << "\tld d, h\n";
   }
 }

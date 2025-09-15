@@ -22,7 +22,7 @@ public:
 
   std::unique_ptr<Expression> factor();
   std::unique_ptr<Expression> expression(int min_prec = 0);
-  std::unique_ptr<Expression> conditional_expression();
+  std::unique_ptr<Expression> conditional_middle();
   UnaryExpression::Operator unary_operator();
   BinaryExpression::Operator binary_operator();
 };

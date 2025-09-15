@@ -6,11 +6,11 @@
 namespace cparse {
 
 static std::unordered_map<Token::Kind, int> precedence = {
-    {Token::Asterisk, 50},   {Token::Slash, 50}, {Token::Percent, 50},
-    {Token::Plus, 45},       {Token::Minus, 45}, {Token::LeftAngle, 35},
-    {Token::RightAngle, 35}, {Token::LeOp, 35},  {Token::GeOp, 35},
-    {Token::EqOp, 30},       {Token::NeOp, 30},  {Token::AndOp, 10},
-    {Token::OrOp, 5},        {Token::Equal, 1},
+    {Token::Asterisk, 50},   {Token::Slash, 50},   {Token::Percent, 50},
+    {Token::Plus, 45},       {Token::Minus, 45},   {Token::LeftAngle, 35},
+    {Token::RightAngle, 35}, {Token::LeOp, 35},    {Token::GeOp, 35},
+    {Token::EqOp, 30},       {Token::NeOp, 30},    {Token::AndOp, 10},
+    {Token::OrOp, 5},        {Token::Question, 3}, {Token::Equal, 1},
 };
 
 static std::string kind_name(Token::Kind kind) {
@@ -237,6 +237,14 @@ std::unique_ptr<Expression> Parser::expression(int min_prec) {
       assign_expr->left = std::move(lhs);
       assign_expr->right = std::move(rhs);
       lhs = std::move(assign_expr);
+    } else if (next->kind == Token::Question) {
+      auto middle = conditional_middle();
+      auto right = expression(precedence[next->kind]);
+      auto cond_expr = std::make_unique<ConditionalExpression>();
+      cond_expr->condition = std::move(lhs);
+      cond_expr->then_expr = std::move(middle);
+      cond_expr->else_expr = std::move(right);
+      lhs = std::move(cond_expr);
     } else {
       auto op = binary_operator();
       auto rhs = expression(precedence[next->kind] + 1);
@@ -250,6 +258,13 @@ std::unique_ptr<Expression> Parser::expression(int min_prec) {
   }
 
   return lhs;
+}
+
+std::unique_ptr<Expression> Parser::conditional_middle() {
+  expect(Token::Question);
+  auto then_expr = expression();
+  expect(Token::Colon);
+  return then_expr;
 }
 
 UnaryExpression::Operator Parser::unary_operator() {

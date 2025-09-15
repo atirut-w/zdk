@@ -53,4 +53,5 @@ public:
   void visit(cparse::BinaryExpression &bin_expr, bool rhs = false);
   void visit(cparse::AssignmentExpression &assign_expr, bool rhs = false);
   void visit(cparse::IdentifierExpression &id_expr, bool rhs = false);
+  void visit(cparse::ConditionalExpression &cond_expr, bool rhs = false);
 };
