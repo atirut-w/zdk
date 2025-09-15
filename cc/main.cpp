@@ -1,5 +1,6 @@
 #include <argparse/argparse.hpp>
 #include <cparse/lexer.hpp>
+#include <cparse/parser.hpp>
 #include <filesystem>
 #include <format>
 #include <iostream>
@@ -29,12 +30,12 @@ std::unique_ptr<ArgumentParser> parseArguments(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  auto parser = parseArguments(argc, argv);
-  if (!parser) {
+  auto args = parseArguments(argc, argv);
+  if (!args) {
     return 1;
   }
 
-  const auto path = parser->get<std::filesystem::path>("input");
+  const auto path = args->get<std::filesystem::path>("input");
   auto intermediate = path;
   system((std::format("cpp -P {} -o {}", path.string(),
                       intermediate.replace_extension(".i").string()))
@@ -42,10 +43,8 @@ int main(int argc, char **argv) {
 
   std::ifstream input(intermediate);
   cparse::Lexer lexer(input);
-  std::vector<cparse::Token> tokens;
-  while (auto token = lexer.next()) {
-    tokens.push_back(*token);
-  }
+  cparse::Parser parser(lexer);
+  auto tu = parser.translation_unit();
 
   return 0;
 }

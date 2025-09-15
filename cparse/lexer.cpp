@@ -81,6 +81,17 @@ std::optional<Token> Lexer::next() {
   return std::nullopt;
 }
 
+std::optional<Token> Lexer::peek_token() {
+  auto saved_position = position;
+  auto saved_current = current;
+  auto token = next();
+  position = saved_position;
+  current = saved_current;
+  input.clear();
+  input.seekg(position.offset);
+  return token;
+}
+
 char Lexer::consume() {
   int ch = input.get();
   if (ch == '\n') {

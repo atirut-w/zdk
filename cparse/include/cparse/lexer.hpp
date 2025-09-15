@@ -12,6 +12,7 @@ struct Lexer {
   Token current;
 
   std::optional<Token> next();
+  std::optional<Token> peek_token();
   char consume();
   char peek() const;
   bool at_boundary() const;
