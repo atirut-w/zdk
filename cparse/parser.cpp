@@ -5,10 +5,6 @@
 
 namespace cparse {
 
-static std::vector<Token::Kind> binops = {
-    Token::Plus, Token::Minus, Token::Asterisk, Token::Slash, Token::Percent,
-};
-
 static std::unordered_map<Token::Kind, int> precedence = {
     {Token::Asterisk, 50}, {Token::Slash, 50}, {Token::Percent, 50},
     {Token::Plus, 45},     {Token::Minus, 45},
@@ -146,8 +142,7 @@ std::unique_ptr<Expression> Parser::expression(int min_prec) {
   auto lhs = factor();
   auto next = lexer.peek_token();
 
-  while (next &&
-         std::find(binops.begin(), binops.end(), next->kind) != binops.end() &&
+  while (next && precedence.contains(next->kind) &&
          precedence[next->kind] >= min_prec) {
     auto op = binary_operator();
     auto rhs = expression(precedence[next->kind] + 1);
