@@ -33,6 +33,14 @@ struct BinaryExpression : public Expression {
     Multiply,
     Divide,
     Modulus,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
   };
 
   Operator op;

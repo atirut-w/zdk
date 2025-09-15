@@ -7,6 +7,8 @@ void CodeGen::visit(cparse::TranslationUnit &tu) {
 }
 
 void CodeGen::visit(cparse::FunctionDefinition &func) {
+  next_label = 0;
+
   out << std::format("\t.global _{}\n", func.name);
   out << std::format("_{}:\n", func.name);
   visit(*func.body);
@@ -74,6 +76,63 @@ void CodeGen::visit(cparse::UnaryExpression &unary_expr, bool rhs) {
 }
 
 void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
+  // Special handling for short-circuiting operators
+  if (bin_expr.op == cparse::BinaryExpression::And) {
+    int false_label = generate_label();
+    int end_label = generate_label();
+
+    visit(*bin_expr.left);
+    out << "\tld a, l\n";
+    out << "\tor h\n";
+    out << std::format("\tjp z, {}f\n", false_label);
+    
+    visit(*bin_expr.right);
+    out << "\tld a, l\n";
+    out << "\tor h\n";
+    out << std::format("\tjp z, {}f\n", false_label);
+    
+    out << "\tld hl, 1\n";
+    out << std::format("\tjp {}f\n", end_label);
+    
+    out << std::format("{}:\n", false_label);
+    out << "\tld hl, 0\n";
+    out << std::format("{}:\n", end_label);
+    
+    if (rhs) {
+      out << "\tld e, l\n";
+      out << "\tld d, h\n";
+    }
+    return;
+  }
+  
+  if (bin_expr.op == cparse::BinaryExpression::Or) {
+    int true_label = generate_label();
+    int end_label = generate_label();
+
+    visit(*bin_expr.left);
+    out << "\tld a, l\n";
+    out << "\tor h\n";
+    out << std::format("\tjp nz, {}f\n", true_label);
+    
+    visit(*bin_expr.right);
+    out << "\tld a, l\n";
+    out << "\tor h\n";
+    out << std::format("\tjp nz, {}f\n", true_label);
+    
+    out << "\tld hl, 0\n";
+    out << std::format("\tjp {}f\n", end_label);
+    
+    out << std::format("{}:\n", true_label);
+    out << "\tld hl, 1\n";
+    out << std::format("{}:\n", end_label);
+    
+    if (rhs) {
+      out << "\tld e, l\n";
+      out << "\tld d, h\n";
+    }
+    return;
+  }
+
   visit(*bin_expr.left);
   bool clobbers = dynamic_cast<cparse::ConstantExpression *>(
                       bin_expr.right.get()) == nullptr;
@@ -86,6 +145,8 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
   }
 
   switch (bin_expr.op) {
+  default:
+    throw std::runtime_error("Unknown binary operator");
   case cparse::BinaryExpression::Add:
     out << "\tadd hl, de\n";
     break;
@@ -95,7 +156,7 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
     break;
   case cparse::BinaryExpression::Multiply:
   case cparse::BinaryExpression::Divide:
-  case cparse::BinaryExpression::Modulus:
+  case cparse::BinaryExpression::Modulus: {
     out << "\tpush de\n";
     out << "\tpush hl\n";
 
@@ -114,6 +175,94 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
     out << std::format("\tcall {}\n", routine);
     out << "\tpop bc\n";
     out << "\tpop bc\n";
+    break;
+  }
+  case cparse::BinaryExpression::Equal: {
+    int false_label = generate_label();
+    int end_label = generate_label();
+
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    out << std::format("\tjp nz, {}f\n", false_label);
+    out << "\tld hl, 1\n";
+    out << std::format("\tjp {}f\n", end_label);
+    out << std::format("{}:\n", false_label);
+    out << "\tld hl, 0\n";
+    out << std::format("{}:\n", end_label);
+    break;
+  }
+  case cparse::BinaryExpression::NotEqual: {
+    int true_label = generate_label();
+    int end_label = generate_label();
+
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    out << std::format("\tjp nz, {}f\n", true_label);
+    out << "\tld hl, 0\n";
+    out << std::format("\tjp {}f\n", end_label);
+    out << std::format("{}:\n", true_label);
+    out << "\tld hl, 1\n";
+    out << std::format("{}:\n", end_label);
+    break;
+  }
+  case cparse::BinaryExpression::Less: {
+    int true_label = generate_label();
+    int end_label = generate_label();
+
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    out << std::format("\tjp m, {}f\n", true_label);
+    out << "\tld hl, 0\n";
+    out << std::format("\tjp {}f\n", end_label);
+    out << std::format("{}:\n", true_label);
+    out << "\tld hl, 1\n";
+    out << std::format("{}:\n", end_label);
+    break;
+  }
+  case cparse::BinaryExpression::LessEqual: {
+    int true_label = generate_label();
+    int end_label = generate_label();
+
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    out << std::format("\tjp m, {}f\n", true_label);
+    out << std::format("\tjp z, {}f\n", true_label);
+    out << "\tld hl, 0\n";
+    out << std::format("\tjp {}f\n", end_label);
+    out << std::format("{}:\n", true_label);
+    out << "\tld hl, 1\n";
+    out << std::format("{}:\n", end_label);
+    break;
+  }
+  case cparse::BinaryExpression::Greater: {
+    int false_label = generate_label();
+    int end_label = generate_label();
+
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    out << std::format("\tjp m, {}f\n", false_label);
+    out << std::format("\tjp z, {}f\n", false_label);
+    out << "\tld hl, 1\n";
+    out << std::format("\tjp {}f\n", end_label);
+    out << std::format("{}:\n", false_label);
+    out << "\tld hl, 0\n";
+    out << std::format("{}:\n", end_label);
+    break;
+  }
+  case cparse::BinaryExpression::GreaterEqual: {
+    int false_label = generate_label();
+    int end_label = generate_label();
+
+    out << "\tor a\n";
+    out << "\tsbc hl, de\n";
+    out << std::format("\tjp m, {}f\n", false_label);
+    out << "\tld hl, 1\n";
+    out << std::format("\tjp {}f\n", end_label);
+    out << std::format("{}:\n", false_label);
+    out << "\tld hl, 0\n";
+    out << std::format("{}:\n", end_label);
+    break;
+  }
   }
 
   if (rhs) {

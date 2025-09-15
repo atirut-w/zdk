@@ -4,6 +4,9 @@
 
 class CodeGen {
   std::ostream &out;
+  int next_label = 0;
+
+  int generate_label() { return next_label++; }
 
 public:
   CodeGen(std::ostream &out) : out(out) {}

@@ -6,8 +6,11 @@
 namespace cparse {
 
 static std::unordered_map<Token::Kind, int> precedence = {
-    {Token::Asterisk, 50}, {Token::Slash, 50}, {Token::Percent, 50},
-    {Token::Plus, 45},     {Token::Minus, 45},
+    {Token::Asterisk, 50},   {Token::Slash, 50}, {Token::Percent, 50},
+    {Token::Plus, 45},       {Token::Minus, 45}, {Token::LeftAngle, 35},
+    {Token::RightAngle, 35}, {Token::LeOp, 35},  {Token::GeOp, 35},
+    {Token::EqOp, 30},       {Token::NeOp, 30},  {Token::AndOp, 10},
+    {Token::OrOp, 5},
 };
 
 static std::string kind_name(Token::Kind kind) {
@@ -191,6 +194,30 @@ BinaryExpression::Operator Parser::binary_operator() {
     case Token::Percent:
       expect(Token::Percent);
       return BinaryExpression::Modulus;
+    case Token::AndOp:
+      expect(Token::AndOp);
+      return BinaryExpression::And;
+    case Token::OrOp:
+      expect(Token::OrOp);
+      return BinaryExpression::Or;
+    case Token::EqOp:
+      expect(Token::EqOp);
+      return BinaryExpression::Equal;
+    case Token::NeOp:
+      expect(Token::NeOp);
+      return BinaryExpression::NotEqual;
+    case Token::LeftAngle:
+      expect(Token::LeftAngle);
+      return BinaryExpression::Less;
+    case Token::LeOp:
+      expect(Token::LeOp);
+      return BinaryExpression::LessEqual;
+    case Token::RightAngle:
+      expect(Token::RightAngle);
+      return BinaryExpression::Greater;
+    case Token::GeOp:
+      expect(Token::GeOp);
+      return BinaryExpression::GreaterEqual;
     default:
       throw Error(token->position, "Expected binary operator");
     }
