@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace cparse {
 
@@ -14,6 +15,10 @@ struct Expression : public ASTNode {};
 
 struct ConstantExpression : public Expression {
   int value;
+};
+
+struct IdentifierExpression : public Expression {
+  std::string name;
 };
 
 struct UnaryExpression : public Expression {
@@ -48,6 +53,11 @@ struct BinaryExpression : public Expression {
   std::unique_ptr<Expression> right;
 };
 
+struct AssignmentExpression : public Expression {
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
+};
+
 // Statements
 
 struct Statement : public ASTNode {};
@@ -56,15 +66,25 @@ struct ReturnStatement : public Statement {
   std::unique_ptr<Expression> expression;
 };
 
+struct ExpressionStatement : public Statement {
+  std::unique_ptr<Expression> expression;
+};
+
 // Top-level constructs
+
+struct Declaration : public ASTNode {
+  std::string name;
+  std::unique_ptr<Expression> initializer;
+};
 
 struct FunctionDefinition : public ASTNode {
   std::string name;
-  std::unique_ptr<Statement> body;
+  std::vector<std::unique_ptr<Declaration>> declarations;
+  std::vector<std::unique_ptr<Statement>> body;
 };
 
 struct TranslationUnit : public ASTNode {
   std::unique_ptr<FunctionDefinition> function;
 };
 
-}
+} // namespace cparse

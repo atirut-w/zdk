@@ -11,12 +11,17 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
 
   out << std::format("\t.global _{}\n", func.name);
   out << std::format("_{}:\n", func.name);
-  visit(*func.body);
+
+  for (auto &stmt : func.body) {
+    visit(*stmt);
+  }
 }
 
 void CodeGen::visit(cparse::Statement &stmt) {
   if (auto ret = dynamic_cast<cparse::ReturnStatement *>(&stmt)) {
     visit(*ret);
+  } else if (auto expr_stmt = dynamic_cast<cparse::ExpressionStatement *>(&stmt)) {
+    visit(*expr_stmt->expression);
   } else {
     throw std::runtime_error("Unknown statement type");
   }
@@ -35,6 +40,10 @@ void CodeGen::visit(cparse::Expression &expr, bool rhs) {
     visit(*unary_expr, rhs);
   } else if (auto *be = dynamic_cast<cparse::BinaryExpression *>(&expr)) {
     visit(*be, rhs);
+  } else if (auto *as = dynamic_cast<cparse::AssignmentExpression *>(&expr)) {
+    visit(*as, rhs);
+  } else if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(&expr)) {
+    visit(*id_expr, rhs);
   } else {
     throw std::runtime_error("Unknown expression type");
   }
@@ -269,4 +278,17 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
     out << "\tld e, l\n";
     out << "\tld d, h\n";
   }
+}
+
+void CodeGen::visit(cparse::AssignmentExpression &assign_expr, bool rhs) {
+  if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(assign_expr.left.get())) {
+    // TODO: Index into stack frame for local variables
+    visit(*assign_expr.right);
+  } else {
+    throw std::runtime_error("Left-hand side of assignment must be an identifier");
+  }
+}
+
+void CodeGen::visit(cparse::IdentifierExpression &id_expr, bool rhs) {
+  // TODO: Index into stack frame for local variables
 }

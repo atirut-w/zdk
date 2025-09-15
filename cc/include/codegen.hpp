@@ -20,4 +20,6 @@ public:
   void visit(cparse::ConstantExpression &const_expr, bool rhs = false);
   void visit(cparse::UnaryExpression &unary_expr, bool rhs = false);
   void visit(cparse::BinaryExpression &bin_expr, bool rhs = false);
+  void visit(cparse::AssignmentExpression &assign_expr, bool rhs = false);
+  void visit(cparse::IdentifierExpression &id_expr, bool rhs = false);
 };

@@ -10,7 +10,7 @@ static std::unordered_map<Token::Kind, int> precedence = {
     {Token::Plus, 45},       {Token::Minus, 45}, {Token::LeftAngle, 35},
     {Token::RightAngle, 35}, {Token::LeOp, 35},  {Token::GeOp, 35},
     {Token::EqOp, 30},       {Token::NeOp, 30},  {Token::AndOp, 10},
-    {Token::OrOp, 5},
+    {Token::OrOp, 5},        {Token::Equal, 1},
 };
 
 static std::string kind_name(Token::Kind kind) {
@@ -103,13 +103,66 @@ std::unique_ptr<FunctionDefinition> Parser::function_definition() {
   expect(Token::Void);
   expect(Token::RightParen);
   expect(Token::LeftBrace);
-  func->body = statement();
+
+  // Declarations
+  while (auto token = lexer.peek_token()) {
+    if (token->kind == Token::RightBrace) {
+      break;
+    } else if (token->kind == Token::Int) {
+      func->declarations.push_back(declaration());
+    } else {
+      break;
+    }
+  }
+
+  // Statements
+  while (auto token = lexer.peek_token()) {
+    if (token->kind == Token::RightBrace) {
+      break;
+    } else if (token->kind == Token::Int) {
+      // Error: declaration after statements in C90
+      throw Error(token->position,
+                  "Declaration not allowed after statements in C90");
+    } else {
+      func->body.push_back(statement());
+    }
+  }
+
   expect(Token::RightBrace);
 
   return func;
 }
 
-std::unique_ptr<Statement> Parser::statement() { return return_statement(); }
+std::unique_ptr<Declaration> Parser::declaration() {
+  auto decl = std::make_unique<Declaration>();
+  expect(Token::Int);
+  decl->name = expect(Token::Identifier).text;
+  if (auto token = lexer.peek_token(); token && token->kind == Token::Equal) {
+    expect(Token::Equal);
+    decl->initializer = expression();
+  }
+  expect(Token::Semicolon);
+  return decl;
+}
+
+std::unique_ptr<Statement> Parser::statement() {
+  if (auto token = lexer.peek_token()) {
+    if (token->kind == Token::Return) {
+      return return_statement();
+    } else {
+      return expression_statement();
+    }
+  } else {
+    throw Error(lexer.position, "Unexpected end of input");
+  }
+}
+
+std::unique_ptr<Statement> Parser::expression_statement() {
+  auto expr_stmt = std::make_unique<ExpressionStatement>();
+  expr_stmt->expression = expression();
+  expect(Token::Semicolon);
+  return expr_stmt;
+}
 
 std::unique_ptr<ReturnStatement> Parser::return_statement() {
   auto ret = std::make_unique<ReturnStatement>();
@@ -125,6 +178,10 @@ std::unique_ptr<Expression> Parser::factor() {
       auto const_expr = std::make_unique<ConstantExpression>();
       const_expr->value = std::stoi(expect(Token::Constant).text);
       return const_expr;
+    } else if (token->kind == Token::Identifier) {
+      auto id_expr = std::make_unique<IdentifierExpression>();
+      id_expr->name = expect(Token::Identifier).text;
+      return id_expr;
     } else if (token->kind == Token::Tilde || token->kind == Token::Minus) {
       auto unary_expr = std::make_unique<UnaryExpression>();
       unary_expr->op = unary_operator();
@@ -149,13 +206,22 @@ std::unique_ptr<Expression> Parser::expression(int min_prec) {
 
   while (next && precedence.contains(next->kind) &&
          precedence[next->kind] >= min_prec) {
-    auto op = binary_operator();
-    auto rhs = expression(precedence[next->kind] + 1);
-    auto bin_expr = std::make_unique<BinaryExpression>();
-    bin_expr->op = op;
-    bin_expr->left = std::move(lhs);
-    bin_expr->right = std::move(rhs);
-    lhs = std::move(bin_expr);
+    if (next->kind == Token::Equal) {
+      expect(Token::Equal);
+      auto rhs = expression(precedence[next->kind]);
+      auto assign_expr = std::make_unique<AssignmentExpression>();
+      assign_expr->left = std::move(lhs);
+      assign_expr->right = std::move(rhs);
+      lhs = std::move(assign_expr);
+    } else {
+      auto op = binary_operator();
+      auto rhs = expression(precedence[next->kind] + 1);
+      auto bin_expr = std::make_unique<BinaryExpression>();
+      bin_expr->op = op;
+      bin_expr->left = std::move(lhs);
+      bin_expr->right = std::move(rhs);
+      lhs = std::move(bin_expr);
+    }
     next = lexer.peek_token();
   }
 
