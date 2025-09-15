@@ -450,6 +450,22 @@ int CodeGen::allocate_block_locals(
   if (total)
     adjust_sp(-total); // carve out this block's frame space
   scope_stack.back().bytes_in_block += total;
+  
+  // Generate initialization code for variables with initializers
+  for (auto &decl : decls) {
+    if (decl->initializer) {
+      // Find the local variable we just created
+      auto *symbol = find_symbol(decl->name);
+      if (auto *local = dynamic_cast<LocalVariable *>(symbol)) {
+        // Evaluate the initializer expression
+        visit(*decl->initializer);
+        // Store the result in the local variable
+        out << std::format("\tld {}, l\n", format_ix(local->offset));
+        out << std::format("\tld {}, h\n", format_ix(local->offset + 1));
+      }
+    }
+  }
+  
   return total;
 }
 
