@@ -21,6 +21,10 @@ struct Token {
     RightParen,
     Tilde,
     Minus,
+    Plus,
+    Asterisk,
+    Slash,
+    Percent,
   };
 
   Kind kind;

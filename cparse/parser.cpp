@@ -31,6 +31,14 @@ static std::string kind_name(Token::Kind kind) {
     return "'~'";
   case Token::Minus:
     return "'-'";
+  case Token::Plus:
+    return "'+'";
+  case Token::Asterisk:
+    return "'*'";
+  case Token::Slash:
+    return "'/'";
+  case Token::Percent:
+    return "'%'";
   default:
     throw std::runtime_error("BUG: Unhandled token kind");
   }

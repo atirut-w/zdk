@@ -83,6 +83,22 @@ std::optional<Token> Lexer::next() {
         current.kind = Token::Minus;
       }
       return current;
+    case '+':
+      consume();
+      current.kind = Token::Plus;
+      return current;
+    case '*':
+      consume();
+      current.kind = Token::Asterisk;
+      return current;
+    case '/':
+      consume();
+      current.kind = Token::Slash;
+      return current;
+    case '%':
+      consume();
+      current.kind = Token::Percent;
+      return current;
     case '\0':
       return std::nullopt;
     default:
