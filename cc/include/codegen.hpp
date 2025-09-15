@@ -15,4 +15,5 @@ public:
 
   void visit(cparse::Expression &expr, bool rhs = false);
   void visit(cparse::ConstantExpression &const_expr, bool rhs = false);
+  void visit(cparse::UnaryExpression &unary_expr, bool rhs = false);
 };

@@ -17,6 +17,8 @@ public:
   std::unique_ptr<Statement> statement();
   std::unique_ptr<ReturnStatement> return_statement();
   std::unique_ptr<Expression> expression();
+
+  UnaryExpression::Operator parse_unary_operator();
 };
 
 }

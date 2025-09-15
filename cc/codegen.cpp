@@ -27,7 +27,9 @@ void CodeGen::visit(cparse::ReturnStatement &ret) {
 
 void CodeGen::visit(cparse::Expression &expr, bool rhs) {
   if (auto const_expr = dynamic_cast<cparse::ConstantExpression *>(&expr)) {
-    visit(*const_expr);
+    visit(*const_expr, rhs);
+  } else if (auto *unary_expr = dynamic_cast<cparse::UnaryExpression *>(&expr)) {
+    visit(*unary_expr, rhs);
   } else {
     throw std::runtime_error("Unknown expression type");
   }
@@ -38,5 +40,32 @@ void CodeGen::visit(cparse::ConstantExpression &const_expr, bool rhs) {
     out << std::format("\tld de, {}\n", const_expr.value);
   } else {
     out << std::format("\tld hl, {}\n", const_expr.value);
+  }
+}
+
+void CodeGen::visit(cparse::UnaryExpression &unary_expr, bool rhs) {
+  switch (unary_expr.op) {
+  case cparse::UnaryExpression::Complement:
+    visit(*unary_expr.operand);
+    out << "\tld a, l\n";
+    out << "\tcpl\n";
+    out << "\tld l, a\n";
+    out << "\tld a, h\n";
+    out << "\tcpl\n";
+    out << "\tld h, a\n";
+    break;
+  case cparse::UnaryExpression::Negate:
+    visit(*unary_expr.operand, true);
+    out << "\tor a\n";
+    out << "\tld hl, 0\n";
+    out << "\tsbc hl, de\n";
+    break;
+  default:
+    throw std::runtime_error("Unknown unary operator");
+  }
+
+  if (rhs) {
+    out << "\tld e, l\n";
+    out << "\tld d, h\n";
   }
 }

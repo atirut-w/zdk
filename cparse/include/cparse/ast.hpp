@@ -16,6 +16,16 @@ struct ConstantExpression : public Expression {
   int value;
 };
 
+struct UnaryExpression : public Expression {
+  enum Operator {
+    Complement,
+    Negate,
+  };
+
+  Operator op;
+  std::unique_ptr<Expression> operand;
+};
+
 // Statements
 
 struct Statement : public ASTNode {};

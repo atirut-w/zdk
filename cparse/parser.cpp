@@ -82,9 +82,43 @@ std::unique_ptr<ReturnStatement> Parser::return_statement() {
 }
 
 std::unique_ptr<Expression> Parser::expression() {
-  auto expr = std::make_unique<ConstantExpression>();
-  expr->value = std::stoi(expect(Token::Constant).text);
-  return expr;
+  if (auto token = lexer.peek_token()) {
+    if (token->kind == Token::Constant) {
+      auto const_expr = std::make_unique<ConstantExpression>();
+      const_expr->value = std::stoi(expect(Token::Constant).text);
+      return const_expr;
+    } else if (token->kind == Token::Tilde || token->kind == Token::Minus) {
+      auto unary_expr = std::make_unique<UnaryExpression>();
+      unary_expr->op = parse_unary_operator();
+      unary_expr->operand = expression();
+      return unary_expr;
+    } else if (token->kind == Token::LeftParen) {
+      expect(Token::LeftParen);
+      auto expr = expression();
+      expect(Token::RightParen);
+      return expr;
+    } else {
+      throw Error(token->position, "Malformed expression");
+    }
+  } else {
+    throw Error(lexer.position, "Unexpected end of input");
+  }
+}
+
+UnaryExpression::Operator Parser::parse_unary_operator() {
+  if (auto token = lexer.peek_token()) {
+    if (token->kind == Token::Tilde) {
+      expect(Token::Tilde);
+      return UnaryExpression::Complement;
+    } else if (token->kind == Token::Minus) {
+      expect(Token::Minus);
+      return UnaryExpression::Negate;
+    } else {
+      throw Error(token->position, "Expected unary operator");
+    }
+  } else {
+    throw Error(lexer.position, "Unexpected end of input");
+  }
 }
 
 } // namespace cparse
