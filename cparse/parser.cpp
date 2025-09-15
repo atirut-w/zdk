@@ -28,6 +28,18 @@ static std::string kind_name(Token::Kind kind) {
     return "constant";
   case Token::MinusMinus:
     return "'--'";
+  case Token::AndOp:
+    return "'&&'";
+  case Token::OrOp:
+    return "'||'";
+  case Token::LeOp:
+    return "'<='";
+  case Token::GeOp:
+    return "'>='";
+  case Token::EqOp:
+    return "'=='";
+  case Token::NeOp:
+    return "'!='";
   case Token::Semicolon:
     return "';'";
   case Token::LeftBrace:
@@ -38,6 +50,8 @@ static std::string kind_name(Token::Kind kind) {
     return "'('";
   case Token::RightParen:
     return "')'";
+  case Token::Exclamation:
+    return "'!'";
   case Token::Tilde:
     return "'~'";
   case Token::Minus:
@@ -50,6 +64,10 @@ static std::string kind_name(Token::Kind kind) {
     return "'/'";
   case Token::Percent:
     return "'%'";
+  case Token::LeftAngle:
+    return "'<'";
+  case Token::RightAngle:
+    return "'>'";
   default:
     throw std::runtime_error("BUG: Unhandled token kind");
   }
@@ -140,7 +158,7 @@ std::unique_ptr<Expression> Parser::expression(int min_prec) {
     lhs = std::move(bin_expr);
     next = lexer.peek_token();
   }
-  
+
   return lhs;
 }
 

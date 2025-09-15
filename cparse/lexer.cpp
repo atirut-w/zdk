@@ -50,6 +50,45 @@ std::optional<Token> Lexer::next() {
     return current;
   } else {
     switch (peek()) {
+    case '&':
+      consume();
+      if (peek() == '&') {
+        consume();
+        current.kind = Token::AndOp;
+      } else {
+        throw Error(current.position,
+                    std::format("Invalid character '{}' after '&'", peek()));
+      }
+      return current;
+    case '|':
+      consume();
+      if (peek() == '|') {
+        consume();
+        current.kind = Token::OrOp;
+      } else {
+        throw Error(current.position,
+                    std::format("Invalid character '{}' after '|'", peek()));
+      }
+      return current;
+    case '=':
+      consume();
+      if (peek() == '=') {
+        consume();
+        current.kind = Token::EqOp;
+      } else {
+        throw Error(current.position,
+                    std::format("Invalid character '{}' after '='", peek()));
+      }
+      return current;
+    case '!':
+      consume();
+      if (peek() == '=') {
+        consume();
+        current.kind = Token::NeOp;
+      } else {
+        current.kind = Token::Exclamation;
+      }
+      return current;
     case ';':
       consume();
       current.kind = Token::Semicolon;
@@ -98,6 +137,24 @@ std::optional<Token> Lexer::next() {
     case '%':
       consume();
       current.kind = Token::Percent;
+      return current;
+    case '<':
+      consume();
+      if (peek() == '=') {
+        consume();
+        current.kind = Token::LeOp;
+      } else {
+        current.kind = Token::LeftAngle;
+      }
+      return current;
+    case '>':
+      consume();
+      if (peek() == '=') {
+        consume();
+        current.kind = Token::GeOp;
+      } else {
+        current.kind = Token::RightAngle;
+      }
       return current;
     case '\0':
       return std::nullopt;

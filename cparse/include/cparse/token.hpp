@@ -14,17 +14,26 @@ struct Token {
     Constant,
 
     MinusMinus,
+    AndOp,
+    OrOp,
+    LeOp,
+    GeOp,
+    EqOp,
+    NeOp,
     Semicolon,
     LeftBrace,
     RightBrace,
     LeftParen,
     RightParen,
+    Exclamation,
     Tilde,
     Minus,
     Plus,
     Asterisk,
     Slash,
     Percent,
+    LeftAngle,
+    RightAngle,
   };
 
   Kind kind;
