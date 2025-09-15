@@ -1,7 +1,9 @@
 #include <argparse/argparse.hpp>
+#include <cparse/lexer.hpp>
 #include <filesystem>
 #include <format>
 #include <iostream>
+#include <fstream>
 #include <memory>
 
 using argparse::ArgumentParser;
@@ -32,10 +34,18 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  auto input = parser->get<std::filesystem::path>("input");
-  system((std::format("cpp -P {} -o {}", input.string(),
-                      input.replace_extension(".i").string()))
+  const auto path = parser->get<std::filesystem::path>("input");
+  auto intermediate = path;
+  system((std::format("cpp -P {} -o {}", path.string(),
+                      intermediate.replace_extension(".i").string()))
              .c_str());
+
+  std::ifstream input(intermediate);
+  cparse::Lexer lexer(input);
+  std::vector<cparse::Token> tokens;
+  while (auto token = lexer.next()) {
+    tokens.push_back(*token);
+  }
 
   return 0;
 }

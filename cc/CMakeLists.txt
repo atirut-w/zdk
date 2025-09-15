@@ -3,4 +3,5 @@ add_executable(zdk-cc
 )
 target_link_libraries(zdk-cc PRIVATE
     argparse
+    cparse
 )
