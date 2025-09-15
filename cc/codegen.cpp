@@ -13,41 +13,40 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
   out << std::format("\t.global _{}\n", func.name);
   out << std::format("_{}:\n", func.name);
 
-  if (!func.body->declarations.empty()) {
-    // Save stack frame
-    out << "\tpush ix\n";
-    out << "\tld ix, 0\n";
-    out << "\tadd ix, sp\n";
+  // Always establish a frame (inner blocks might allocate)
+  out << "\tpush ix\n";
+  out << "\tld ix, 0\n";
+  out << "\tadd ix, sp\n";
+  frame_local_off = 0;
 
-    int size = 0;
-    int offset = 0;
-    for (auto &decl : func.body->declarations) {
-      size += 2; // Assume all variables are 2 bytes (int)
-      offset -= 2;
-      auto local = std::make_unique<LocalVariable>();
-      local->name = decl->name;
-      local->offset = offset;
-      symbols.push_back(std::move(local));
-    }
+  // Handle function body as a block scope
+  visit(*func.body);
 
-    // Allocate space on stack
-    out << std::format("\tld hl, -{}\n", size);
-    out << "\tadd hl, sp\n";
-    out << "\tld sp, hl\n";
-  }
+  // TODO: Fall-through return in void functions
+}
 
-  for (auto &stmt : func.body->statements) {
+void CodeGen::visit(cparse::Block &block) {
+  enter_scope();
+  allocate_block_locals(block.declarations);
+
+  for (auto &stmt : block.statements) {
     visit(*stmt);
   }
+
+  leave_scope();
 }
 
 void CodeGen::visit(cparse::Statement &stmt) {
   if (auto *ret = dynamic_cast<cparse::ReturnStatement *>(&stmt)) {
     visit(*ret);
-  } else if (auto *expr_stmt = dynamic_cast<cparse::ExpressionStatement *>(&stmt)) {
+  } else if (auto *expr_stmt =
+                 dynamic_cast<cparse::ExpressionStatement *>(&stmt)) {
     visit(*expr_stmt->expression);
   } else if (auto *if_stmt = dynamic_cast<cparse::IfStatement *>(&stmt)) {
     visit(*if_stmt);
+  } else if (auto *compound_stmt =
+                 dynamic_cast<cparse::CompoundStatement *>(&stmt)) {
+    visit(*compound_stmt);
   } else {
     throw std::runtime_error("Unknown statement type");
   }
@@ -55,11 +54,9 @@ void CodeGen::visit(cparse::Statement &stmt) {
 
 void CodeGen::visit(cparse::ReturnStatement &ret) {
   visit(*ret.expression);
-  if (!current_function->body->declarations.empty()) {
-    // Restore stack frame
-    out << "\tld sp, ix\n";
-    out << "\tpop ix\n";
-  }
+  // Always restore frame (discard any active inner-block locals)
+  out << "\tld sp, ix\n";
+  out << "\tpop ix\n";
   out << "\tret\n";
 }
 
@@ -93,9 +90,11 @@ void CodeGen::visit(cparse::Expression &expr, bool rhs) {
     visit(*be, rhs);
   } else if (auto *as = dynamic_cast<cparse::AssignmentExpression *>(&expr)) {
     visit(*as, rhs);
-  } else if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(&expr)) {
+  } else if (auto *id_expr =
+                 dynamic_cast<cparse::IdentifierExpression *>(&expr)) {
     visit(*id_expr, rhs);
-  } else if (auto *cond_expr = dynamic_cast<cparse::ConditionalExpression *>(&expr)) {
+  } else if (auto *cond_expr =
+                 dynamic_cast<cparse::ConditionalExpression *>(&expr)) {
     visit(*cond_expr, rhs);
   } else {
     throw std::runtime_error("Unknown expression type");
@@ -147,26 +146,26 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
     out << "\tld a, l\n";
     out << "\tor h\n";
     out << std::format("\tjp z, {}f\n", false_label);
-    
+
     visit(*bin_expr.right);
     out << "\tld a, l\n";
     out << "\tor h\n";
     out << std::format("\tjp z, {}f\n", false_label);
-    
+
     out << "\tld hl, 1\n";
     out << std::format("\tjp {}f\n", end_label);
-    
+
     out << std::format("{}:\n", false_label);
     out << "\tld hl, 0\n";
     out << std::format("{}:\n", end_label);
-    
+
     if (rhs) {
       out << "\tld e, l\n";
       out << "\tld d, h\n";
     }
     return;
   }
-  
+
   if (bin_expr.op == cparse::BinaryExpression::Or) {
     int true_label = generate_label();
     int end_label = generate_label();
@@ -175,19 +174,19 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
     out << "\tld a, l\n";
     out << "\tor h\n";
     out << std::format("\tjp nz, {}f\n", true_label);
-    
+
     visit(*bin_expr.right);
     out << "\tld a, l\n";
     out << "\tor h\n";
     out << std::format("\tjp nz, {}f\n", true_label);
-    
+
     out << "\tld hl, 0\n";
     out << std::format("\tjp {}f\n", end_label);
-    
+
     out << std::format("{}:\n", true_label);
     out << "\tld hl, 1\n";
     out << std::format("{}:\n", end_label);
-    
+
     if (rhs) {
       out << "\tld e, l\n";
       out << "\tld d, h\n";
@@ -336,7 +335,8 @@ void CodeGen::visit(cparse::BinaryExpression &bin_expr, bool rhs) {
 void CodeGen::visit(cparse::AssignmentExpression &assign_expr, bool rhs) {
   // TODO: This whole thing can probably be "optimized" into just computing the
   // address and putting it in IY.
-  if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(assign_expr.left.get())) {
+  if (auto *id_expr = dynamic_cast<cparse::IdentifierExpression *>(
+          assign_expr.left.get())) {
     if (auto *symbol = find_symbol(id_expr->name)) {
       if (auto *local = dynamic_cast<LocalVariable *>(symbol)) {
         visit(*assign_expr.right);
@@ -351,10 +351,12 @@ void CodeGen::visit(cparse::AssignmentExpression &assign_expr, bool rhs) {
         throw std::runtime_error("Unsupported symbol type");
       }
     } else {
-      throw std::runtime_error(std::format("Undefined variable '{}'", id_expr->name));
+      throw std::runtime_error(
+          std::format("Undefined variable '{}'", id_expr->name));
     }
   } else {
-    throw std::runtime_error("Left-hand side of assignment must be an identifier");
+    throw std::runtime_error(
+        "Left-hand side of assignment must be an identifier");
   }
 }
 
@@ -373,7 +375,8 @@ void CodeGen::visit(cparse::IdentifierExpression &id_expr, bool rhs) {
       throw std::runtime_error("Unsupported symbol type");
     }
   } else {
-    throw std::runtime_error(std::format("Undefined variable '{}'", id_expr.name));
+    throw std::runtime_error(
+        std::format("Undefined variable '{}'", id_expr.name));
   }
 }
 
@@ -398,4 +401,58 @@ void CodeGen::visit(cparse::ConditionalExpression &cond_expr, bool rhs) {
     out << "\tld e, l\n";
     out << "\tld d, h\n";
   }
+}
+
+// Single-pass local allocation helper functions
+
+void CodeGen::adjust_sp(int bytes) {
+  if (bytes == 0)
+    return;
+  // bytes > 0 means grow SP (free), bytes < 0 means allocate
+  // Z80: HL = SP + bytes; SP = HL
+  out << std::format("\tld hl, {}\n", bytes);
+  out << "\tadd hl, sp\n";
+  out << "\tld sp, hl\n";
+}
+
+void CodeGen::enter_scope() {
+  scope_stack.push_back({symbols.size(), frame_local_off, 0});
+}
+
+void CodeGen::leave_scope() {
+  auto sm = scope_stack.back();
+  scope_stack.pop_back();
+
+  if (sm.bytes_in_block)
+    adjust_sp(+sm.bytes_in_block); // free this block's locals
+
+  // pop symbols declared in this scope
+  while (symbols.size() > sm.sym_top)
+    symbols.pop_back();
+
+  frame_local_off = sm.saved_off; // restore offset baseline
+}
+
+int CodeGen::allocate_block_locals(
+    const std::vector<std::unique_ptr<cparse::Declaration>> &decls) {
+  int total = 0;
+  for (auto &decl : decls) {
+    int sz =
+        size_of_int();     // TODO: Replace with decl->type when types are added
+    frame_local_off -= sz; // grow downward
+    total += sz;
+
+    auto local = std::make_unique<LocalVariable>();
+    local->name = decl->name;
+    local->offset = frame_local_off; // base (low byte)
+    symbols.push_back(std::move(local));
+  }
+  if (total)
+    adjust_sp(-total); // carve out this block's frame space
+  scope_stack.back().bytes_in_block += total;
+  return total;
+}
+
+void CodeGen::visit(cparse::CompoundStatement &compound) {
+  visit(*compound.block);
 }
