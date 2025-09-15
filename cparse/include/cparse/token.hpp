@@ -23,6 +23,7 @@ struct Token {
     Semicolon,
     LeftBrace,
     RightBrace,
+    Equal,
     LeftParen,
     RightParen,
     Exclamation,

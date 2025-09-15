@@ -76,8 +76,7 @@ std::optional<Token> Lexer::next() {
         consume();
         current.kind = Token::EqOp;
       } else {
-        throw Error(current.position,
-                    std::format("Invalid character '{}' after '='", peek()));
+        current.kind = Token::Equal;
       }
       return current;
     case '!':

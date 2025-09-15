@@ -45,6 +45,8 @@ static std::string kind_name(Token::Kind kind) {
     return "'{'";
   case Token::RightBrace:
     return "'}'";
+  case Token::Equal:
+    return "'='";
   case Token::LeftParen:
     return "'('";
   case Token::RightParen:
