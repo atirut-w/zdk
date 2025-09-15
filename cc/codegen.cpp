@@ -8,9 +8,33 @@ void CodeGen::visit(cparse::TranslationUnit &tu) {
 
 void CodeGen::visit(cparse::FunctionDefinition &func) {
   next_label = 0;
+  current_function = &func;
 
   out << std::format("\t.global _{}\n", func.name);
   out << std::format("_{}:\n", func.name);
+
+  if (!func.declarations.empty()) {
+    // Save stack frame
+    out << "\tpush ix\n";
+    out << "\tld ix, 0\n";
+    out << "\tadd ix, sp\n";
+
+    int size = 0;
+    int offset = 0;
+    for (auto &decl : func.declarations) {
+      size += 2; // Assume all variables are 2 bytes (int)
+      offset -= 2;
+      auto local = std::make_unique<LocalVariable>();
+      local->name = decl->name;
+      local->offset = offset;
+      symbols.push_back(std::move(local));
+    }
+
+    // Allocate space on stack
+    out << std::format("\tld hl, -{}\n", size);
+    out << "\tadd sp, hl\n";
+    out << "\tld hl, sp\n";
+  }
 
   for (auto &stmt : func.body) {
     visit(*stmt);
@@ -29,6 +53,11 @@ void CodeGen::visit(cparse::Statement &stmt) {
 
 void CodeGen::visit(cparse::ReturnStatement &ret) {
   visit(*ret.expression);
+  if (!current_function->declarations.empty()) {
+    // Restore stack frame
+    out << "\tld sp, ix\n";
+    out << "\tpop ix\n";
+  }
   out << "\tret\n";
 }
 

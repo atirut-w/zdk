@@ -2,11 +2,32 @@
 #include <cparse/ast.hpp>
 #include <ostream>
 
+struct Symbol {
+  std::string name;
+  virtual ~Symbol() = default;
+};
+
+struct LocalVariable : public Symbol {
+  int offset; // Offset from the frame pointer
+};
+
 class CodeGen {
   std::ostream &out;
   int next_label = 0;
+  // NOTE: Includes ALL symbols, local and global
+  std::vector<std::unique_ptr<Symbol>> symbols;
+  cparse::FunctionDefinition *current_function = nullptr;
 
   int generate_label() { return next_label++; }
+  Symbol *find_symbol(const std::string &name) {
+    for (auto it = symbols.end(); it != symbols.begin();) {
+      --it;
+      if ((*it)->name == name) {
+        return it->get();
+      }
+    }
+    return nullptr;
+  }
 
 public:
   CodeGen(std::ostream &out) : out(out) {}
