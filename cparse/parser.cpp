@@ -15,6 +15,10 @@ static std::unordered_map<Token::Kind, int> precedence = {
 
 static std::string kind_name(Token::Kind kind) {
   switch (kind) {
+  case Token::Else:
+    return "'else'";
+  case Token::If:
+    return "'if'";
   case Token::Int:
     return "'int'";
   case Token::Return:
@@ -45,6 +49,8 @@ static std::string kind_name(Token::Kind kind) {
     return "'{'";
   case Token::RightBrace:
     return "'}'";
+  case Token::Colon:
+    return "':'";
   case Token::Equal:
     return "'='";
   case Token::LeftParen:
@@ -69,6 +75,8 @@ static std::string kind_name(Token::Kind kind) {
     return "'<'";
   case Token::RightAngle:
     return "'>'";
+  case Token::Question:
+    return "'?'";
   default:
     throw std::runtime_error("BUG: Unhandled token kind");
   }

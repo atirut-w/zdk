@@ -6,6 +6,8 @@ namespace cparse {
 
 struct Token {
   enum Kind {
+    Else,
+    If,
     Int,
     Return,
     Void,
@@ -23,6 +25,7 @@ struct Token {
     Semicolon,
     LeftBrace,
     RightBrace,
+    Colon,
     Equal,
     LeftParen,
     RightParen,
@@ -35,6 +38,7 @@ struct Token {
     Percent,
     LeftAngle,
     RightAngle,
+    Question,
   };
 
   Kind kind;

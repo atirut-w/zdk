@@ -6,6 +6,8 @@
 namespace cparse {
 
 static std::unordered_map<std::string, Token::Kind> keywords = {
+    {"else", Token::Else},
+    {"if", Token::If},
     {"int", Token::Int},
     {"return", Token::Return},
     {"void", Token::Void},
@@ -100,6 +102,10 @@ std::optional<Token> Lexer::next() {
       consume();
       current.kind = Token::RightBrace;
       return current;
+    case ':':
+      consume();
+      current.kind = Token::Colon;
+      return current;
     case '(':
       consume();
       current.kind = Token::LeftParen;
@@ -154,6 +160,10 @@ std::optional<Token> Lexer::next() {
       } else {
         current.kind = Token::RightAngle;
       }
+      return current;
+    case '?':
+      consume();
+      current.kind = Token::Question;
       return current;
     case '\0':
       return std::nullopt;
