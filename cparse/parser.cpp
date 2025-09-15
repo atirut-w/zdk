@@ -112,18 +112,28 @@ std::unique_ptr<FunctionDefinition> Parser::function_definition() {
   expect(Token::RightParen);
   expect(Token::LeftBrace);
 
-  // Declarations
+  func->body = block();
+
+  expect(Token::RightBrace);
+
+  return func;
+}
+
+std::unique_ptr<Block> Parser::block() {
+  auto block = std::make_unique<Block>();
+  
+  // Parse declarations first
   while (auto token = lexer.peek_token()) {
     if (token->kind == Token::RightBrace) {
       break;
     } else if (token->kind == Token::Int) {
-      func->declarations.push_back(declaration());
+      block->declarations.push_back(declaration());
     } else {
       break;
     }
   }
 
-  // Statements
+  // Parse statements
   while (auto token = lexer.peek_token()) {
     if (token->kind == Token::RightBrace) {
       break;
@@ -132,13 +142,11 @@ std::unique_ptr<FunctionDefinition> Parser::function_definition() {
       throw Error(token->position,
                   "Declaration not allowed after statements in C90");
     } else {
-      func->body.push_back(statement());
+      block->statements.push_back(statement());
     }
   }
 
-  expect(Token::RightBrace);
-
-  return func;
+  return block;
 }
 
 std::unique_ptr<Declaration> Parser::declaration() {
@@ -159,12 +167,22 @@ std::unique_ptr<Statement> Parser::statement() {
       return if_statement();
     } else if (token->kind == Token::Return) {
       return return_statement();
+    } else if (token->kind == Token::LeftBrace) {
+      return compound_statement();
     } else {
       return expression_statement();
     }
   } else {
     throw Error(lexer.position, "Unexpected end of input");
   }
+}
+
+std::unique_ptr<CompoundStatement> Parser::compound_statement() {
+  auto compound = std::make_unique<CompoundStatement>();
+  expect(Token::LeftBrace);
+  compound->block = block();
+  expect(Token::RightBrace);
+  return compound;
 }
 
 std::unique_ptr<Statement> Parser::expression_statement() {

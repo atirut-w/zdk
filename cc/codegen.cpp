@@ -13,7 +13,7 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
   out << std::format("\t.global _{}\n", func.name);
   out << std::format("_{}:\n", func.name);
 
-  if (!func.declarations.empty()) {
+  if (!func.body->declarations.empty()) {
     // Save stack frame
     out << "\tpush ix\n";
     out << "\tld ix, 0\n";
@@ -21,7 +21,7 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
 
     int size = 0;
     int offset = 0;
-    for (auto &decl : func.declarations) {
+    for (auto &decl : func.body->declarations) {
       size += 2; // Assume all variables are 2 bytes (int)
       offset -= 2;
       auto local = std::make_unique<LocalVariable>();
@@ -36,7 +36,7 @@ void CodeGen::visit(cparse::FunctionDefinition &func) {
     out << "\tld sp, hl\n";
   }
 
-  for (auto &stmt : func.body) {
+  for (auto &stmt : func.body->statements) {
     visit(*stmt);
   }
 }
@@ -55,7 +55,7 @@ void CodeGen::visit(cparse::Statement &stmt) {
 
 void CodeGen::visit(cparse::ReturnStatement &ret) {
   visit(*ret.expression);
-  if (!current_function->declarations.empty()) {
+  if (!current_function->body->declarations.empty()) {
     // Restore stack frame
     out << "\tld sp, ix\n";
     out << "\tpop ix\n";

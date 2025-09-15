@@ -14,8 +14,10 @@ public:
 
   std::unique_ptr<TranslationUnit> translation_unit();
   std::unique_ptr<FunctionDefinition> function_definition();
+  std::unique_ptr<Block> block();
   std::unique_ptr<Declaration> declaration();
   std::unique_ptr<Statement> statement();
+  std::unique_ptr<CompoundStatement> compound_statement();
   std::unique_ptr<ReturnStatement> return_statement();
   std::unique_ptr<Statement> expression_statement();
   std::unique_ptr<IfStatement> if_statement();

@@ -89,10 +89,20 @@ struct Declaration : public ASTNode {
   std::unique_ptr<Expression> initializer;
 };
 
+// Miscellaneous
+
+struct Block : public ASTNode {
+  std::vector<std::unique_ptr<Declaration>> declarations;
+  std::vector<std::unique_ptr<Statement>> statements;
+};
+
+struct CompoundStatement : public Statement {
+  std::unique_ptr<Block> block;
+};
+
 struct FunctionDefinition : public ASTNode {
   std::string name;
-  std::vector<std::unique_ptr<Declaration>> declarations;
-  std::vector<std::unique_ptr<Statement>> body;
+  std::unique_ptr<Block> body;
 };
 
 struct TranslationUnit : public ASTNode {
