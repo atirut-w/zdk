@@ -33,6 +33,13 @@ void CodeGen::visit(cparse::Block &block) {
     visit(*stmt);
   }
 
+  if (!block.statements.empty()) {
+    if (auto *ret = dynamic_cast<cparse::ReturnStatement *>(
+            block.statements.back().get())) {
+      return; // Bail out early: no need to restore frame
+    }
+  }
+
   leave_scope();
 }
 
@@ -450,7 +457,7 @@ int CodeGen::allocate_block_locals(
   if (total)
     adjust_sp(-total); // carve out this block's frame space
   scope_stack.back().bytes_in_block += total;
-  
+
   // Generate initialization code for variables with initializers
   for (auto &decl : decls) {
     if (decl->initializer) {
@@ -465,7 +472,7 @@ int CodeGen::allocate_block_locals(
       }
     }
   }
-  
+
   return total;
 }
 
