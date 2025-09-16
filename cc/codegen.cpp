@@ -371,12 +371,12 @@ void CodeGen::visit(cparse::IdentifierExpression &id_expr, bool rhs) {
   // TODO: Same with the IY stuff above.
   if (auto *symbol = find_symbol(id_expr.name)) {
     if (auto *local = dynamic_cast<LocalVariable *>(symbol)) {
-      out << std::format("\tld l, {}\n", format_ix(local->offset));
-      out << std::format("\tld h, {}\n", format_ix(local->offset + 1));
-
       if (rhs) {
-        out << "\tld e, l\n";
-        out << "\tld d, h\n";
+        out << std::format("\tld e, {}\n", format_ix(local->offset));
+        out << std::format("\tld d, {}\n", format_ix(local->offset + 1));
+      } else {
+        out << std::format("\tld l, {}\n", format_ix(local->offset));
+        out << std::format("\tld h, {}\n", format_ix(local->offset + 1));
       }
     } else {
       throw std::runtime_error("Unsupported symbol type");
