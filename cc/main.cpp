@@ -1,4 +1,3 @@
-#include "codegen.hpp"
 #include <argparse/argparse.hpp>
 #include <cparse/lexer.hpp>
 #include <cparse/parser.hpp>
@@ -46,11 +45,6 @@ int main(int argc, char **argv) {
   cparse::Lexer lexer(input);
   cparse::Parser parser(lexer);
   auto tu = parser.translation_unit();
-
-  std::ofstream output(intermediate.replace_extension(".s"));
-  CodeGen codegen(output);
-  codegen.visit(*tu);
-  system((std::format("rm {}", intermediate.replace_extension(".i").string())).c_str());
 
   return 0;
 }
