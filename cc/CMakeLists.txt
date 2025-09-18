@@ -5,7 +5,6 @@ llvm_map_components_to_libnames(LLVM_LIBS
 
 add_executable(zdk-cc
     main.cpp
-    codegen.cpp
 )
 target_compile_definitions(zdk-cc PRIVATE
     ${LLVM_DEFINITIONS}
