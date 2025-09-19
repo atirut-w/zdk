@@ -46,12 +46,12 @@ int main(int argc, char **argv) {
   cparse::Lexer lexer(input);
   cparse::Parser parser(lexer);
   auto tu = parser.translation_unit();
+  system((std::format("rm {}", intermediate.replace_extension(".i").string()))
+             .c_str());
 
   std::ofstream output(intermediate.replace_extension(".s"));
   CodeGen codegen(output);
   codegen.visit(*tu);
-  system((std::format("rm {}", intermediate.replace_extension(".i").string()))
-             .c_str());
 
   if (args->get<bool>("-S")) {
     return 0;
