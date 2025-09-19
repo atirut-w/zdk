@@ -50,7 +50,30 @@ int main(int argc, char **argv) {
   std::ofstream output(intermediate.replace_extension(".s"));
   CodeGen codegen(output);
   codegen.visit(*tu);
-  system((std::format("rm {}", intermediate.replace_extension(".i").string())).c_str());
+  system((std::format("rm {}", intermediate.replace_extension(".i").string()))
+             .c_str());
+
+  if (args->get<bool>("-S")) {
+    return 0;
+  }
+
+  if (system((std::format("z80-elf-as {} -o {}",
+                          intermediate.replace_extension(".s").string(),
+                          intermediate.replace_extension(".o").string()))
+                 .c_str())) {
+    return 1;
+  }
+  system((std::format("rm {}", intermediate.replace_extension(".s").string()))
+             .c_str());
+
+  if (system((std::format("z80-elf-ld -o {} {}",
+                          intermediate.replace_extension("").string(),
+                          intermediate.replace_extension(".o").string()))
+                 .c_str())) {
+    return 1;
+  }
+  system((std::format("rm {}", intermediate.replace_extension(".o").string()))
+             .c_str());
 
   return 0;
 }
