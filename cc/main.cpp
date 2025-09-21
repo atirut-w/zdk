@@ -36,20 +36,23 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  const auto path = args->get<std::filesystem::path>("input");
-  auto intermediate = path;
-  system((std::format("cpp -P {} -o {}", path.string(),
-                      intermediate.replace_extension(".i").string()))
+  auto path = args->get<std::filesystem::path>("input");
+  auto preprocessed = path.replace_extension(".i");
+  auto assembly = path.replace_extension(".s");
+  auto object = path.replace_extension(".o");
+  auto binary = path.replace_extension("");
+
+  system((std::format("cpp -P {} -o {}", path.replace_extension(".c").string(),
+                      preprocessed.string()))
              .c_str());
 
-  std::ifstream input(intermediate);
+  std::ifstream input(preprocessed);
   cparse::Lexer lexer(input);
   cparse::Parser parser(lexer);
   auto tu = parser.translation_unit();
-  system((std::format("rm {}", intermediate.replace_extension(".i").string()))
-             .c_str());
+  system((std::format("rm {}", preprocessed.string())).c_str());
 
-  std::ofstream output(intermediate.replace_extension(".s"));
+  std::ofstream output(assembly);
   CodeGen codegen(output);
   codegen.visit(*tu);
 
@@ -57,23 +60,19 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (system((std::format("z80-elf-as {} -o {}",
-                          intermediate.replace_extension(".s").string(),
-                          intermediate.replace_extension(".o").string()))
+  if (system((std::format("z80-elf-as {} -o {}", assembly.string(),
+                          object.string()))
                  .c_str())) {
     return 1;
   }
-  system((std::format("rm {}", intermediate.replace_extension(".s").string()))
-             .c_str());
+  system((std::format("rm {}", assembly.string())).c_str());
 
-  if (system((std::format("z80-elf-ld -o {} {}",
-                          intermediate.replace_extension("").string(),
-                          intermediate.replace_extension(".o").string()))
-                 .c_str())) {
+  if (system(
+          (std::format("z80-elf-ld -o {} {}", binary.string(), object.string()))
+              .c_str())) {
     return 1;
   }
-  system((std::format("rm {}", intermediate.replace_extension(".o").string()))
-             .c_str());
+  system((std::format("rm {}", object.string())).c_str());
 
   return 0;
 }
