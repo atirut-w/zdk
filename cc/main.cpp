@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 
   if (args->get<bool>("--emit-llvm")) {
     std::error_code ec;
-    llvm::raw_fd_ostream ir_file(intermediate.replace_extension(".ll").string(),
+    llvm::raw_fd_ostream ir_file(path.replace_extension(".ll").string(),
                                  ec);
     if (ec) {
       std::cerr << "Error opening file for IR output: " << ec.message()
