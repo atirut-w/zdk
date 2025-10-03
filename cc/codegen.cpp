@@ -11,7 +11,7 @@ void CodeGen::visit(cparse::FunctionDefinition &fd) {
   out << std::format("\t.global _{}\n", fd.name);
   out << std::format("_{}:\n", fd.name);
   out << "\tpush ix\n";
-  out << "\tld ix, 0\n";
+  out << std::format("\tld ix, {}\n", -analyzer.frame_size[fd.name]);
   out << "\tadd ix, sp\n";
 
   cparse::Visitor<void>::visit(fd);

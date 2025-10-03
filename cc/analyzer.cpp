@@ -13,8 +13,11 @@ std::optional<std::string> Analyzer::find_symbol(const std::string &name,
 
 void Analyzer::visit(cparse::FunctionDefinition &node) {
   names.push_back(node.name);
+  current_function = node.name;
+  frame_size[current_function] = 0;
   visit(*node.body);
   names.pop_back();
+  current_function.clear();
 }
 
 void Analyzer::visit(cparse::Block &node) {
@@ -41,6 +44,10 @@ void Analyzer::visit(cparse::Declaration &node) {
   names.push_back(node.name);
   if (node.initializer) {
     visit(*node.initializer);
+  }
+
+  if (!current_function.empty()) {
+    frame_size[current_function] += 2;
   }
 }
 

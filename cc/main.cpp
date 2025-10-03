@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   analyzer.visit(*tu);
 
   std::ofstream output(assembly);
-  CodeGen codegen(output);
+  CodeGen codegen(output, analyzer);
   codegen.visit(*tu);
 
   if (args->get<bool>("-S")) {
