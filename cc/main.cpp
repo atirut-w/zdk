@@ -1,3 +1,4 @@
+#include "analyzer.hpp"
 #include "codegen.hpp"
 #include <argparse/argparse.hpp>
 #include <cparse/lexer.hpp>
@@ -51,6 +52,9 @@ int main(int argc, char **argv) {
   cparse::Parser parser(lexer);
   auto tu = parser.translation_unit();
   system((std::format("rm {}", preprocessed.string())).c_str());
+
+  Analyzer analyzer;
+  analyzer.visit(*tu);
 
   std::ofstream output(assembly);
   CodeGen codegen(output);
