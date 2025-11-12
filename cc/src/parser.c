@@ -1192,15 +1192,11 @@ static struct ASTNode *parse_declaration(struct Parser *p, int *out_typedef) {
 }
 
 static struct ASTNode *parse_statement(struct Parser *p) {
-  if (accept(p, '{')) { /* compound */
-    struct ASTList *stmts = 0;
-    while (!accept(p, '}')) {
-      struct ASTNode *s = parse_statement(p);
-      if (!s)
-        break;
-      stmts = ast_list_append(stmts, s);
-    }
-    return ast_new_stmt_compound(stmts, p->cur.line, p->cur.column);
+  /* Delegate compound handling to parse_compound to enforce C90 decl rules */
+  if (!p->has_cur)
+    next(p);
+  if (p->cur.kind == '{') {
+    return parse_compound(p);
   }
   if (accept(p, ';')) {
     return ast_new_stmt_expr(0, p->cur.line, p->cur.column);
@@ -1326,20 +1322,6 @@ static struct ASTNode *parse_statement(struct Parser *p) {
     body = parse_statement(p);
     return ast_new_stmt_for(init, cond, step, body, p->cur.line, p->cur.column);
   }
-  /* Declaration vs expression: if starts with specifier, parse a declaration
-   * and wrap as statement */
-  if (is_type_spec_token(p->cur.kind) || p->cur.kind == T_TYPEDEF ||
-      p->cur.kind == T_EXTERN || p->cur.kind == T_STATIC ||
-      p->cur.kind == T_AUTO || p->cur.kind == T_REGISTER) {
-    int is_td = 0;
-    struct ASTNode *d = parse_declaration(p, &is_td);
-    {
-      struct ASTNode *s = ast_new_stmt_expr(0, d->line, d->column);
-      s->u.stmt.decl = d;
-      s->u.stmt.kind = STMT_DECL;
-      return s;
-    }
-  }
   {
     struct ASTNode *e = parse_expression(p);
     expect(p, ';', "; expected");
@@ -1358,9 +1340,24 @@ static struct ASTNode *parse_function_definition(struct Parser *p, int flags,
 }
 
 static struct ASTNode *parse_compound(struct Parser *p) {
+  int after_stmt = 0;
   expect(p, '{', "{ expected");
   {
     struct ASTList *stmts = 0;
+    /* Declarations-first phase (C90): parse all declarations at block start */
+    while (starts_declaration(p)) {
+      int is_td = 0;
+      struct ASTNode *d = parse_declaration(p, &is_td);
+      if (d) {
+        /* Store declaration nodes directly in compound list (consistent with
+           grammar: declaration_list followed by statement_list) */
+        stmts = ast_list_append(stmts, d);
+      } else {
+        break;
+      }
+    }
+
+    /* Statements phase */
     while (1) {
       if (!p->has_cur)
         next(p);
@@ -1372,12 +1369,37 @@ static struct ASTNode *parse_compound(struct Parser *p) {
         parser_error(p, "unexpected EOF in compound");
         break;
       }
-      stmts = ast_list_append(stmts, parse_statement(p));
-      /* if parse_statement didn't consume and didn't make progress, sync to
-       * next ';' to avoid infinite loop */
+      if (starts_declaration(p)) {
+        /* C90 forbids declarations after statements in a block */
+        parser_error(p, "declarations after statements are not allowed in C90");
+        /* sync to next ';' or '}' to continue */
+        sync_until(p, ';', '}');
+        /* if we consumed '}', end block */
+        if (p->cur.kind == '}') {
+          next(p);
+          break;
+        }
+        /* continue scanning statements */
+        continue;
+      }
+      {
+        struct ASTNode *s = parse_statement(p);
+        if (!s) {
+          /* make progress to avoid infinite loop */
+          if (!p->has_cur)
+            next(p);
+          else
+            next(p);
+          continue;
+        }
+        after_stmt = 1;
+        stmts = ast_list_append(stmts, s);
+      }
+      /* ensure progress */
       if (!p->has_cur)
         next(p);
     }
+    (void)after_stmt; /* silence unused in strict builds */
     return ast_new_stmt_compound(stmts, p->cur.line, p->cur.column);
   }
 }

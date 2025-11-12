@@ -448,7 +448,6 @@ void ast_free(struct ASTNode *node) {
     ast_free(node->u.stmt.s2);
     ast_free(node->u.stmt.s3);
     ast_free(node->u.stmt.expr);
-    ast_free(node->u.stmt.decl);
     if (node->u.stmt.label)
       free(node->u.stmt.label);
     break;
@@ -525,8 +524,6 @@ void ast_print(struct ASTNode *node, int ind) {
       ast_print(node->u.stmt.s3, ind + 2);
     if (node->u.stmt.expr)
       ast_print(node->u.stmt.expr, ind + 2);
-    if (node->u.stmt.decl)
-      ast_print(node->u.stmt.decl, ind + 2);
     break;
   case 2:
     indent(ind);

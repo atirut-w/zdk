@@ -36,7 +36,6 @@ enum ASTStmtKind {
   STMT_RETURN,
   STMT_BREAK,
   STMT_CONTINUE,
-  STMT_DECL,
   STMT_SWITCH,
   STMT_GOTO,
   STMT_LABEL,
@@ -102,7 +101,6 @@ struct ASTNode {
       struct ASTNode *s2;    /* else or post */
       struct ASTNode *s3;    /* for-increment */
       struct ASTNode *expr;  /* expr or return value or switch cond */
-      struct ASTNode *decl;  /* for decl stmt */
       char *label;           /* for goto/label */
     } stmt;
     /* decl */

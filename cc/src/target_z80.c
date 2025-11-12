@@ -113,7 +113,16 @@ static void z80_gen_statement(struct Codegen *cg, struct ASTNode *stmt) {
   switch (stmt->u.stmt.kind) {
     case STMT_COMPOUND:
       for (list = stmt->u.stmt.stmts; list; list = list->next) {
-        if (list->node && cg->gen_statement) {
+        if (!list->node) {
+          continue;
+        }
+        /* Declarations appear directly in compound lists now; skip them */
+        if (list->node->kind_tag == 2) {
+          /* TODO: allocate locals, emit storage as needed */
+          continue;
+        }
+        /* Only recurse on statements */
+        if (list->node->kind_tag == 1 && cg->gen_statement) {
           cg->gen_statement(cg, list->node);
         }
       }
