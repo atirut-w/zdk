@@ -4,12 +4,12 @@
 /* Simple typedef name table for distinguishing TYPE_NAME tokens. */
 
 struct TypedefEntry {
-    char *name;
-    struct TypedefEntry *next;
+  char *name;
+  struct TypedefEntry *next;
 };
 
 struct Symbols {
-    struct TypedefEntry *typedefs;
+  struct TypedefEntry *typedefs;
 };
 
 void symbols_init(struct Symbols *s);

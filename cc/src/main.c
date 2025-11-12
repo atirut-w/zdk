@@ -1,12 +1,12 @@
+#include "ast.h"
+#include "lexer.h"
+#include "parser.h"
+#include "symbols.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "lexer.h"
-#include "parser.h"
-#include "symbols.h"
-#include "ast.h"
 
 typedef struct {
   char *input_file;
@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Could not preprocess '%s'\n", args.input_file);
     return 1;
   }
+
   {
     struct Symbols syms;
     struct Lexer lx;
