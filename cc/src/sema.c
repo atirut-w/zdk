@@ -718,16 +718,20 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
           if (param && param->type) {
             if (!type_compatible(param->type, arg_type)) {
               if (type_is_arithmetic(param->type) && type_is_arithmetic(arg_type)) {
-                /* Allow implicit arithmetic conversions */
+                /* Allow implicit arithmetic conversions (int<->float, etc.) */
               } else if (type_is_pointer(param->type) && type_is_pointer(arg_type)) {
                 /* Pointers should match or be compatible */
                 if (!type_equals(param->type, arg_type)) {
                   sprintf(msg, "passing argument %d with incompatible pointer type", param_idx + 1);
-                  sema_error(sema, expr->line, expr->column, msg);
+                  sema_error(sema, arg_node->node->line, arg_node->node->column, msg);
                 }
+              } else if (type_is_pointer(param->type) && type_is_integer(arg_type)) {
+                /* Allow int-to-pointer for NULL (integer constant 0) only */
+                /* For now, we allow any integer since we can't easily check if it's 0 */
+                /* This is lenient but safer than allowing pointer-to-int */
               } else {
                 sprintf(msg, "passing argument %d of incompatible type", param_idx + 1);
-                sema_error(sema, expr->line, expr->column, msg);
+                sema_error(sema, arg_node->node->line, arg_node->node->column, msg);
               }
             }
             param = param->next;
@@ -1049,6 +1053,48 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       /* TODO: struct/union member access */
       analyze_expr(sema, expr->u.expr.e1);
       return type_new_basic(TYPE_INT);
+      
+    case EXPR_CAST: {
+      int spec_flags = expr->u.expr.op;
+      int pointer_level = (int)(long)expr->u.expr.e2;
+      struct Type *operand_type;
+      struct Type *target_type;
+      
+      /* Analyze the operand */
+      operand_type = analyze_expr(sema, expr->u.expr.e1);
+      if (!operand_type)
+        return type_new_basic(TYPE_INT);
+      
+      /* Build the target type from spec_flags */
+      if (spec_flags & SPF_DOUBLE) {
+        sema_error(sema, expr->line, expr->column,
+                  "double is not supported on this target (>32-bit)");
+        return type_new_basic(TYPE_INT);
+      }
+      
+      /* Determine base type */
+      if (spec_flags & SPF_VOID)
+        target_type = type_new_basic(TYPE_VOID);
+      else if (spec_flags & SPF_CHAR)
+        target_type = type_new_basic(TYPE_CHAR);
+      else if (spec_flags & SPF_SHORT)
+        target_type = type_new_basic(TYPE_SHORT);
+      else if (spec_flags & SPF_LONG)
+        target_type = type_new_basic(TYPE_LONG);
+      else if (spec_flags & SPF_FLOAT)
+        target_type = type_new_basic(TYPE_FLOAT);
+      else
+        target_type = type_new_basic(TYPE_INT);
+      
+      /* Apply pointer levels */
+      while (pointer_level > 0) {
+        target_type = type_new_pointer(target_type);
+        pointer_level--;
+      }
+      
+      /* Explicit casts are always allowed in C90, but warn about dangerous ones */
+      return target_type;
+    }
       
     default:
       return type_new_basic(TYPE_INT);

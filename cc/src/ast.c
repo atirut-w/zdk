@@ -185,6 +185,21 @@ struct ASTNode *ast_new_expr_member(struct ASTNode *obj, const char *name,
   return n;
 }
 
+struct ASTNode *ast_new_expr_cast(int spec_flags, int pointer_level,
+                                   struct ASTNode *operand, int line, int col) {
+  struct ASTNode *n = ast_alloc();
+  if (!n)
+    return 0;
+  n->kind_tag = 0;
+  n->line = line;
+  n->column = col;
+  n->u.expr.kind = EXPR_CAST;
+  n->u.expr.op = spec_flags;
+  n->u.expr.e1 = operand;
+  n->u.expr.e2 = (struct ASTNode *)(long)pointer_level;
+  return n;
+}
+
 struct ASTNode *ast_new_stmt_compound(struct ASTList *stmts, int line,
                                       int col) {
   struct ASTNode *n = ast_alloc();

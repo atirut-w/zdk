@@ -22,7 +22,8 @@ enum ASTExprKind {
   EXPR_CALL,
   EXPR_INDEX,
   EXPR_MEMBER,
-  EXPR_ARROW
+  EXPR_ARROW,
+  EXPR_CAST
 };
 
 /* Statement kinds */
@@ -136,6 +137,8 @@ struct ASTNode *ast_new_expr_index(struct ASTNode *arr, struct ASTNode *idx,
                                    int line, int col);
 struct ASTNode *ast_new_expr_member(struct ASTNode *obj, const char *name,
                                     int is_arrow, int line, int col);
+struct ASTNode *ast_new_expr_cast(int spec_flags, int pointer_level,
+                                   struct ASTNode *operand, int line, int col);
 
 struct ASTNode *ast_new_stmt_compound(struct ASTList *stmts, int line, int col);
 struct ASTNode *ast_new_stmt_expr(struct ASTNode *e, int line, int col);

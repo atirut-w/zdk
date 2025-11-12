@@ -3,29 +3,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int lx_getc(struct Lexer *lx) {
+/* Simple character buffer for better position tracking */
+static int lx_next(struct Lexer *lx) {
   int c = fgetc(lx->fp);
   if (c == '\n') {
     lx->line++;
-    lx->col = 0;
-  } else {
+    lx->col = 1;
+  } else if (c != EOF) {
     lx->col++;
   }
   lx->cur = c;
   return c;
 }
 
-static void lx_ungetc(struct Lexer *lx, int c) {
-  if (c == EOF)
-    return;
-  ungetc(c, lx->fp);
-  if (c == '\n') {
-    /* Not tracking previous line length; keep simple */
-    if (lx->line > 1)
-      lx->line--;
-  } else if (lx->col > 0) {
-    lx->col--;
-  }
+static int lx_peek(struct Lexer *lx) {
+  int c = fgetc(lx->fp);
+  if (c != EOF)
+    ungetc(c, lx->fp);
+  return c;
+}
+
+static void mark_position(struct Lexer *lx, int *line, int *col) {
+  *line = lx->line;
+  *col = lx->col;
 }
 
 static char *str_dup_range(const char *buf, size_t n) {
@@ -99,14 +99,14 @@ static int read_number(struct Lexer *lx, int first, struct Token *out) {
 
   buf[n++] = (char)c;
   if (c == '0') {
-    c = lx_getc(lx);
+    c = lx_next(lx);
     if (c == 'x' || c == 'X') {
       is_hex = 1;
       buf[n++] = (char)c;
-      c = lx_getc(lx);
+      c = lx_next(lx);
     }
   } else {
-    c = lx_getc(lx);
+    c = lx_next(lx);
   }
 
   while (1) {
@@ -114,28 +114,28 @@ static int read_number(struct Lexer *lx, int first, struct Token *out) {
       if (isxdigit(c)) {
         if (n < sizeof(buf) - 1)
           buf[n++] = (char)c;
-        c = lx_getc(lx);
+        c = lx_next(lx);
       } else
         break;
     } else {
       if (isdigit(c)) {
         if (n < sizeof(buf) - 1)
           buf[n++] = (char)c;
-        c = lx_getc(lx);
+        c = lx_next(lx);
       } else if (!has_dot && c == '.') {
         has_dot = 1;
         if (n < sizeof(buf) - 1)
           buf[n++] = (char)c;
-        c = lx_getc(lx);
+        c = lx_next(lx);
       } else if (!has_exp && (c == 'e' || c == 'E')) {
         has_exp = 1;
         if (n < sizeof(buf) - 1)
           buf[n++] = (char)c;
-        c = lx_getc(lx);
+        c = lx_next(lx);
         if (c == '+' || c == '-') {
           if (n < sizeof(buf) - 1)
             buf[n++] = (char)c;
-          c = lx_getc(lx);
+          c = lx_next(lx);
         }
       } else
         break;
@@ -150,10 +150,10 @@ static int read_number(struct Lexer *lx, int first, struct Token *out) {
       has_u_suffix = 1;
     if (n < sizeof(buf) - 1)
       buf[n++] = (char)c;
-    c = lx_getc(lx);
+    c = lx_next(lx);
   }
 
-  lx_ungetc(lx, c);
+  ungetc(c, lx->fp);
   buf[n] = '\0';
 
   out->kind = T_CONSTANT;
@@ -174,11 +174,11 @@ static int read_char_or_string(struct Lexer *lx, int quote, struct Token *out) {
   size_t n = 0;
   int c;
   int is_str = (quote == '"');
-  while ((c = lx_getc(lx)) != EOF) {
+  while ((c = lx_next(lx)) != EOF) {
     if (c == '\\') {
       if (n < sizeof(buf) - 1)
         buf[n++] = (char)c;
-      c = lx_getc(lx);
+      c = lx_next(lx);
       if (c == EOF)
         break;
       if (n < sizeof(buf) - 1)
@@ -204,36 +204,54 @@ static int read_char_or_string(struct Lexer *lx, int quote, struct Token *out) {
   return 1;
 }
 
-static void skip_spaces_and_comments(struct Lexer *lx) {
-  int c;
-  for (;;) {
-    c = lx_getc(lx);
-    if (isspace(c))
+static void skip_whitespace_and_comments(struct Lexer *lx) {
+  int c, d, prev;
+  
+  while (1) {
+    c = lx_peek(lx);
+    
+    /* Skip whitespace */
+    if (isspace(c)) {
+      lx_next(lx);
       continue;
+    }
+    
+    /* Check for comments */
     if (c == '/') {
-      int d = lx_getc(lx);
+      lx_next(lx);
+      d = lx_peek(lx);
+      
       if (d == '*') {
-        /* skip C comment */
-        int prev = 0;
-        while ((c = lx_getc(lx)) != EOF) {
+        /* C-style comment */
+        lx_next(lx);
+        prev = 0;
+        while ((c = lx_next(lx)) != EOF) {
           if (prev == '*' && c == '/')
             break;
           prev = c;
         }
         continue;
       } else if (d == '/') {
-        /* not C90, but skip to end of line if present */
-        while ((c = lx_getc(lx)) != EOF && c != '\n') {
-        }
+        /* C++-style comment (not C90 but commonly supported) */
+        lx_next(lx);
+        while ((c = lx_next(lx)) != EOF && c != '\n')
+          ;
         continue;
       } else {
-        lx_ungetc(lx, d);
-        lx_ungetc(lx, c);
-        break;
+        /* Just a '/', put it back by seeking back one char */
+        ungetc(c, lx->fp);
+        if (c == '\n') {
+          lx->line--;
+          lx->col = 1; /* approximate */
+        } else {
+          lx->col--;
+        }
+        return;
       }
     }
-    lx_ungetc(lx, c);
-    break;
+    
+    /* Not whitespace or comment */
+    return;
   }
 }
 
@@ -241,20 +259,20 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
   int d;
   switch (c) {
   case '.':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '.') {
-      int e = lx_getc(lx);
+      int e = lx_next(lx);
       if (e == '.') {
         out->kind = T_ELLIPSIS;
         return 1;
       }
-      lx_ungetc(lx, e);
+      ungetc(e, lx->fp);
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '.';
     return 1;
   case '+':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '+') {
       out->kind = T_INC_OP;
       return 1;
@@ -263,11 +281,11 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
       out->kind = T_ADD_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '+';
     return 1;
   case '-':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '-') {
       out->kind = T_DEC_OP;
       return 1;
@@ -280,45 +298,45 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
       out->kind = T_SUB_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '-';
     return 1;
   case '*':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '=') {
       out->kind = T_MUL_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '*';
     return 1;
   case '/':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '=') {
       out->kind = T_DIV_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '/';
     return 1;
   case '%':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '=') {
       out->kind = T_MOD_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '%';
     return 1;
   case '<':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '<') {
-      int e = lx_getc(lx);
+      int e = lx_next(lx);
       if (e == '=') {
         out->kind = T_LEFT_ASSIGN;
         return 1;
       }
-      lx_ungetc(lx, e);
+      ungetc(e, lx->fp);
       out->kind = T_LEFT_OP;
       return 1;
     }
@@ -326,18 +344,18 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
       out->kind = T_LE_OP;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '<';
     return 1;
   case '>':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '>') {
-      int e = lx_getc(lx);
+      int e = lx_next(lx);
       if (e == '=') {
         out->kind = T_RIGHT_ASSIGN;
         return 1;
       }
-      lx_ungetc(lx, e);
+      ungetc(e, lx->fp);
       out->kind = T_RIGHT_OP;
       return 1;
     }
@@ -345,29 +363,29 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
       out->kind = T_GE_OP;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '>';
     return 1;
   case '=':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '=') {
       out->kind = T_EQ_OP;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '=';
     return 1;
   case '!':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '=') {
       out->kind = T_NE_OP;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '!';
     return 1;
   case '&':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '&') {
       out->kind = T_AND_OP;
       return 1;
@@ -376,11 +394,11 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
       out->kind = T_AND_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '&';
     return 1;
   case '|':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '|') {
       out->kind = T_OR_OP;
       return 1;
@@ -389,16 +407,16 @@ static int read_operator_or_punct(struct Lexer *lx, int c, struct Token *out) {
       out->kind = T_OR_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '|';
     return 1;
   case '^':
-    d = lx_getc(lx);
+    d = lx_next(lx);
     if (d == '=') {
       out->kind = T_XOR_ASSIGN;
       return 1;
     }
-    lx_ungetc(lx, d);
+    ungetc(d, lx->fp);
     out->kind = '^';
     return 1;
   case '~':
@@ -427,7 +445,7 @@ void lexer_init(struct Lexer *lx, FILE *fp, const char *filename,
   lx->filename = filename;
   lx->cur = 0;
   lx->line = 1;
-  lx->col = 0;
+  lx->col = 1;
   lx->peeked = 0;
   lx->symbols = symbols;
 }
@@ -441,26 +459,32 @@ void token_free(struct Token *t) {
 }
 
 static int next_token_inner(struct Lexer *lx, struct Token *out) {
-  int c;
+  int c, start_line, start_col;
   token_clear(out);
 
-  skip_spaces_and_comments(lx);
-  c = lx_getc(lx);
+  /* Skip whitespace and comments */
+  skip_whitespace_and_comments(lx);
+  
+  /* Mark current position as token start */
+  mark_position(lx, &start_line, &start_col);
+  out->line = start_line;
+  out->column = start_col;
+  
+  /* Read first character */
+  c = lx_next(lx);
   if (c == EOF) {
     out->kind = T_EOF;
     return 1;
   }
-
-  token_set_pos(out, lx);
 
   if (is_ident_start(c)) {
     char buf[256];
     size_t n = 0;
     buf[n++] = (char)c;
     while (1) {
-      c = lx_getc(lx);
+      c = lx_next(lx);
       if (!is_ident_part(c)) {
-        lx_ungetc(lx, c);
+        ungetc(c, lx->fp);
         break;
       }
       if (n < sizeof(buf) - 1)

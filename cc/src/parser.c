@@ -633,11 +633,42 @@ static struct ASTNode *bin_chain(struct Parser *p,
 }
 
 static struct ASTNode *parse_cast(struct Parser *p) {
-  if (accept(p, '(')) {
+  int save_line, save_col;
+  int spec_flags;
+  int pointer_level;
+  
+  if (!p->has_cur)
+    next(p);
+  
+  if (p->cur.kind == '(') {
+    save_line = p->cur.line;
+    save_col = p->cur.column;
+    next(p);
+    
     if (looks_like_type_name(p)) {
-      consume_type_name(p);
+      /* Parse type specifiers */
+      spec_flags = 0;
+      if (!p->has_cur)
+        next(p);
+      while (is_type_start_token(p->cur.kind)) {
+        spec_flags |= spec_flag_for(p->cur.kind);
+        next(p);
+        if (!p->has_cur)
+          next(p);
+      }
+      
+      /* Parse pointer level */
+      pointer_level = 0;
+      while (p->cur.kind == '*') {
+        pointer_level++;
+        next(p);
+        if (!p->has_cur)
+          next(p);
+      }
+      
       expect(p, ')', ") expected");
-      return parse_cast(p);
+      return ast_new_expr_cast(spec_flags, pointer_level, parse_cast(p),
+                              save_line, save_col);
     } else {
       struct ASTNode *e = parse_expression(p);
       expect(p, ')', ") expected");
