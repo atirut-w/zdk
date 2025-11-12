@@ -11,7 +11,26 @@ struct Z80Data {
   int label_count;
   int hl_uses;
   int de_uses;
+  int string_count; /* for generating .LC labels */
+  struct ASTList *strings; /* collected string literals for .data section */
 };
+
+/* String literal wrapper for ASTList */
+struct StringEntry {
+  int id;
+  const char *content;
+};
+
+static struct ASTNode *wrap_string_entry(int id, const char *content) {
+  struct StringEntry *se = (struct StringEntry *)malloc(sizeof(struct StringEntry));
+  struct ASTNode *node = (struct ASTNode *)malloc(sizeof(struct ASTNode));
+  if (!se || !node) return NULL;
+  se->id = id;
+  se->content = content;
+  node->kind_tag = 99; /* special marker for string entry */
+  node->u.expr.str = (char *)se;
+  return node;
+}
 
 #define REG_HL 0
 #define REG_DE 1
@@ -132,6 +151,76 @@ static void z80_gen_expression_into(struct Codegen *cg, struct ASTNode *expr, in
     return;
   }
 
+  if (expr->u.expr.kind == EXPR_STRING) {
+    /* String literal: add to list and load address */
+    int str_id = d->string_count++;
+    struct ASTNode *str_node = wrap_string_entry(str_id, expr->u.expr.str);
+    if (str_node) {
+      d->strings = ast_list_append(d->strings, str_node);
+    }
+    if (dest == REG_HL) {
+      fprintf(cg->output, "\tld hl, .LC%d\n", str_id);
+    } else {
+      fprintf(cg->output, "\tld de, .LC%d\n", str_id);
+    }
+    return;
+  }
+
+  if (expr->u.expr.kind == EXPR_CALL) {
+    /* Function call: push args right-to-left, call, clean stack */
+    struct ASTList *arg;
+    int arg_count = 0;
+    int i;
+    
+    /* Count args */
+    for (arg = expr->u.expr.args; arg; arg = arg->next) {
+      arg_count++;
+    }
+    
+    /* Push arguments in reverse order (right-to-left for cdecl) */
+    if (arg_count > 0) {
+      struct ASTNode **arg_array = (struct ASTNode **)malloc(sizeof(struct ASTNode *) * arg_count);
+      i = 0;
+      for (arg = expr->u.expr.args; arg; arg = arg->next) {
+        arg_array[i++] = arg->node;
+      }
+      for (i = arg_count - 1; i >= 0; i--) {
+        z80_gen_expression_into(cg, arg_array[i], REG_HL);
+        fprintf(cg->output, "\tpush hl\n");
+      }
+      free(arg_array);
+    }
+    
+    /* Call function */
+    if (expr->u.expr.e1 && expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
+      fprintf(cg->output, "\tcall %s\n", expr->u.expr.e1->u.expr.ident);
+    } else {
+      /* indirect call not yet supported */
+      fprintf(cg->output, "\t; TODO: indirect call\n");
+    }
+    
+    /* Clean stack - pop args into BC repeatedly or adjust SP */
+    if (arg_count > 0) {
+      if (arg_count == 1) {
+        fprintf(cg->output, "\tpop bc\n");
+      } else if (arg_count == 2) {
+        fprintf(cg->output, "\tpop bc\n");
+        fprintf(cg->output, "\tpop bc\n");
+      } else {
+        /* For many args, adjust SP directly */
+        fprintf(cg->output, "\tld bc, %d\n", arg_count * 2);
+        fprintf(cg->output, "\tadd ix, bc\n");
+        fprintf(cg->output, "\tld sp, ix\n");
+      }
+    }
+    
+    /* Result already in HL; move to DE if needed */
+    if (dest == REG_DE) {
+      z80_mov_hl_to_de(cg);
+    }
+    return;
+  }
+
   if (expr->u.expr.kind == EXPR_UNARY && expr->u.expr.op == '-') {
     /* Evaluate operand to HL, then negate */
     z80_gen_expression_into(cg, expr->u.expr.e1, REG_HL);
@@ -234,6 +323,8 @@ static void z80_init(struct Codegen *cg) {
   data->label_count = 0;
   data->hl_uses = 0;
   data->de_uses = 0;
+  data->string_count = 0;
+  data->strings = NULL;
   cg->target_data = data;
 
   if (cg->output) {
@@ -245,10 +336,49 @@ static void z80_init(struct Codegen *cg) {
 }
 
 static void z80_finalize(struct Codegen *cg) {
-  if (cg->target_data) {
-    free(cg->target_data);
-    cg->target_data = NULL;
+  struct Z80Data *d = (struct Z80Data *)cg->target_data;
+  struct ASTList *str;
+  struct StringEntry *se;
+  const char *p;
+  
+  if (!d) return;
+  
+  /* Emit .data section with string literals */
+  if (d->strings && cg->output) {
+    fprintf(cg->output, "\n\t.data\n");
+    for (str = d->strings; str; str = str->next) {
+      if (str->node && str->node->kind_tag == 99) {
+        se = (struct StringEntry *)str->node->u.expr.str;
+        fprintf(cg->output, ".LC%d:\n", se->id);
+        fprintf(cg->output, "\t.ascii \"");
+        /* Emit string with escapes */
+        for (p = se->content; *p; p++) {
+          if (*p == '\n') fprintf(cg->output, "\\n");
+          else if (*p == '\t') fprintf(cg->output, "\\t");
+          else if (*p == '\r') fprintf(cg->output, "\\r");
+          else if (*p == '\\') fprintf(cg->output, "\\\\");
+          else if (*p == '"') fprintf(cg->output, "\\\"");
+          else if (*p >= 32 && *p < 127) fprintf(cg->output, "%c", *p);
+          else fprintf(cg->output, "\\%03o", (unsigned char)*p);
+        }
+        fprintf(cg->output, "\"\n");
+      }
+    }
   }
+  
+  /* Free string list */
+  while (d->strings) {
+    str = d->strings;
+    d->strings = str->next;
+    if (str->node && str->node->kind_tag == 99) {
+      free((struct StringEntry *)str->node->u.expr.str);
+      free(str->node);
+    }
+    free(str);
+  }
+  
+  free(cg->target_data);
+  cg->target_data = NULL;
 }
 
 static int z80_invoke_assembler(struct Codegen *cg, const char *asm_file, const char *obj_file) {

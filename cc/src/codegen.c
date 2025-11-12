@@ -48,8 +48,9 @@ void codegen_init_defaults(struct Codegen *cg) {
 void codegen_generate(struct Codegen *cg, struct ASTNode *tree) {
   struct ASTNode *node;
   struct ASTList *list;
-  const char *func_name;
+  const char *name;
   int is_static;
+  int is_extern;
   
   if (!tree) {
     return;
@@ -68,19 +69,34 @@ void codegen_generate(struct Codegen *cg, struct ASTNode *tree) {
       if (node->u.ext.is_function) {
         struct ASTNode *decl = node->u.ext.decl;
         if (decl && decl->kind_tag == 2) {
-          func_name = decl->u.decl.decltor ? decl->u.decl.decltor->name : NULL;
-          if (func_name) {
+          name = decl->u.decl.decltor ? decl->u.decl.decltor->name : NULL;
+          if (name) {
             /* Check if it's static */
             is_static = (decl->u.decl.spec_flags & SPF_STATIC) != 0;
             
             /* Generate symbol (handles visibility and label) */
             if (cg->gen_symbol) {
-              cg->gen_symbol(cg, func_name, is_static);
+              cg->gen_symbol(cg, name, is_static);
             }
             
             /* Generate the function body */
             if (cg->gen_function) {
               cg->gen_function(cg, node);
+            }
+          }
+        }
+      } else {
+        /* External declaration (no body): emit .extern for non-static */
+        struct ASTNode *decl = node->u.ext.decl;
+        if (decl && decl->kind_tag == 2) {
+          name = decl->u.decl.decltor ? decl->u.decl.decltor->name : NULL;
+          if (name) {
+            is_static = (decl->u.decl.spec_flags & SPF_STATIC) != 0;
+            is_extern = (decl->u.decl.spec_flags & SPF_EXTERN) != 0;
+            
+            /* Emit .extern directive for extern declarations */
+            if (is_extern && cg->output) {
+              fprintf(cg->output, "\t.extern %s\n", name);
             }
           }
         }
