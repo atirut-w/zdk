@@ -1,0 +1,935 @@
+#include "sema.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* strdup is not C90 standard */
+static char *my_strdup(const char *s) {
+  char *result;
+  size_t len;
+  if (!s) return NULL;
+  len = strlen(s) + 1;
+  result = (char *)malloc(len);
+  if (result) {
+    memcpy(result, s, len);
+  }
+  return result;
+}
+
+/* Forward declarations */
+static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr);
+static void analyze_stmt(struct Sema *sema, struct ASTNode *stmt);
+static void analyze_compound(struct Sema *sema, struct ASTNode *compound);
+
+/* ========== Type Operations ========== */
+
+struct Type *type_new_basic(enum TypeKind kind) {
+  struct Type *t = (struct Type *)malloc(sizeof(struct Type));
+  if (!t) return NULL;
+  memset(t, 0, sizeof(struct Type));
+  t->kind = kind;
+  t->is_signed = (kind == TYPE_CHAR || kind == TYPE_SHORT || 
+                  kind == TYPE_INT || kind == TYPE_LONG);
+  t->array_size = -1;
+  return t;
+}
+
+struct Type *type_new_pointer(struct Type *base) {
+  struct Type *t = (struct Type *)malloc(sizeof(struct Type));
+  if (!t) return NULL;
+  memset(t, 0, sizeof(struct Type));
+  t->kind = TYPE_POINTER;
+  t->base_type = base;
+  t->array_size = -1;
+  return t;
+}
+
+struct Type *type_new_array(struct Type *base, int size) {
+  struct Type *t = (struct Type *)malloc(sizeof(struct Type));
+  if (!t) return NULL;
+  memset(t, 0, sizeof(struct Type));
+  t->kind = TYPE_ARRAY;
+  t->base_type = base;
+  t->array_size = size;
+  return t;
+}
+
+struct Type *type_new_function(struct Type *ret, struct ParamList *params, int has_varargs) {
+  struct Type *t = (struct Type *)malloc(sizeof(struct Type));
+  struct ParamList *p;
+  if (!t) return NULL;
+  memset(t, 0, sizeof(struct Type));
+  t->kind = TYPE_FUNCTION;
+  t->return_type = ret;
+  t->params = params;
+  t->has_varargs = has_varargs;
+  t->param_count = 0;
+  for (p = params; p; p = p->next) {
+    t->param_count++;
+  }
+  return t;
+}
+
+void type_free(struct Type *type) {
+  struct ParamList *p, *next;
+  if (!type) return;
+  
+  if (type->base_type) {
+    type_free(type->base_type);
+  }
+  if (type->return_type) {
+    type_free(type->return_type);
+  }
+  if (type->params) {
+    for (p = type->params; p; p = next) {
+      next = p->next;
+      if (p->type) type_free(p->type);
+      if (p->name) free(p->name);
+      free(p);
+    }
+  }
+  free(type);
+}
+
+struct Type *type_copy(const struct Type *t) {
+  struct Type *copy;
+  struct ParamList *p, **tail;
+  if (!t) return NULL;
+  
+  copy = (struct Type *)malloc(sizeof(struct Type));
+  if (!copy) return NULL;
+  memcpy(copy, t, sizeof(struct Type));
+  
+  copy->base_type = NULL;
+  copy->return_type = NULL;
+  copy->params = NULL;
+  
+  if (t->base_type) {
+    copy->base_type = type_copy(t->base_type);
+  }
+  if (t->return_type) {
+    copy->return_type = type_copy(t->return_type);
+  }
+  
+  /* Copy parameter list */
+  tail = &copy->params;
+  for (p = t->params; p; p = p->next) {
+    struct ParamList *new_param = (struct ParamList *)malloc(sizeof(struct ParamList));
+    if (!new_param) break;
+    new_param->type = type_copy(p->type);
+    new_param->name = p->name ? my_strdup(p->name) : NULL;
+    new_param->next = NULL;
+    *tail = new_param;
+    tail = &new_param->next;
+  }
+  
+  return copy;
+}
+
+int type_equals(const struct Type *a, const struct Type *b) {
+  struct ParamList *pa, *pb;
+  if (!a && !b) return 1;
+  if (!a || !b) return 0;
+  if (a->kind != b->kind) return 0;
+  if (a->is_const != b->is_const) return 0;
+  if (a->is_volatile != b->is_volatile) return 0;
+  
+  switch (a->kind) {
+    case TYPE_VOID:
+    case TYPE_CHAR:
+    case TYPE_SHORT:
+    case TYPE_INT:
+    case TYPE_LONG:
+    case TYPE_FLOAT:
+    case TYPE_DOUBLE:
+      return a->is_signed == b->is_signed;
+      
+    case TYPE_POINTER:
+      return type_equals(a->base_type, b->base_type);
+      
+    case TYPE_ARRAY:
+      if (a->array_size != b->array_size) return 0;
+      return type_equals(a->base_type, b->base_type);
+      
+    case TYPE_FUNCTION:
+      if (a->has_varargs != b->has_varargs) return 0;
+      if (a->param_count != b->param_count) return 0;
+      if (!type_equals(a->return_type, b->return_type)) return 0;
+      
+      for (pa = a->params, pb = b->params; pa && pb; pa = pa->next, pb = pb->next) {
+        if (!type_equals(pa->type, pb->type)) return 0;
+      }
+      return 1;
+      
+    default:
+      return 0;
+  }
+}
+
+int type_compatible(const struct Type *a, const struct Type *b) {
+  /* For now, use strict equality. C90 has complex compatibility rules. */
+  return type_equals(a, b);
+}
+
+int type_is_arithmetic(const struct Type *t) {
+  if (!t) return 0;
+  switch (t->kind) {
+    case TYPE_CHAR:
+    case TYPE_SHORT:
+    case TYPE_INT:
+    case TYPE_LONG:
+    case TYPE_FLOAT:
+    case TYPE_DOUBLE:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+int type_is_integer(const struct Type *t) {
+  if (!t) return 0;
+  switch (t->kind) {
+    case TYPE_CHAR:
+    case TYPE_SHORT:
+    case TYPE_INT:
+    case TYPE_LONG:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+int type_is_pointer(const struct Type *t) {
+  return t && t->kind == TYPE_POINTER;
+}
+
+/* ========== Scope Operations ========== */
+
+struct Scope *scope_new(struct Scope *parent, int is_function_scope) {
+  struct Scope *scope = (struct Scope *)malloc(sizeof(struct Scope));
+  if (!scope) return NULL;
+  scope->symbols = NULL;
+  scope->parent = parent;
+  scope->is_function_scope = is_function_scope;
+  scope->stack_size = 0;
+  return scope;
+}
+
+void scope_free(struct Scope *scope) {
+  struct Symbol *sym, *next;
+  if (!scope) return;
+  
+  for (sym = scope->symbols; sym; sym = next) {
+    next = sym->next;
+    if (sym->name) free(sym->name);
+    if (sym->type) type_free(sym->type);
+    free(sym);
+  }
+  free(scope);
+}
+
+struct Symbol *scope_lookup_current(struct Scope *scope, const char *name) {
+  struct Symbol *sym;
+  if (!scope || !name) return NULL;
+  
+  for (sym = scope->symbols; sym; sym = sym->next) {
+    if (strcmp(sym->name, name) == 0) {
+      return sym;
+    }
+  }
+  return NULL;
+}
+
+struct Symbol *scope_lookup(struct Scope *scope, const char *name) {
+  struct Symbol *sym;
+  if (!scope || !name) return NULL;
+  
+  /* Search current scope */
+  sym = scope_lookup_current(scope, name);
+  if (sym) return sym;
+  
+  /* Search parent scopes */
+  if (scope->parent) {
+    return scope_lookup(scope->parent, name);
+  }
+  
+  return NULL;
+}
+
+struct Symbol *scope_add_symbol(struct Scope *scope, const char *name,
+                                enum SymbolKind kind, struct Type *type,
+                                int line, int column) {
+  struct Symbol *sym;
+  if (!scope || !name) return NULL;
+  
+  sym = (struct Symbol *)malloc(sizeof(struct Symbol));
+  if (!sym) return NULL;
+  
+  sym->name = (char *)malloc(strlen(name) + 1);
+  if (!sym->name) {
+    free(sym);
+    return NULL;
+  }
+  strcpy(sym->name, name);
+  
+  sym->kind = kind;
+  sym->type = type;
+  sym->is_defined = 0;
+  sym->is_extern = 0;
+  sym->is_static = 0;
+  sym->stack_offset = 0;
+  sym->line = line;
+  sym->column = column;
+  sym->next = scope->symbols;
+  scope->symbols = sym;
+  
+  return sym;
+}
+
+/* ========== Semantic Analysis ========== */
+
+void sema_init(struct Sema *sema) {
+  if (!sema) return;
+  sema->global_scope = scope_new(NULL, 0);
+  sema->current_scope = sema->global_scope;
+  sema->error_count = 0;
+  sema->in_function = 0;
+  sema->current_function_return_type = NULL;
+}
+
+void sema_destroy(struct Sema *sema) {
+  struct Scope *scope, *next;
+  if (!sema) return;
+  
+  /* Free all scopes */
+  scope = sema->current_scope;
+  while (scope) {
+    next = scope->parent;
+    scope_free(scope);
+    scope = next;
+  }
+}
+
+static void sema_error(struct Sema *sema, int line, int col, const char *msg) {
+  fprintf(stderr, "Semantic error at %d:%d: %s\n", line, col, msg);
+  sema->error_count++;
+}
+
+static void sema_enter_scope(struct Sema *sema, int is_function_scope) {
+  struct Scope *new_scope = scope_new(sema->current_scope, is_function_scope);
+  if (new_scope) {
+    sema->current_scope = new_scope;
+  }
+}
+
+static void sema_exit_scope(struct Sema *sema) {
+  struct Scope *parent;
+  if (!sema->current_scope || sema->current_scope == sema->global_scope) {
+    return;
+  }
+  
+  parent = sema->current_scope->parent;
+  /* Don't free scope yet - might be needed later */
+  sema->current_scope = parent;
+}
+
+/* Convert AST declaration specifiers to Type */
+struct Type *sema_type_from_decl(struct Sema *sema, struct ASTNode *decl) {
+  struct Type *type;
+  struct Declarator *decltor;
+  int spec_flags;
+  enum TypeKind kind;
+  
+  if (!decl || decl->kind_tag != 2) {
+    return type_new_basic(TYPE_INT);
+  }
+  
+  spec_flags = decl->u.decl.spec_flags;
+  decltor = decl->u.decl.decltor;
+  
+  /* Determine base type from specifiers */
+  if (spec_flags & SPF_VOID) {
+    kind = TYPE_VOID;
+  } else if (spec_flags & SPF_CHAR) {
+    kind = TYPE_CHAR;
+  } else if (spec_flags & SPF_SHORT) {
+    kind = TYPE_SHORT;
+  } else if (spec_flags & SPF_LONG) {
+    kind = TYPE_LONG;
+  } else if (spec_flags & SPF_FLOAT) {
+    kind = TYPE_FLOAT;
+  } else if (spec_flags & SPF_DOUBLE) {
+    kind = TYPE_DOUBLE;
+  } else {
+    kind = TYPE_INT; /* default */
+  }
+  
+  type = type_new_basic(kind);
+  if (!type) return NULL;
+  
+  if (spec_flags & SPF_UNSIGNED) {
+    type->is_signed = 0;
+  }
+  if (spec_flags & SPF_CONST) {
+    type->is_const = 1;
+  }
+  if (spec_flags & SPF_VOLATILE) {
+    type->is_volatile = 1;
+  }
+  
+  /* Apply declarator (pointers, arrays, functions) */
+  if (decltor) {
+    int i;
+    struct Type *derived = type;
+    
+    /* Apply pointer levels */
+    for (i = 0; i < decltor->pointer_level; i++) {
+      derived = type_new_pointer(derived);
+      if (!derived) return type;
+    }
+    
+    /* Apply array */
+    if (decltor->is_array) {
+      int size = -1;
+      if (decltor->array_size) {
+        /* TODO: evaluate constant expression */
+        size = -1;
+      }
+      derived = type_new_array(derived, size);
+      if (!derived) return type;
+    }
+    
+    /* Apply function */
+    if (decltor->is_function) {
+      struct ParamList *params = NULL;
+      struct ParamList **tail = &params;
+      struct ASTList *p;
+      int param_count = 0;
+      
+      /* Convert AST param list to ParamList */
+      for (p = decltor->params; p; p = p->next) {
+        struct ParamList *new_param;
+        struct ASTNode *param_node = p->node;
+        
+        new_param = (struct ParamList *)malloc(sizeof(struct ParamList));
+        if (!new_param) break;
+        
+        if (param_node && param_node->kind_tag == 2) {
+          /* Extract parameter type */
+          new_param->type = sema_type_from_decl(sema, param_node);
+          new_param->name = (param_node->u.decl.decltor && param_node->u.decl.decltor->name)
+                            ? my_strdup(param_node->u.decl.decltor->name)
+                            : NULL;
+        } else {
+          /* Old-style or abstract declarator */
+          new_param->type = type_new_basic(TYPE_INT);
+          new_param->name = NULL;
+        }
+        
+        new_param->next = NULL;
+        *tail = new_param;
+        tail = &new_param->next;
+        param_count++;
+      }
+      
+      derived = type_new_function(derived, params, 0);
+      if (!derived) return type;
+    }
+    
+    type = derived;
+  }
+  
+  return type;
+}
+
+static void analyze_decl(struct Sema *sema, struct ASTNode *decl) {
+  struct Type *type;
+  struct Symbol *existing, *sym;
+  const char *name;
+  int is_extern, is_static;
+  
+  if (!decl || decl->kind_tag != 2) return;
+  
+  if (!decl->u.decl.decltor || !decl->u.decl.decltor->name) {
+    return; /* anonymous declaration */
+  }
+  
+  name = decl->u.decl.decltor->name;
+  type = sema_type_from_decl(sema, decl);
+  
+  is_extern = (decl->u.decl.spec_flags & SPF_EXTERN) != 0;
+  is_static = (decl->u.decl.spec_flags & SPF_STATIC) != 0;
+  
+  /* Check for redeclaration in current scope */
+  existing = scope_lookup_current(sema->current_scope, name);
+  if (existing) {
+    /* In C90, we can redeclare with compatible types */
+    if (!type_compatible(existing->type, type)) {
+      char msg[256];
+      sprintf(msg, "conflicting types for '%s'", name);
+      sema_error(sema, decl->line, decl->column, msg);
+    }
+    type_free(type);
+    return;
+  }
+  
+  /* Add symbol to current scope */
+  sym = scope_add_symbol(sema->current_scope, name, SYM_VAR, type,
+                         decl->line, decl->column);
+  if (sym) {
+    sym->is_extern = is_extern;
+    sym->is_static = is_static;
+    
+    /* Calculate stack offset for local variables */
+    if (sema->in_function && !is_extern && !is_static) {
+      /* Simple allocation: 2 bytes per variable (16-bit target) */
+      sym->stack_offset = sema->current_scope->stack_size;
+      sema->current_scope->stack_size += 2;
+    }
+  }
+}
+
+static void analyze_function_decl(struct Sema *sema, struct ASTNode *ext) {
+  struct ASTNode *decl;
+  struct Type *type;
+  struct Symbol *existing, *sym;
+  const char *name;
+  int is_static;
+  
+  if (!ext || ext->kind_tag != 3) return;
+  
+  decl = ext->u.ext.decl;
+  if (!decl || decl->kind_tag != 2) return;
+  if (!decl->u.decl.decltor || !decl->u.decl.decltor->name) return;
+  
+  name = decl->u.decl.decltor->name;
+  type = sema_type_from_decl(sema, decl);
+  
+  is_static = (decl->u.decl.spec_flags & SPF_STATIC) != 0;
+  
+  /* Look up in global scope */
+  existing = scope_lookup_current(sema->global_scope, name);
+  
+  if (existing) {
+    /* Check type compatibility */
+    if (!type_compatible(existing->type, type)) {
+      char msg[256];
+      sprintf(msg, "conflicting types for function '%s'", name);
+      sema_error(sema, decl->line, decl->column, msg);
+    }
+    
+    /* Mark as defined if this is a definition */
+    if (ext->u.ext.is_function && ext->u.ext.body) {
+      if (existing->is_defined) {
+        char msg[256];
+        sprintf(msg, "redefinition of function '%s'", name);
+        sema_error(sema, decl->line, decl->column, msg);
+      }
+      existing->is_defined = 1;
+    }
+    
+    type_free(type);
+    return;
+  }
+  
+  /* Add function symbol to global scope */
+  sym = scope_add_symbol(sema->global_scope, name, SYM_FUNC, type,
+                         decl->line, decl->column);
+  if (sym) {
+    sym->is_static = is_static;
+    if (ext->u.ext.is_function && ext->u.ext.body) {
+      sym->is_defined = 1;
+    }
+  }
+}
+
+static void analyze_function_def(struct Sema *sema, struct ASTNode *ext) {
+  struct ASTNode *decl, *body;
+  struct Type *func_type;
+  
+  if (!ext || ext->kind_tag != 3 || !ext->u.ext.is_function) return;
+  
+  decl = ext->u.ext.decl;
+  body = ext->u.ext.body;
+  
+  if (!decl || !body) return;
+  
+  /* Get function type */
+  func_type = sema_type_from_decl(sema, decl);
+  
+  /* Enter function scope */
+  sema->in_function = 1;
+  sema->current_function_return_type = (func_type && func_type->kind == TYPE_FUNCTION)
+                                       ? func_type->return_type : NULL;
+  sema_enter_scope(sema, 1);
+  
+  /* TODO: Add parameters to scope */
+  
+  /* Analyze function body */
+  analyze_compound(sema, body);
+  
+  sema_exit_scope(sema);
+  sema->in_function = 0;
+  sema->current_function_return_type = NULL;
+  
+  type_free(func_type);
+}
+
+static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
+  struct Type *t1, *t2, *t3;
+  struct Symbol *sym;
+  struct ASTList *arg;
+  int arg_count;
+  char msg[256];
+  
+  if (!expr || expr->kind_tag != 0) {
+    return type_new_basic(TYPE_INT);
+  }
+  
+  switch (expr->u.expr.kind) {
+    case EXPR_CALL:
+      /* Handle function calls first, so we can support implicit declarations in C90 */
+      
+      /* Check if calling an identifier that may need implicit declaration */
+      if (expr->u.expr.e1 && expr->u.expr.e1->kind_tag == 0 &&
+          expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
+        sym = scope_lookup(sema->current_scope, expr->u.expr.e1->u.expr.ident);
+        
+        if (!sym) {
+          /* C90 allows implicit function declarations */
+          sprintf(msg, "implicit declaration of function '%s'", 
+                  expr->u.expr.e1->u.expr.ident);
+          fprintf(stderr, "Warning at %d:%d: %s\n", expr->line, expr->column, msg);
+          
+          /* Add implicit int() function declaration */
+          t1 = type_new_function(type_new_basic(TYPE_INT), NULL, 0);
+          sym = scope_add_symbol(sema->global_scope, expr->u.expr.e1->u.expr.ident, 
+                                SYM_FUNC, t1, expr->line, expr->column);
+          
+          /* Analyze arguments */
+          for (arg = expr->u.expr.args; arg; arg = arg->next) {
+            t2 = analyze_expr(sema, arg->node);
+            type_free(t2);
+          }
+          
+          return type_new_basic(TYPE_INT);
+        } else {
+          /* Symbol exists, analyze normally */
+          t1 = type_copy(sym->type);
+        }
+      } else {
+        /* Not a simple identifier, analyze the expression */
+        t1 = analyze_expr(sema, expr->u.expr.e1);
+      }
+      
+      /* Check if it's a function type */
+      if (t1 && t1->kind == TYPE_FUNCTION) {
+        /* Count arguments */
+        arg_count = 0;
+        for (arg = expr->u.expr.args; arg; arg = arg->next) {
+          t2 = analyze_expr(sema, arg->node);
+          type_free(t2);
+          arg_count++;
+        }
+        
+        /* Check argument count (only for non-varargs functions with known params) */
+        if (!t1->has_varargs && t1->params && arg_count != t1->param_count) {
+          sprintf(msg, "too %s arguments to function call, expected %d, have %d",
+                  arg_count < t1->param_count ? "few" : "many",
+                  t1->param_count, arg_count);
+          sema_error(sema, expr->line, expr->column, msg);
+        }
+        
+        /* Return function's return type */
+        if (t1->return_type) {
+          struct Type *ret = type_copy(t1->return_type);
+          type_free(t1);
+          return ret;
+        }
+      } else if (t1 && t1->kind == TYPE_POINTER && t1->base_type &&
+                 t1->base_type->kind == TYPE_FUNCTION) {
+        /* Function pointer call */
+        struct Type *func_type = t1->base_type;
+        
+        /* Count arguments */
+        arg_count = 0;
+        for (arg = expr->u.expr.args; arg; arg = arg->next) {
+          t2 = analyze_expr(sema, arg->node);
+          type_free(t2);
+          arg_count++;
+        }
+        
+        if (func_type->return_type) {
+          struct Type *ret = type_copy(func_type->return_type);
+          type_free(t1);
+          return ret;
+        }
+      } else {
+        /* Not a function type */
+        sema_error(sema, expr->line, expr->column, 
+                  "called object is not a function or function pointer");
+        
+        /* Analyze arguments anyway */
+        for (arg = expr->u.expr.args; arg; arg = arg->next) {
+          t2 = analyze_expr(sema, arg->node);
+          type_free(t2);
+        }
+      }
+      
+      type_free(t1);
+      return type_new_basic(TYPE_INT);
+    
+    case EXPR_IDENT:
+      /* Look up identifier */
+      sym = scope_lookup(sema->current_scope, expr->u.expr.ident);
+      if (!sym) {
+        sprintf(msg, "use of undeclared identifier '%s'", expr->u.expr.ident);
+        sema_error(sema, expr->line, expr->column, msg);
+        return type_new_basic(TYPE_INT);
+      }
+      return type_copy(sym->type);
+      
+    case EXPR_CONST:
+      /* Determine type from token */
+      return type_new_basic(TYPE_INT); /* simplified */
+      
+    case EXPR_STRING:
+      return type_new_pointer(type_new_basic(TYPE_CHAR));
+      
+    case EXPR_UNARY:
+      t1 = analyze_expr(sema, expr->u.expr.e1);
+      /* TODO: proper unary type checking */
+      return t1;
+      
+    case EXPR_BINARY:
+      t1 = analyze_expr(sema, expr->u.expr.e1);
+      t2 = analyze_expr(sema, expr->u.expr.e2);
+      
+      /* Assignment operators */
+      if (expr->u.expr.op == '=') {
+        if (!type_compatible(t1, t2) && !type_is_pointer(t1) && !type_is_pointer(t2)) {
+          if (!(type_is_arithmetic(t1) && type_is_arithmetic(t2))) {
+            sema_error(sema, expr->line, expr->column,
+                      "incompatible types in assignment");
+          }
+        }
+        type_free(t2);
+        return t1;
+      }
+      
+      /* Arithmetic operators */
+      if (!type_is_arithmetic(t1) || !type_is_arithmetic(t2)) {
+        /* Allow some pointer arithmetic */
+        if (!(type_is_pointer(t1) || type_is_pointer(t2))) {
+          sema_error(sema, expr->line, expr->column,
+                    "invalid operands to binary operator");
+        }
+      }
+      
+      type_free(t2);
+      return t1;
+      
+    case EXPR_COND:
+      t1 = analyze_expr(sema, expr->u.expr.e1);
+      t2 = analyze_expr(sema, expr->u.expr.e2);
+      t3 = analyze_expr(sema, expr->u.expr.e3);
+      type_free(t1);
+      type_free(t3);
+      return t2;
+      
+    case EXPR_INDEX:
+      t1 = analyze_expr(sema, expr->u.expr.e1);
+      t2 = analyze_expr(sema, expr->u.expr.e2);
+      type_free(t2);
+      
+      /* Array subscript returns base type */
+      if (t1 && t1->kind == TYPE_ARRAY && t1->base_type) {
+        struct Type *base = type_copy(t1->base_type);
+        type_free(t1);
+        return base;
+      }
+      if (t1 && t1->kind == TYPE_POINTER && t1->base_type) {
+        struct Type *base = type_copy(t1->base_type);
+        type_free(t1);
+        return base;
+      }
+      
+      type_free(t1);
+      return type_new_basic(TYPE_INT);
+      
+    case EXPR_MEMBER:
+    case EXPR_ARROW:
+      /* TODO: struct/union member access */
+      analyze_expr(sema, expr->u.expr.e1);
+      return type_new_basic(TYPE_INT);
+      
+    default:
+      return type_new_basic(TYPE_INT);
+  }
+}
+
+static void analyze_stmt(struct Sema *sema, struct ASTNode *stmt) {
+  struct Type *t;
+  
+  if (!stmt || stmt->kind_tag != 1) return;
+  
+  switch (stmt->u.stmt.kind) {
+    case STMT_COMPOUND:
+      analyze_compound(sema, stmt);
+      break;
+      
+    case STMT_EXPR:
+      if (stmt->u.stmt.expr) {
+        t = analyze_expr(sema, stmt->u.stmt.expr);
+        type_free(t);
+      }
+      break;
+      
+    case STMT_IF:
+      if (stmt->u.stmt.s1) {
+        t = analyze_expr(sema, stmt->u.stmt.s1);
+        type_free(t);
+      }
+      if (stmt->u.stmt.s2) {
+        analyze_stmt(sema, stmt->u.stmt.s2);
+      }
+      if (stmt->u.stmt.s3) {
+        analyze_stmt(sema, stmt->u.stmt.s3);
+      }
+      break;
+      
+    case STMT_WHILE:
+    case STMT_DOWHILE:
+      if (stmt->u.stmt.s1) {
+        t = analyze_expr(sema, stmt->u.stmt.s1);
+        type_free(t);
+      }
+      if (stmt->u.stmt.s2) {
+        analyze_stmt(sema, stmt->u.stmt.s2);
+      }
+      break;
+      
+    case STMT_FOR:
+      if (stmt->u.stmt.s1) {
+        t = analyze_expr(sema, stmt->u.stmt.s1);
+        type_free(t);
+      }
+      if (stmt->u.stmt.s2) {
+        t = analyze_expr(sema, stmt->u.stmt.s2);
+        type_free(t);
+      }
+      if (stmt->u.stmt.s3) {
+        t = analyze_expr(sema, stmt->u.stmt.s3);
+        type_free(t);
+      }
+      if (stmt->u.stmt.expr) {
+        analyze_stmt(sema, stmt->u.stmt.expr);
+      }
+      break;
+      
+    case STMT_RETURN:
+      if (stmt->u.stmt.expr) {
+        t = analyze_expr(sema, stmt->u.stmt.expr);
+        /* TODO: check against function return type */
+        type_free(t);
+      }
+      break;
+      
+    case STMT_SWITCH:
+      if (stmt->u.stmt.s1) {
+        t = analyze_expr(sema, stmt->u.stmt.s1);
+        type_free(t);
+      }
+      if (stmt->u.stmt.s2) {
+        analyze_stmt(sema, stmt->u.stmt.s2);
+      }
+      break;
+      
+    case STMT_LABEL:
+      if (stmt->u.stmt.s1) {
+        analyze_stmt(sema, stmt->u.stmt.s1);
+      }
+      break;
+      
+    case STMT_CASE:
+    case STMT_DEFAULT:
+      if (stmt->u.stmt.expr) {
+        t = analyze_expr(sema, stmt->u.stmt.expr);
+        type_free(t);
+      }
+      if (stmt->u.stmt.s1) {
+        analyze_stmt(sema, stmt->u.stmt.s1);
+      }
+      break;
+      
+    case STMT_BREAK:
+    case STMT_CONTINUE:
+    case STMT_GOTO:
+      /* Nothing to analyze */
+      break;
+      
+    default:
+      break;
+  }
+}
+
+static void analyze_compound(struct Sema *sema, struct ASTNode *compound) {
+  struct ASTList *item;
+  struct ASTNode *node;
+  
+  if (!compound || compound->kind_tag != 1 || 
+      compound->u.stmt.kind != STMT_COMPOUND) {
+    return;
+  }
+  
+  /* Enter new scope for compound statement (except function body scope already entered) */
+  if (!sema->current_scope->is_function_scope) {
+    sema_enter_scope(sema, 0);
+  }
+  
+  /* Process declarations and statements */
+  for (item = compound->u.stmt.stmts; item; item = item->next) {
+    node = item->node;
+    if (!node) continue;
+    
+    if (node->kind_tag == 2) {
+      /* Declaration */
+      analyze_decl(sema, node);
+    } else if (node->kind_tag == 1) {
+      /* Statement */
+      analyze_stmt(sema, node);
+    }
+  }
+  
+  if (!sema->current_scope->is_function_scope) {
+    sema_exit_scope(sema);
+  }
+}
+
+int sema_analyze(struct Sema *sema, struct ASTNode *tree) {
+  struct ASTList *item;
+  struct ASTNode *node;
+  
+  if (!sema || !tree) return 0;
+  
+  /* Translation unit is a compound statement */
+  if (tree->kind_tag != 1 || tree->u.stmt.kind != STMT_COMPOUND) {
+    return 0;
+  }
+  
+  /* Process all external declarations */
+  for (item = tree->u.stmt.stmts; item; item = item->next) {
+    node = item->node;
+    if (!node || node->kind_tag != 3) continue;
+    
+    /* Declare function/variable in global scope */
+    analyze_function_decl(sema, node);
+    
+    /* If it's a function definition, analyze body */
+    if (node->u.ext.is_function && node->u.ext.body) {
+      analyze_function_def(sema, node);
+    }
+  }
+  
+  return sema->error_count == 0;
+}

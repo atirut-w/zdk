@@ -1,6 +1,7 @@
 #include "ast.h"
 #include "lexer.h"
 #include "parser.h"
+#include "sema.h"
 #include "symbols.h"
 #include "target.h"
 #include <errno.h>
@@ -234,6 +235,7 @@ int main(int argc, char **argv) {
     struct Symbols syms;
     struct Lexer lx;
     struct Parser ps;
+    struct Sema sema;
     struct ASTNode *tree;
 
     symbols_init(&syms);
@@ -243,6 +245,26 @@ int main(int argc, char **argv) {
     tree = parse_translation_unit(&ps);
     if (tree) {
       /* ast_print(tree, 0); */
+      
+      /* Perform semantic analysis */
+      sema_init(&sema);
+      if (!sema_analyze(&sema, tree)) {
+        fprintf(stderr, "Semantic analysis failed with %d error(s)\n", sema.error_count);
+        sema_destroy(&sema);
+        ast_free(tree);
+        parser_destroy(&ps);
+        lexer_destroy(&lx);
+        symbols_free(&syms);
+        fclose(input_file);
+        if (temp_file) {
+          unlink(temp_file);
+          free(temp_file);
+        }
+        free(asm_filename);
+        if (obj_filename) free(obj_filename);
+        return 1;
+      }
+      sema_destroy(&sema);
       
       /* Open assembly output file */
       asm_file = fopen(asm_filename, "w");

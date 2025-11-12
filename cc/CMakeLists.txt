@@ -4,6 +4,7 @@ add_executable(cc
     src/parser.c
     src/ast.c
     src/symbols.c
+    src/sema.c
     src/codegen.c
     src/target.c
     src/target_z80.c

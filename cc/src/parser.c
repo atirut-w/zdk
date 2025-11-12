@@ -20,6 +20,8 @@ static struct Declarator *parse_declarator_shape(struct Parser *p,
 static int parse_decl_specifiers(struct Parser *p, int *out_spec_flags,
                                  int *out_is_typedef);
 static struct ASTNode *parse_constant_expression(struct Parser *p);
+static struct ASTList *parse_parameter_type_list(struct Parser *p, int *out_has_varargs);
+static int parse_identifier_list(struct Parser *p);
 
 static void parser_error(struct Parser *p, const char *msg) {
   fprintf(stderr, "Parse error at %d:%d: %s\n", p->cur.line, p->cur.column,
@@ -985,59 +987,49 @@ static int parse_identifier_list(struct Parser *p) {
   return one;
 }
 
-static int parse_parameter_type_list(struct Parser *p) {
+static struct ASTList *parse_parameter_type_list(struct Parser *p, int *out_has_varargs) {
   /* parameter_list [ , ... ] */
-  int has_any = 0;
-  if (accept(p, ')'))
-    return 1; /* empty */
+  struct ASTList *params = NULL;
+  int flags, is_td;
+  struct Declarator *param_decltor;
+  struct ASTNode *param_decl;
+  
+  *out_has_varargs = 0;
+  
+  /* Don't consume the ')' here - let the caller handle it */
+  if (!p->has_cur)
+    next(p);
+  if (p->cur.kind == ')')
+    return NULL; /* empty parameter list */
+  
   for (;;) {
-    int flags = 0, is_td = 0;
+    flags = 0;
+    is_td = 0;
+    
     if (!parse_decl_specifiers(p, &flags, &is_td)) {
-      /* Maybe it's an identifier-list style, back out by syncing */
-      return 0;
+      /* Maybe it's an identifier-list style, back out */
+      return NULL;
     }
-    /* optional declarator or abstract_declarator (very simplified) */
-    while (accept(p, '*')) {
-      parse_type_qualifier_list(p);
-    }
-    if (!p->has_cur)
-      next(p);
-    if (p->cur.kind == T_IDENTIFIER) {
-      next(p);
-    } else if (accept(p, '(')) {
-      /* abstract or named: skip balanced parens content simplistically */
-      int depth = 1;
-      while (depth > 0) {
-        if (!p->has_cur)
-          next(p);
-        if (p->cur.kind == T_EOF)
-          break;
-        if (p->cur.kind == '(')
-          depth++;
-        else if (p->cur.kind == ')')
-          depth--;
-        next(p);
-      }
-    }
-    /* array suffixes allowed */
-    while (accept(p, '[')) {
-      if (!accept(p, ']')) {
-        (void)parse_expression(p);
-        expect(p, ']', "] expected");
-      }
-    }
-    has_any = 1;
+    
+    /* Parse declarator or abstract declarator */
+    param_decltor = parse_declarator_shape(p, NULL);
+    
+    /* Create a declaration node for this parameter */
+    param_decl = ast_new_decl(flags, param_decltor, NULL, p->cur.line, p->cur.column);
+    params = ast_list_append(params, param_decl);
+    
     if (accept(p, ',')) {
       if (accept(p, T_ELLIPSIS)) {
+        *out_has_varargs = 1;
         expect(p, ')', ") expected");
-        return 1;
+        return params;
       }
       continue;
     }
     break;
   }
   expect(p, ')', ") expected");
-  return has_any;
+  return params;
 }
 
 static struct Declarator *parse_direct_declarator(struct Parser *p,
@@ -1057,8 +1049,11 @@ static struct Declarator *parse_direct_declarator(struct Parser *p,
     d = parse_declarator_shape(p, out_name);
     expect(p, ')', ") expected");
   } else {
-    parser_error(p, "identifier or '(' expected in declarator");
-    return 0;
+    /* Abstract declarator - no identifier */
+    /* This is valid in parameter declarations, e.g., void foo(int) */
+    d = ast_new_declarator(NULL);
+    if (!d)
+      return 0;
   }
   if (!d)
     return 0;
@@ -1076,13 +1071,20 @@ static struct Declarator *parse_direct_declarator(struct Parser *p,
     }
     if (accept(p, '(')) {
       /* parameter_type_list | identifier_list | nothing */
-      if (parse_parameter_type_list(p)) {
+      struct ASTList *params;
+      int has_varargs = 0;
+      
+      params = parse_parameter_type_list(p, &has_varargs);
+      if (params || has_varargs) {
         d->is_function = 1;
+        d->params = params;
       } else if (parse_identifier_list(p)) {
         expect(p, ')', ") expected");
         d->is_function = 1;
+        /* identifier list params - old K&R style, not storing for now */
       } else if (accept(p, ')')) {
         d->is_function = 1;
+        /* empty parameter list */
       } else {
         /* sync until ')' */
         sync_until(p, ')', 0);
