@@ -115,6 +115,7 @@ struct ASTNode {
       int is_function;      /* 1 for function def */
       struct ASTNode *decl; /* declaration specifiers + declarator */
       struct ASTNode *body; /* compound statement */
+      int stack_size;       /* total stack space for local variables */
     } ext;
   } u;
 };

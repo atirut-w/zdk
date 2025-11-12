@@ -568,6 +568,9 @@ static void analyze_function_def(struct Sema *sema, struct ASTNode *ext) {
   /* Analyze function body */
   analyze_compound(sema, body);
   
+  /* Store stack size in the external node for code generation */
+  ext->u.ext.stack_size = sema->current_scope->stack_size;
+  
   sema_exit_scope(sema);
   sema->in_function = 0;
   sema->current_function_return_type = NULL;

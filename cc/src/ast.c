@@ -412,6 +412,7 @@ struct ASTNode *ast_new_external(struct ASTNode *decl, struct ASTNode *body,
   n->u.ext.decl = decl;
   n->u.ext.body = body;
   n->u.ext.is_function = body != 0;
+  n->u.ext.stack_size = 0;
   return n;
 }
 

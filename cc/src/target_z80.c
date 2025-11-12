@@ -82,15 +82,28 @@ static void z80_gen_expression_into(struct Codegen *cg, struct ASTNode *expr, in
 
 static void z80_gen_function(struct Codegen *cg, struct ASTNode *func) {
   struct ASTNode *body;
+  int stack_size;
+  
   if (!func || !cg->output) {
     return;
   }
+
+  /* Get stack size for local variables */
+  stack_size = func->u.ext.stack_size;
 
   /* Function prologue */
   fprintf(cg->output, "\t; Function prologue\n");
   fprintf(cg->output, "\tpush ix\n");
   fprintf(cg->output, "\tld ix, 0\n");
   fprintf(cg->output, "\tadd ix, sp\n");
+  
+  /* Allocate stack space for local variables */
+  if (stack_size > 0) {
+    fprintf(cg->output, "\t; Allocate %d bytes for local variables\n", stack_size);
+    fprintf(cg->output, "\tld hl, -%d\n", stack_size);
+    fprintf(cg->output, "\tadd hl, sp\n");
+    fprintf(cg->output, "\tld sp, hl\n");
+  }
 
   /* Generate function body */
   body = func->u.ext.body;
