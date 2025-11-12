@@ -20,6 +20,67 @@ static char *my_strdup(const char *s) {
 static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr);
 static void analyze_stmt(struct Sema *sema, struct ASTNode *stmt);
 static void analyze_compound(struct Sema *sema, struct ASTNode *compound);
+static void sema_error(struct Sema *sema, int line, int col, const char *msg);
+
+/* ===== Helpers for conversions/promotions (C90-subset) ===== */
+static int type_rank(const struct Type *t) {
+  if (!t) return -1;
+  switch (t->kind) {
+    case TYPE_CHAR: return 1;
+    case TYPE_SHORT: return 2;
+    case TYPE_INT: return 3;
+    case TYPE_LONG: return 4;
+    case TYPE_FLOAT: return 5;
+    case TYPE_DOUBLE: return 6;
+    default: return -1;
+  }
+}
+
+static struct Type *integer_promotion(struct Type *t) {
+  if (!t) return NULL;
+  if (t->kind == TYPE_CHAR || t->kind == TYPE_SHORT) {
+    struct Type *r = type_new_basic(TYPE_INT);
+    r->is_signed = t->is_signed;
+    return r;
+  }
+  return type_copy(t);
+}
+
+static struct Type *decay_array_to_pointer(struct Type *t) {
+  if (!t) return NULL;
+  if (t->kind == TYPE_ARRAY && t->base_type) {
+    return type_new_pointer(type_copy(t->base_type));
+  }
+  return type_copy(t);
+}
+
+static struct Type *usual_arith_conv(struct Sema *sema, struct Type *a, struct Type *b, int line, int col) {
+  struct Type *pa, *pb, *res;
+  if (!a || !b) {
+    if (a) return a;
+    if (b) return b;
+    return type_new_basic(TYPE_INT);
+  }
+  if (a->kind == TYPE_DOUBLE || b->kind == TYPE_DOUBLE) {
+    sema_error(sema, line, col, "double is not supported on this target (>32-bit)");
+    return type_new_basic(TYPE_DOUBLE);
+  }
+  if (a->kind == TYPE_FLOAT || b->kind == TYPE_FLOAT) {
+    return type_new_basic(TYPE_FLOAT);
+  }
+  pa = integer_promotion(a);
+  pb = integer_promotion(b);
+  if (type_rank(pa) >= type_rank(pb)) {
+    res = type_new_basic(pa->kind);
+    res->is_signed = pa->is_signed;
+  } else {
+    res = type_new_basic(pb->kind);
+    res->is_signed = pb->is_signed;
+  }
+  type_free(pa);
+  type_free(pb);
+  return res;
+}
 
 /* ========== Type Operations ========== */
 
@@ -367,6 +428,11 @@ struct Type *sema_type_from_decl(struct Sema *sema, struct ASTNode *decl) {
   type = type_new_basic(kind);
   if (!type) return NULL;
   
+  if (kind == TYPE_DOUBLE) {
+    sema_error(sema, decl ? decl->line : 0, decl ? decl->column : 0,
+               "double is not supported on this target (>32-bit)");
+  }
+  
   if (spec_flags & SPF_UNSIGNED) {
     type->is_signed = 0;
   }
@@ -627,12 +693,50 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       
       /* Check if it's a function type */
       if (t1 && t1->kind == TYPE_FUNCTION) {
-        /* Count arguments */
+        struct ParamList *param;
+        struct ASTList *arg_node;
+        struct Type *arg_type;
+        int param_idx;
+        
+        /* Analyze and check arguments against parameters */
         arg_count = 0;
-        for (arg = expr->u.expr.args; arg; arg = arg->next) {
-          t2 = analyze_expr(sema, arg->node);
-          type_free(t2);
+        param = t1->params;
+        arg_node = expr->u.expr.args;
+        param_idx = 0;
+        
+        while (arg_node) {
+          arg_type = analyze_expr(sema, arg_node->node);
+          
+          /* Apply array-to-pointer decay */
+          if (arg_type && arg_type->kind == TYPE_ARRAY) {
+            struct Type *tmp = decay_array_to_pointer(arg_type);
+            type_free(arg_type);
+            arg_type = tmp;
+          }
+          
+          /* Check against parameter type if we have a prototype */
+          if (param && param->type) {
+            if (!type_compatible(param->type, arg_type)) {
+              if (type_is_arithmetic(param->type) && type_is_arithmetic(arg_type)) {
+                /* Allow implicit arithmetic conversions */
+              } else if (type_is_pointer(param->type) && type_is_pointer(arg_type)) {
+                /* Pointers should match or be compatible */
+                if (!type_equals(param->type, arg_type)) {
+                  sprintf(msg, "passing argument %d with incompatible pointer type", param_idx + 1);
+                  sema_error(sema, expr->line, expr->column, msg);
+                }
+              } else {
+                sprintf(msg, "passing argument %d of incompatible type", param_idx + 1);
+                sema_error(sema, expr->line, expr->column, msg);
+              }
+            }
+            param = param->next;
+          }
+          
+          type_free(arg_type);
+          arg_node = arg_node->next;
           arg_count++;
+          param_idx++;
         }
         
         /* Check argument count (only for non-varargs functions with known params) */
@@ -693,42 +797,222 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       return type_copy(sym->type);
       
     case EXPR_CONST:
-      /* Determine type from token */
-      return type_new_basic(TYPE_INT); /* simplified */
+      /* Determine type from constant kind */
+      switch (expr->u.expr.const_tok.const_kind) {
+        case C_INT:
+          return type_new_basic(TYPE_INT);
+        case C_UINT: {
+          struct Type *ti = type_new_basic(TYPE_INT);
+          ti->is_signed = 0;
+          return ti;
+        }
+        case C_CHAR:
+          return type_new_basic(TYPE_CHAR);
+        case C_FLOAT:
+          return type_new_basic(TYPE_FLOAT);
+        case C_DOUBLE:
+          sema_error(sema, expr->line, expr->column,
+                     "double constant is not supported on this target (>32-bit)");
+          return type_new_basic(TYPE_DOUBLE);
+        default:
+          return type_new_basic(TYPE_INT);
+      }
       
-    case EXPR_STRING:
-      return type_new_pointer(type_new_basic(TYPE_CHAR));
+    case EXPR_STRING: {
+      int n = 0;
+      if (expr->u.expr.str) {
+        n = (int)strlen(expr->u.expr.str) + 1;
+      }
+      return type_new_array(type_new_basic(TYPE_CHAR), n);
+    }
       
     case EXPR_UNARY:
       t1 = analyze_expr(sema, expr->u.expr.e1);
-      /* TODO: proper unary type checking */
-      return t1;
+      
+      /* Check unary operator types */
+      switch (expr->u.expr.op) {
+        case '&': /* address-of */
+          /* Result is pointer to operand type */
+          return type_new_pointer(t1);
+          
+        case '*': /* dereference */
+          /* Operand must be pointer */
+          if (t1 && type_is_pointer(t1) && t1->base_type) {
+            struct Type *base = type_copy(t1->base_type);
+            type_free(t1);
+            return base;
+          }
+          sema_error(sema, expr->line, expr->column,
+                     "indirection requires pointer operand");
+          type_free(t1);
+          return type_new_basic(TYPE_INT);
+          
+        case '+':
+        case '-':
+        case '~':
+          /* Arithmetic/bitwise unary - require arithmetic type */
+          if (t1 && !type_is_arithmetic(t1)) {
+            sema_error(sema, expr->line, expr->column,
+                       "unary operator requires arithmetic operand");
+          }
+          /* Apply integer promotion */
+          if (t1 && type_is_integer(t1)) {
+            struct Type *promoted = integer_promotion(t1);
+            type_free(t1);
+            return promoted;
+          }
+          return t1;
+          
+        case '!':
+          /* Logical NOT - any scalar type */
+          if (t1 && !type_is_arithmetic(t1) && !type_is_pointer(t1)) {
+            sema_error(sema, expr->line, expr->column,
+                       "logical not requires scalar operand");
+          }
+          type_free(t1);
+          return type_new_basic(TYPE_INT);
+          
+        case T_INC_OP:
+        case T_DEC_OP:
+          /* Increment/decrement - require arithmetic or pointer */
+          if (t1 && !type_is_arithmetic(t1) && !type_is_pointer(t1)) {
+            sema_error(sema, expr->line, expr->column,
+                       "increment/decrement requires arithmetic or pointer operand");
+          }
+          return t1;
+          
+        case T_SIZEOF:
+          /* sizeof always returns size_t (we use int for simplicity) */
+          type_free(t1);
+          return type_new_basic(TYPE_INT);
+          
+        default:
+          /* Unknown unary operator */
+          return t1;
+      }
       
     case EXPR_BINARY:
       t1 = analyze_expr(sema, expr->u.expr.e1);
       t2 = analyze_expr(sema, expr->u.expr.e2);
       
+      /* Apply array-to-pointer decay for value operands */
+      if (t1 && t1->kind == TYPE_ARRAY) {
+        struct Type *tmp = decay_array_to_pointer(t1);
+        type_free(t1);
+        t1 = tmp;
+      }
+      if (t2 && t2->kind == TYPE_ARRAY) {
+        struct Type *tmp = decay_array_to_pointer(t2);
+        type_free(t2);
+        t2 = tmp;
+      }
+      
       /* Assignment operators */
       if (expr->u.expr.op == '=') {
-        if (!type_compatible(t1, t2) && !type_is_pointer(t1) && !type_is_pointer(t2)) {
-          if (!(type_is_arithmetic(t1) && type_is_arithmetic(t2))) {
+        if (!type_compatible(t1, t2)) {
+          if (type_is_arithmetic(t1) && type_is_arithmetic(t2)) {
+            /* arithmetic types are compatible */
+          } else if (type_is_pointer(t1) && type_is_pointer(t2)) {
+            if (!type_equals(t1, t2)) {
+              sema_error(sema, expr->line, expr->column,
+                         "incompatible pointer types in assignment");
+            }
+          } else if (type_is_pointer(t1) && type_is_integer(t2)) {
             sema_error(sema, expr->line, expr->column,
-                      "incompatible types in assignment");
+                       "cannot assign integer to pointer without cast");
+          } else {
+            sema_error(sema, expr->line, expr->column,
+                       "incompatible types in assignment");
           }
         }
         type_free(t2);
         return t1;
       }
       
-      /* Arithmetic operators */
-      if (!type_is_arithmetic(t1) || !type_is_arithmetic(t2)) {
-        /* Allow some pointer arithmetic */
-        if (!(type_is_pointer(t1) || type_is_pointer(t2))) {
+      /* Compound assignment operators */
+      if (expr->u.expr.op == T_ADD_ASSIGN || expr->u.expr.op == T_SUB_ASSIGN ||
+          expr->u.expr.op == T_MUL_ASSIGN || expr->u.expr.op == T_DIV_ASSIGN ||
+          expr->u.expr.op == T_MOD_ASSIGN || expr->u.expr.op == T_AND_ASSIGN ||
+          expr->u.expr.op == T_OR_ASSIGN || expr->u.expr.op == T_XOR_ASSIGN ||
+          expr->u.expr.op == T_LEFT_ASSIGN || expr->u.expr.op == T_RIGHT_ASSIGN) {
+        /* Similar rules to simple assignment but with arithmetic operation */
+        if (!type_is_arithmetic(t1) || !type_is_arithmetic(t2)) {
           sema_error(sema, expr->line, expr->column,
-                    "invalid operands to binary operator");
+                     "compound assignment requires arithmetic operands");
+        }
+        type_free(t2);
+        return t1;
+      }
+      
+      /* Pointer arithmetic */
+      if (expr->u.expr.op == '+' || expr->u.expr.op == '-') {
+        if (type_is_pointer(t1) && type_is_integer(t2)) {
+          type_free(t2);
+          return t1;
+        }
+        if (type_is_pointer(t2) && type_is_integer(t1) && expr->u.expr.op == '+') {
+          type_free(t1);
+          return t2;
         }
       }
       
+      /* Arithmetic operators */
+      if (expr->u.expr.op == '*' || expr->u.expr.op == '/' || expr->u.expr.op == '%') {
+        if (!type_is_arithmetic(t1) || !type_is_arithmetic(t2)) {
+          sema_error(sema, expr->line, expr->column,
+                     "arithmetic operator requires arithmetic operands");
+          type_free(t2);
+          return t1;
+        }
+        if (expr->u.expr.op == '%') {
+          if (!type_is_integer(t1) || !type_is_integer(t2)) {
+            sema_error(sema, expr->line, expr->column,
+                       "modulo operator requires integer operands");
+          }
+        }
+      }
+      
+      /* Comparison operators */
+      if (expr->u.expr.op == '<' || expr->u.expr.op == '>' ||
+          expr->u.expr.op == T_LE_OP || expr->u.expr.op == T_GE_OP ||
+          expr->u.expr.op == T_EQ_OP || expr->u.expr.op == T_NE_OP) {
+        /* Can compare arithmetic or pointer types */
+        if (!type_is_arithmetic(t1) && !type_is_pointer(t1)) {
+          sema_error(sema, expr->line, expr->column,
+                     "comparison requires scalar operands");
+        }
+        type_free(t1);
+        type_free(t2);
+        return type_new_basic(TYPE_INT); /* comparison result is int */
+      }
+      
+      /* Bitwise operators */
+      if (expr->u.expr.op == '&' || expr->u.expr.op == '|' || expr->u.expr.op == '^' ||
+          expr->u.expr.op == T_LEFT_OP || expr->u.expr.op == T_RIGHT_OP) {
+        if (!type_is_integer(t1) || !type_is_integer(t2)) {
+          sema_error(sema, expr->line, expr->column,
+                     "bitwise operator requires integer operands");
+        }
+      }
+      
+      /* Logical operators */
+      if (expr->u.expr.op == T_AND_OP || expr->u.expr.op == T_OR_OP) {
+        /* Accept any scalar type */
+        type_free(t1);
+        type_free(t2);
+        return type_new_basic(TYPE_INT);
+      }
+      
+      if (type_is_arithmetic(t1) && type_is_arithmetic(t2)) {
+        struct Type *rt = usual_arith_conv(sema, t1, t2, expr->line, expr->column);
+        type_free(t1);
+        type_free(t2);
+        return rt;
+      }
+      
+      /* Otherwise invalid */
+      sema_error(sema, expr->line, expr->column,
+                 "invalid operands to binary operator");
       type_free(t2);
       return t1;
       

@@ -94,6 +94,8 @@ static int read_number(struct Lexer *lx, int first, struct Token *out) {
   int is_hex = 0;
   int has_dot = 0;
   int has_exp = 0;
+  int has_f_suffix = 0;
+  int has_u_suffix = 0;
 
   buf[n++] = (char)c;
   if (c == '0') {
@@ -142,6 +144,10 @@ static int read_number(struct Lexer *lx, int first, struct Token *out) {
 
   /* integer/float suffixes (simplified) */
   while (isalpha(c)) {
+    if (c == 'f' || c == 'F')
+      has_f_suffix = 1;
+    if (c == 'u' || c == 'U')
+      has_u_suffix = 1;
     if (n < sizeof(buf) - 1)
       buf[n++] = (char)c;
     c = lx_getc(lx);
@@ -152,10 +158,14 @@ static int read_number(struct Lexer *lx, int first, struct Token *out) {
 
   out->kind = T_CONSTANT;
   out->lexeme = str_dup_range(buf, n);
-  if (has_dot || has_exp)
-    out->const_kind = C_DOUBLE;
-  else
-    out->const_kind = C_INT;
+  if (has_dot || has_exp) {
+    if (has_f_suffix)
+      out->const_kind = C_FLOAT;
+    else
+      out->const_kind = C_DOUBLE;
+  } else {
+    out->const_kind = has_u_suffix ? C_UINT : C_INT;
+  }
   return 1;
 }
 

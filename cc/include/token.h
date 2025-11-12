@@ -76,7 +76,15 @@ enum TokenKind {
 };
 
 /* Token value kinds for constants */
-enum ConstKind { C_NONE = 0, C_INT, C_UINT, C_CHAR, C_DOUBLE, C_STRING };
+enum ConstKind {
+  C_NONE = 0,
+  C_INT,
+  C_UINT,
+  C_CHAR,
+  C_FLOAT,
+  C_DOUBLE,
+  C_STRING
+};
 
 struct Token {
   int kind;     /* enum TokenKind or single-char ASCII for punctuators */
