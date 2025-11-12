@@ -1,1 +1,36 @@
-site_name: My Docs
+site_name: ZDK
+site_url: https://atirut-w.github.io/zdk
+
+# Repository settings
+repo_url: https://github.com/atirut-w/zdk
+repo_name: atirut-w/zdk
+edit_uri: edit/main/docs/
+
+# Theme configuration
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.action.edit
+    - content.code.copy
+
+plugins:
+  - git-revision-date-localized:
+      # enable_creation_date: true
+  - git-committers:
+      repository: atirut-w/zdk
+      branch: main
+
+# Markdown extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
