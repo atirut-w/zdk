@@ -17,6 +17,7 @@ add_executable(cc
     src/ast.c
     src/symbols.c
     src/sema.c
+    src/errorreport.c
     src/codegen.c
     src/target.c
     src/target_z80.c

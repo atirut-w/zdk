@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
 
     sema_init(&sema);
     if (!sema_analyze(&sema, tree)) {
-      fprintf(stderr, "Semantic analysis failed with %d error(s)\n", sema.error_count);
+      fprintf(stderr, "%d error(s) generated\n", sema.error_count);
       sema_destroy(&sema);
       ast_free(tree);
       fclose(input_file);

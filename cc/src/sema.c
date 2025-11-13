@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Externs shared with parser/lexer for unified error reporting */
+extern const char *yyfilename; /* current input filename */
+extern char current_line[];    /* contents of current lexer line */
+extern int current_line_len;   /* length of current line */
+
+#include "errorreport.h"
+
 /* strdup is not C90 standard */
 static char *my_strdup(const char *s) {
   char *result;
@@ -371,8 +378,10 @@ void sema_destroy(struct Sema *sema) {
   }
 }
 
-static void sema_error(struct Sema *sema, int line, int col, const char *msg) {
-  fprintf(stderr, "Semantic error at %d:%d: %s\n", line, col, msg);
+static void sema_error(struct Sema *sema, int err_line, int err_col, const char *msg)
+{
+  /* Delegate to shared reporter */
+  error_report(yyfilename, err_line, err_col, msg, current_line, current_line_len);
   sema->error_count++;
 }
 

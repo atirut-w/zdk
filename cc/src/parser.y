@@ -1,6 +1,7 @@
 %{
 #include "ast.h"
 #include <stdio.h>
+#include "errorreport.h"
 #include <stdlib.h>
 
 /* externs from lexer for location */
@@ -459,81 +460,9 @@ extern char current_line[];
 extern int current_line_len;
 
 /* compute digit width for gutter */
-static int num_width(int n)
-{
-	int w;
-	if (n <= 0) return 1;
-	w = 0;
-	while (n > 0)
-	{
-		w++;
-		n /= 10;
-	}
-	return w;
-}
-
-/* print left gutter: either "<lineno> | " or "    | " with matching width */
-static void print_gutter(FILE *out, int lineno)
-{
-	int width, i;
-	width = num_width(line); /* width is based on current error line */
-	if (lineno > 0)
-	{
-		fprintf(out, "%*d | ", width, lineno);
-	}
-	else
-	{
-		for (i = 0; i < width; i++) fputc(' ', out);
-		fputs(" | ", out);
-	}
-}
-
-static void print_caret_line(FILE *out)
-{
-	int vc, target, idx;
-
-	/* gutter aligned to offending line width */
-	print_gutter(out, 0);
-
-	vc = 0;
-	/* Place caret under the offending character (column is 1-based visually) */
-	target = column > 0 ? column - 1 : 0;
-
-	for (idx = 0; idx < current_line_len && vc < target; idx++)
-	{
-		if (current_line[idx] == '\t')
-		{
-			/* keep tabs so caret aligns visually */
-			fputc('\t', out);
-			vc += 8 - (vc % 8);
-		}
-		else
-		{
-			fputc(' ', out);
-			vc++;
-		}
-	}
-	fputc('^', out);
-	fputc('\n', out);
-}
-
 int yyerror(char *s)
 {
-	const char *fname = yyfilename ? yyfilename : "<stdin>";
-
-	/* error header */
-	fprintf(stderr, "%s:%d:%d: error: %s\n", fname, line, column, s);
-
-	/* offending line with gutter */
-	if (current_line_len > 0)
-	{
-		print_gutter(stderr, line);
-		fwrite(current_line, 1, (size_t)current_line_len, stderr);
-		fputc('\n', stderr);
-	}
-
-	/* caret line with matching gutter */
-	print_caret_line(stderr);
+	error_report(yyfilename, line, column, s, current_line, current_line_len);
 	return 0;
 }
 
