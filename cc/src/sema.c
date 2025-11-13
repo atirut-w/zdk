@@ -513,6 +513,7 @@ static void analyze_decl(struct Sema *sema, struct ASTNode *decl) {
   struct Symbol *existing, *sym;
   const char *name;
   int is_extern, is_static;
+  int size;
   
   if (!decl || decl->kind_tag != 2) return;
   
@@ -546,11 +547,44 @@ static void analyze_decl(struct Sema *sema, struct ASTNode *decl) {
     sym->is_extern = is_extern;
     sym->is_static = is_static;
     
-    /* Calculate stack offset for local variables */
+    /* Calculate stack offset for local variables using target sizes */
     if (sema->in_function && !is_extern && !is_static) {
-      /* Simple allocation: 2 bytes per variable (16-bit target) */
+      /* Size computation (Z80 16-bit pointers/ints):
+         char=1, short=2, int=2, long=4, float=4, pointer=2.
+         Arrays: element_size * array_size. Incomplete arrays: 0. */
+      size = 0;
+      if (type) {
+        switch (type->kind) {
+          case TYPE_CHAR:  size = 1; break;
+          case TYPE_SHORT: size = 2; break;
+          case TYPE_INT:   size = 2; break;
+          case TYPE_LONG:  size = 4; break;
+          case TYPE_FLOAT: size = 4; break;
+          case TYPE_DOUBLE: size = 8; break; /* not really supported, but reserve */
+          case TYPE_POINTER: size = 2; break;
+          case TYPE_ARRAY:
+            if (type->base_type && type->array_size >= 0) {
+              switch (type->base_type->kind) {
+                case TYPE_CHAR:  size = 1 * type->array_size; break;
+                case TYPE_SHORT: size = 2 * type->array_size; break;
+                case TYPE_INT:   size = 2 * type->array_size; break;
+                case TYPE_LONG:  size = 4 * type->array_size; break;
+                case TYPE_FLOAT: size = 4 * type->array_size; break;
+                case TYPE_DOUBLE: size = 8 * type->array_size; break;
+                case TYPE_POINTER: size = 2 * type->array_size; break;
+                default: size = 0; break;
+              }
+            } else {
+              size = 0; /* incomplete */
+            }
+            break;
+          default:
+            size = 0; /* structs/unions/enums not yet handled */
+            break;
+        }
+      }
       sym->stack_offset = sema->current_scope->stack_size;
-      sema->current_scope->stack_size += 2;
+      sema->current_scope->stack_size += size;
     }
   }
 }
