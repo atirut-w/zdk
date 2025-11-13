@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern int cc_verbose; /* from main.c */
+
 /* Z80-specific data */
 struct Z80Data {
   int stack_offset;
@@ -407,18 +409,38 @@ static int z80_invoke_assembler(struct Codegen *cg, const char *asm_file, const 
   int ret;
   (void)cg;
   sprintf(cmd, "z80-unknown-none-elf-as -o '%s' '%s'", obj_file, asm_file);
+  if (cc_verbose) {
+    fprintf(stderr, "[cmd] %s\n", cmd);
+  }
   ret = system(cmd);
   return ret == 0;
 }
 
-static int z80_invoke_linker(struct Codegen *cg, const char **obj_files, int num_objs, const char *out_file) {
-  char cmd[512];
+static int z80_invoke_linker(struct Codegen *cg, const char **obj_files, int num_objs, const char *out_file, const char *linker_script) {
+  char cmd[1024];
   int ret;
+  int i;
+  int n;
   (void)cg;
   if (num_objs <= 0) {
     return 0;
   }
-  sprintf(cmd, "z80-unknown-none-elf-ld -o '%s' '%s'", out_file, obj_files[0]);
+  /* Start command */
+  if (linker_script) {
+    n = sprintf(cmd, "z80-unknown-none-elf-ld -o '%s' -T '%s'", out_file, linker_script);
+  } else {
+    n = sprintf(cmd, "z80-unknown-none-elf-ld -o '%s'", out_file);
+  }
+  for (i = 0; i < num_objs; i++) {
+    if (n > (int)(sizeof(cmd) - 64)) {
+      /* Avoid overflow; simplistic check */
+      break;
+    }
+    n += sprintf(cmd + n, " '%s'", obj_files[i]);
+  }
+  if (cc_verbose) {
+    fprintf(stderr, "[cmd] %s\n", cmd);
+  }
   ret = system(cmd);
   return ret == 0;
 }

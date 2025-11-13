@@ -33,7 +33,7 @@ struct Target {
   
   /* Toolchain invocation */
   int (*invoke_assembler)(struct Codegen *cg, const char *asm_file, const char *obj_file);
-  int (*invoke_linker)(struct Codegen *cg, const char **obj_files, int num_objs, const char *out_file);
+  int (*invoke_linker)(struct Codegen *cg, const char **obj_files, int num_objs, const char *out_file, const char *linker_script);
   
   /* Code generation function table initialization */
   void (*init_codegen)(struct Codegen *cg);
