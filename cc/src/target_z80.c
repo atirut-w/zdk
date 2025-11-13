@@ -77,260 +77,6 @@ static void z80_leave_dest(struct Codegen *cg, int dest, int pushed_other) {
   }
 }
 
-static void z80_gen_expression_into(struct Codegen *cg, struct ASTNode *expr, int dest);
-
-/* Z80 codegen implementations */
-
-static void z80_gen_function(struct Codegen *cg, struct ASTNode *func) {
-  struct ASTNode *body;
-  int stack_size;
-  
-  if (!func || !cg->output) {
-    return;
-  }
-
-  /* Get stack size for local variables */
-  stack_size = func->u.ext.stack_size;
-
-  /* Function prologue */
-  fprintf(cg->output, "\t; Function prologue\n");
-  fprintf(cg->output, "\tpush ix\n");
-  fprintf(cg->output, "\tld ix, 0\n");
-  fprintf(cg->output, "\tadd ix, sp\n");
-  
-  /* Allocate stack space for local variables */
-  if (stack_size > 0) {
-    fprintf(cg->output, "\t; Allocate %d bytes for local variables\n", stack_size);
-    fprintf(cg->output, "\tld hl, -%d\n", stack_size);
-    fprintf(cg->output, "\tadd hl, sp\n");
-    fprintf(cg->output, "\tld sp, hl\n");
-  }
-
-  /* Generate function body */
-  body = func->u.ext.body;
-  if (body && cg->gen_statement) {
-    cg->gen_statement(cg, body);
-  }
-
-  /* Function epilogue */
-  fprintf(cg->output, "\t; Function epilogue\n");
-  fprintf(cg->output, "\tld sp, ix\n");
-  fprintf(cg->output, "\tpop ix\n");
-  fprintf(cg->output, "\tret\n");
-}
-
-static void z80_gen_statement(struct Codegen *cg, struct ASTNode *stmt) {
-  struct ASTList *list;
-  if (!stmt || !cg->output) {
-    return;
-  }
-  switch (stmt->u.stmt.kind) {
-    case STMT_COMPOUND:
-      for (list = stmt->u.stmt.stmts; list; list = list->next) {
-        if (!list->node) {
-          continue;
-        }
-        /* Declarations appear directly in compound lists now; skip them */
-        if (list->node->kind_tag == 2) {
-          /* TODO: allocate locals, emit storage as needed */
-          continue;
-        }
-        /* Only recurse on statements */
-        if (list->node->kind_tag == 1 && cg->gen_statement) {
-          cg->gen_statement(cg, list->node);
-        }
-      }
-      break;
-    case STMT_RETURN:
-      if (stmt->u.stmt.expr && cg->gen_expression) {
-        cg->gen_expression(cg, stmt->u.stmt.expr);
-      }
-      break;
-    case STMT_EXPR:
-      if (stmt->u.stmt.expr && cg->gen_expression) {
-        cg->gen_expression(cg, stmt->u.stmt.expr);
-      }
-      break;
-    default:
-      fprintf(cg->output, "\t; TODO: statement kind %d\n", stmt->u.stmt.kind);
-      break;
-  }
-}
-
-static void z80_gen_expression_into(struct Codegen *cg, struct ASTNode *expr, int dest) {
-  struct Z80Data *d;
-  if (!expr || !cg->output) {
-    return;
-  }
-  d = (struct Z80Data *)cg->target_data;
-
-  if (expr->u.expr.kind == EXPR_CONST) {
-    /* Constants can load directly without spilling */
-    if (dest == REG_HL) {
-      fprintf(cg->output, "\tld hl, %s\n", expr->u.expr.const_lexeme);
-    } else {
-      fprintf(cg->output, "\tld de, %s\n", expr->u.expr.const_lexeme);
-    }
-    return;
-  }
-
-  if (expr->u.expr.kind == EXPR_STRING) {
-    /* String literal: add to list and load address */
-    int str_id = d->string_count++;
-    struct ASTNode *str_node = wrap_string_entry(str_id, expr->u.expr.str);
-    if (str_node) {
-      d->strings = ast_list_append(d->strings, str_node);
-    }
-    if (dest == REG_HL) {
-      fprintf(cg->output, "\tld hl, .LC%d\n", str_id);
-    } else {
-      fprintf(cg->output, "\tld de, .LC%d\n", str_id);
-    }
-    return;
-  }
-
-  if (expr->u.expr.kind == EXPR_CALL) {
-    /* Function call: push args right-to-left, call, clean stack */
-    struct ASTList *arg;
-    int arg_count = 0;
-    int i;
-    
-    /* Count args */
-    for (arg = expr->u.expr.args; arg; arg = arg->next) {
-      arg_count++;
-    }
-    
-    /* Push arguments in reverse order (right-to-left for cdecl) */
-    if (arg_count > 0) {
-      struct ASTNode **arg_array = (struct ASTNode **)malloc(sizeof(struct ASTNode *) * arg_count);
-      i = 0;
-      for (arg = expr->u.expr.args; arg; arg = arg->next) {
-        arg_array[i++] = arg->node;
-      }
-      for (i = arg_count - 1; i >= 0; i--) {
-        z80_gen_expression_into(cg, arg_array[i], REG_HL);
-        fprintf(cg->output, "\tpush hl\n");
-      }
-      free(arg_array);
-    }
-    
-    /* Call function */
-    if (expr->u.expr.e1 && expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
-      fprintf(cg->output, "\tcall %s\n", expr->u.expr.e1->u.expr.ident);
-    } else {
-      /* indirect call not yet supported */
-      fprintf(cg->output, "\t; TODO: indirect call\n");
-    }
-    
-    /* Clean stack - pop args into BC repeatedly or adjust SP */
-    if (arg_count > 0) {
-      if (arg_count == 1) {
-        fprintf(cg->output, "\tpop bc\n");
-      } else if (arg_count == 2) {
-        fprintf(cg->output, "\tpop bc\n");
-        fprintf(cg->output, "\tpop bc\n");
-      } else {
-        /* For many args, adjust SP directly */
-        fprintf(cg->output, "\tld bc, %d\n", arg_count * 2);
-        fprintf(cg->output, "\tadd ix, bc\n");
-        fprintf(cg->output, "\tld sp, ix\n");
-      }
-    }
-    
-    /* Result already in HL; move to DE if needed */
-    if (dest == REG_DE) {
-      z80_mov_hl_to_de(cg);
-    }
-    return;
-  }
-
-  if (expr->u.expr.kind == EXPR_UNARY && expr->u.expr.op == '-') {
-    /* Evaluate operand to HL, then negate */
-    z80_gen_expression_into(cg, expr->u.expr.e1, REG_HL);
-    z80_mov_hl_to_de(cg);
-    z80_zero_hl(cg);
-    fprintf(cg->output, "\tsbc hl, de\n");
-    if (dest == REG_DE) {
-      z80_mov_hl_to_de(cg);
-    }
-    return;
-  }
-
-  if (expr->u.expr.kind == EXPR_BINARY) {
-    int op = expr->u.expr.op;
-    int pushed_hl = 0;
-    
-    /* LHS -> HL */
-    z80_gen_expression_into(cg, expr->u.expr.e1, REG_HL);
-
-    /* Only spill HL if RHS is complex (not a constant) */
-    if (expr->u.expr.e2 && expr->u.expr.e2->u.expr.kind != EXPR_CONST) {
-      fprintf(cg->output, "\tpush hl\n");
-      pushed_hl = 1;
-    }
-    
-    /* RHS -> DE */
-    z80_gen_expression_into(cg, expr->u.expr.e2, REG_DE);
-    
-    if (pushed_hl) {
-      fprintf(cg->output, "\tpop hl\n");
-    }
-
-    if (op == '+') {
-      fprintf(cg->output, "\tadd hl, de\n");
-    } else if (op == '-') {
-      fprintf(cg->output, "\txor a\n");
-      fprintf(cg->output, "\tsbc hl, de\n");
-    } else if (op == '*') {
-      fprintf(cg->output, "\tpush de\n");
-      fprintf(cg->output, "\tpush hl\n");
-      fprintf(cg->output, "\tcall __mulhi3\n");
-      fprintf(cg->output, "\tpop bc\n");
-      fprintf(cg->output, "\tpop bc\n");
-    } else if (op == '/') {
-      fprintf(cg->output, "\tpush de\n");
-      fprintf(cg->output, "\tpush hl\n");
-      fprintf(cg->output, "\tcall __divhi3\n");
-      fprintf(cg->output, "\tpop bc\n");
-      fprintf(cg->output, "\tpop bc\n");
-    } else if (op == '%') {
-      fprintf(cg->output, "\tpush de\n");
-      fprintf(cg->output, "\tpush hl\n");
-      fprintf(cg->output, "\tcall __modhi3\n");
-      fprintf(cg->output, "\tpop bc\n");
-      fprintf(cg->output, "\tpop bc\n");
-    } else if (op == OP_SHL) {
-      fprintf(cg->output, "\tpush de\n");
-      fprintf(cg->output, "\tpush hl\n");
-      fprintf(cg->output, "\tcall __ashlhi3\n");
-      fprintf(cg->output, "\tpop bc\n");
-      fprintf(cg->output, "\tpop bc\n");
-    } else if (op == OP_SHR) {
-      fprintf(cg->output, "\tpush de\n");
-      fprintf(cg->output, "\tpush hl\n");
-      fprintf(cg->output, "\tcall __ashrhi3\n");
-      fprintf(cg->output, "\tpop bc\n");
-      fprintf(cg->output, "\tpop bc\n");
-    } else {
-      fprintf(cg->output, "\t; TODO: binary op %d\n", op);
-    }
-
-    if (dest == REG_DE) {
-      z80_mov_hl_to_de(cg);
-    }
-    return;
-  }
-
-  /* Fallback */
-  fprintf(cg->output, "\t; TODO: expression kind %d\n", expr->u.expr.kind);
-  if (dest == REG_DE) {
-    z80_mov_hl_to_de(cg);
-  }
-}
-
-static void z80_gen_expression(struct Codegen *cg, struct ASTNode *expr) {
-  z80_gen_expression_into(cg, expr, REG_HL);
-}
 
 /* Z80 target implementations */
 
@@ -373,7 +119,8 @@ static void z80_finalize(struct Codegen *cg) {
       if (str->node && str->node->kind_tag == 99) {
         se = (struct StringEntry *)str->node->u.expr.str;
         fprintf(cg->output, ".LC%d:\n", se->id);
-        fprintf(cg->output, "\t.ascii \"");
+        /* Emit null-terminated string */
+        fprintf(cg->output, "\t.asciz \"");
         /* Emit string with escapes */
         for (p = se->content; *p; p++) {
           if (*p == '\n') fprintf(cg->output, "\\n");
@@ -445,10 +192,147 @@ static int z80_invoke_linker(struct Codegen *cg, const char **obj_files, int num
   return ret == 0;
 }
 
+static void z80_act_fn_prologue(struct Codegen *cg, int stack_size) {
+  fprintf(cg->output, "\t; prologue\n");
+  fprintf(cg->output, "\tpush ix\n");
+  fprintf(cg->output, "\tld ix, 0\n");
+  fprintf(cg->output, "\tadd ix, sp\n");
+  if (stack_size > 0) {
+    fprintf(cg->output, "\tld hl, -%d\n", stack_size);
+    fprintf(cg->output, "\tadd hl, sp\n");
+    fprintf(cg->output, "\tld sp, hl\n");
+  }
+  /* Record frame size (currently unused) */
+  {
+    struct Z80Data *d = (struct Z80Data *)cg->target_data;
+    if (d) d->stack_offset = stack_size;
+  }
+}
+
+static void z80_act_fn_epilogue(struct Codegen *cg) {
+  fprintf(cg->output, "\t; epilogue\n");
+  fprintf(cg->output, "\tld sp, ix\n");
+  fprintf(cg->output, "\tpop ix\n");
+  fprintf(cg->output, "\tret\n");
+}
+
+static void z80_act_alloc_stack(struct Codegen *cg, int bytes) {
+  if (bytes > 0) {
+    fprintf(cg->output, "\t; allocate %d bytes temp\n", bytes);
+    fprintf(cg->output, "\tld hl, -%d\n", bytes);
+    fprintf(cg->output, "\tadd hl, sp\n");
+    fprintf(cg->output, "\tld sp, hl\n");
+  }
+}
+
+static void z80_act_addr_symbol(struct Codegen *cg, const char *name) {
+  /* Address of global symbol -> IY */
+  fprintf(cg->output, "\tld iy, %s\n", name);
+}
+
+static void z80_act_addr_local(struct Codegen *cg, int offset) {
+  /* locals at negative offsets from IX; compute address in IY */
+  fprintf(cg->output, "\tld bc, %d\n", offset);
+  fprintf(cg->output, "\tpush ix\n");
+  fprintf(cg->output, "\tpop iy\n");
+  fprintf(cg->output, "\tadd iy, bc\n");
+}
+
+static void z80_act_addr_param(struct Codegen *cg, int offset) {
+  /* params at positive offsets from IX; compute address in IY */
+  fprintf(cg->output, "\tld bc, %d\n", offset);
+  fprintf(cg->output, "\tpush ix\n");
+  fprintf(cg->output, "\tpop iy\n");
+  fprintf(cg->output, "\tadd iy, bc\n");
+}
+
+static void z80_act_load_int(struct Codegen *cg) {
+  /* Load 16-bit little-endian from [IY] into HL */
+  fprintf(cg->output, "\tld l, (iy+0)\n");
+  fprintf(cg->output, "\tld h, (iy+1)\n");
+}
+
+static void z80_act_load_char(struct Codegen *cg) {
+  /* Zero-extend 8-bit load from [IY] into A */
+  fprintf(cg->output, "\tld a, (iy+0)\n");
+}
+
+static void z80_act_store_int(struct Codegen *cg) {
+  fprintf(cg->output, "\tld (iy+0), l\n");
+  fprintf(cg->output, "\tld (iy+1), h\n");
+}
+
+static void z80_act_store_char(struct Codegen *cg) {
+  fprintf(cg->output, "\tld (iy+0), a\n");
+}
+
+static void z80_act_emit_const_int(struct Codegen *cg, const char *lexeme) {
+  fprintf(cg->output, "\tld hl, %s\n", lexeme);
+}
+
+static void z80_act_emit_string_literal(struct Codegen *cg, const char *content) {
+  int id; struct Z80Data *d = (struct Z80Data *)cg->target_data; struct ASTNode *wrap;
+  if (!d) return; id = d->string_count++; wrap = wrap_string_entry(id, content); if (wrap) d->strings = ast_list_append(d->strings, wrap);
+  fprintf(cg->output, "\tld hl, .LC%d\n", id);
+}
+
+static void z80_act_value_to_rhs(struct Codegen *cg) { /* HL -> DE */
+  /* Swap is cheaper here; caller restores HL soon after */
+  fprintf(cg->output, "\tex de, hl\n");
+}
+
+static void z80_act_rhs_to_lhs(struct Codegen *cg) { /* DE -> HL */
+  fprintf(cg->output, "\tex de, hl\n");
+}
+
+static void z80_act_op_add(struct Codegen *cg) { fprintf(cg->output, "\tadd hl, de\n"); }
+static void z80_act_op_sub(struct Codegen *cg) { fprintf(cg->output, "\txor a\n\tsbc hl, de\n"); }
+static void z80_act_op_neg(struct Codegen *cg) { fprintf(cg->output, "\tld d, h\n\tld e, l\n\txor a\n\tsbc hl, de\n"); }
+static void z80_act_op_mul(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __mulhi3\n\tpop bc\n\tpop bc\n"); }
+static void z80_act_op_div(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __divhi3\n\tpop bc\n\tpop bc\n"); }
+static void z80_act_op_mod(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __modhi3\n\tpop bc\n\tpop bc\n"); }
+static void z80_act_op_shl(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __ashlhi3\n\tpop bc\n\tpop bc\n"); }
+static void z80_act_op_shr(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __ashrhi3\n\tpop bc\n\tpop bc\n"); }
+
+static void z80_act_push_arg(struct Codegen *cg) { fprintf(cg->output, "\tpush hl\n"); }
+static void z80_act_call_direct(struct Codegen *cg, const char *name) { fprintf(cg->output, "\tcall %s\n", name); }
+static void z80_act_cleanup_args(struct Codegen *cg, int num_bytes) {
+  if (num_bytes == 2) { fprintf(cg->output, "\tpop bc\n"); }
+  else if (num_bytes == 4) { fprintf(cg->output, "\tpop bc\n\tpop bc\n"); }
+  else if (num_bytes > 0) {
+    fprintf(cg->output, "\tld iy, %d\n", num_bytes);
+    fprintf(cg->output, "\tadd iy, sp\n");
+    fprintf(cg->output, "\tld sp, iy\n");
+
+  }
+}
+
 static void z80_init_codegen(struct Codegen *cg) {
-  cg->gen_function = z80_gen_function;
-  cg->gen_statement = z80_gen_statement;
-  cg->gen_expression = z80_gen_expression;
+  cg->fn_prologue = z80_act_fn_prologue;
+  cg->fn_epilogue = z80_act_fn_epilogue;
+  cg->alloc_stack = z80_act_alloc_stack;
+  cg->addr_symbol = z80_act_addr_symbol;
+  cg->addr_local = z80_act_addr_local;
+  cg->addr_param = z80_act_addr_param;
+  cg->load_int = z80_act_load_int;
+  cg->load_char = z80_act_load_char;
+  cg->store_int = z80_act_store_int;
+  cg->store_char = z80_act_store_char;
+  cg->emit_const_int = z80_act_emit_const_int;
+  cg->emit_string_literal = z80_act_emit_string_literal;
+  cg->value_to_rhs = z80_act_value_to_rhs;
+  cg->rhs_to_lhs = z80_act_rhs_to_lhs;
+  cg->op_add = z80_act_op_add;
+  cg->op_sub = z80_act_op_sub;
+  cg->op_neg = z80_act_op_neg;
+  cg->op_mul = z80_act_op_mul;
+  cg->op_div = z80_act_op_div;
+  cg->op_mod = z80_act_op_mod;
+  cg->op_shl = z80_act_op_shl;
+  cg->op_shr = z80_act_op_shr;
+  cg->push_arg = z80_act_push_arg;
+  cg->call_direct = z80_act_call_direct;
+  cg->cleanup_args = z80_act_cleanup_args;
 }
 
 /* Public target descriptor */

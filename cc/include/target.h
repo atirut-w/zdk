@@ -13,12 +13,33 @@ struct Codegen {
   /* Context */
   void *target_data; /* target-specific data */
   FILE *output;      /* output file for generated code */
+  /* Low-level actions (flattened) */
+  void (*fn_prologue)(struct Codegen *cg, int stack_size);
+  void (*fn_epilogue)(struct Codegen *cg);
+  void (*alloc_stack)(struct Codegen *cg, int bytes);
+  void (*addr_symbol)(struct Codegen *cg, const char *name);
+  void (*addr_local)(struct Codegen *cg, int offset);
+  void (*addr_param)(struct Codegen *cg, int offset);
+  void (*load_int)(struct Codegen *cg);
+  void (*load_char)(struct Codegen *cg);
+  void (*store_int)(struct Codegen *cg);
+  void (*store_char)(struct Codegen *cg);
+  void (*emit_const_int)(struct Codegen *cg, const char *lexeme);
+  void (*emit_string_literal)(struct Codegen *cg, const char *content);
+  void (*value_to_rhs)(struct Codegen *cg);
+  void (*rhs_to_lhs)(struct Codegen *cg);
+  void (*op_add)(struct Codegen *cg);
+  void (*op_sub)(struct Codegen *cg);
+  void (*op_neg)(struct Codegen *cg);
+  void (*op_mul)(struct Codegen *cg);
+  void (*op_div)(struct Codegen *cg);
+  void (*op_mod)(struct Codegen *cg);
+  void (*op_shl)(struct Codegen *cg);
+  void (*op_shr)(struct Codegen *cg);
+  void (*push_arg)(struct Codegen *cg);
+  void (*call_direct)(struct Codegen *cg, const char *name);
+  void (*cleanup_args)(struct Codegen *cg, int num_bytes);
   
-  /* Code generation hooks */
-  void (*gen_symbol)(struct Codegen *cg, const char *name, int is_static);
-  void (*gen_function)(struct Codegen *cg, struct ASTNode *func);
-  void (*gen_statement)(struct Codegen *cg, struct ASTNode *stmt);
-  void (*gen_expression)(struct Codegen *cg, struct ASTNode *expr);
 };
 
 /* Target interface - holds target-specific information */
@@ -43,15 +64,9 @@ struct Target {
 struct Target *target_find(const char *name);
 void target_list(void);
 
-/* Codegen initialization */
+/* Codegen driver */
 void codegen_init_defaults(struct Codegen *cg);
 void codegen_generate(struct Codegen *cg, struct ASTNode *tree);
-
-/* Default codegen implementations */
-void codegen_default_gen_symbol(struct Codegen *cg, const char *name, int is_static);
-void codegen_default_gen_function(struct Codegen *cg, struct ASTNode *func);
-void codegen_default_gen_statement(struct Codegen *cg, struct ASTNode *stmt);
-void codegen_default_gen_expression(struct Codegen *cg, struct ASTNode *expr);
 
 /* Built-in targets */
 extern struct Target target_z80;

@@ -592,7 +592,7 @@ static void analyze_decl(struct Sema *sema, struct ASTNode *decl) {
             break;
         }
       }
-      sym->stack_offset = sema->current_scope->stack_size;
+      sym->stack_offset = -(sema->current_scope->stack_size + size);
       sema->current_scope->stack_size += size;
     }
   }
