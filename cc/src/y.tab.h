@@ -120,7 +120,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 15 "/home/atirut/Projects/zdk/cc/src/parser.y"
+#line 18 "/home/atirut/Projects/zdk/cc/src/parser.y"
 
 	char *str;
 	struct ASTNode *node;

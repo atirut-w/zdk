@@ -6,6 +6,9 @@
 /* externs from lexer for location */
 extern int line;
 extern int column;
+/* start position of the most recently scanned token */
+extern int token_line;
+extern int token_column;
 
 /* Build result */
 static struct ASTNode *parse_tree = 0;
@@ -45,9 +48,9 @@ static struct ASTNode *parse_tree = 0;
 %%
 
 primary_expression
-	: IDENTIFIER              { $$ = ast_new_expr_ident($1, line, column); free($1); }
-	| CONSTANT                { $$ = ast_new_expr_const($1, AST_C_INT, line, column); free($1); }
-	| STRING_LITERAL          { $$ = ast_new_expr_string($1, line, column); free($1); }
+	: IDENTIFIER              { $$ = ast_new_expr_ident($1, token_line, token_column); free($1); }
+	| CONSTANT                { $$ = ast_new_expr_const($1, AST_C_INT, token_line, token_column); free($1); }
+	| STRING_LITERAL          { $$ = ast_new_expr_string($1, token_line, token_column); free($1); }
 	| '(' expression ')'      { $$ = $2; }
 	;
 

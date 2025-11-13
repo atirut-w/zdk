@@ -21,6 +21,9 @@ void handle_linemarker(void);
 /* Error reporting state (C90-compatible) */
 int line = 1;
 int column = 0;
+/* Starting location of the current token (captured before advancing) */
+int token_line = 1;
+int token_column = 1;
 char current_line[1024];
 int current_line_len = 0;
 const char *yyfilename = 0; /* Set by the driver (main) */
@@ -212,6 +215,10 @@ loop:
 void count(void)
 {
 	int i;
+
+	/* Capture the starting position (1-based column) for this token */
+	token_line = line;
+	token_column = column + 1;
 
 	for (i = 0; yytext[i] != '\0'; i++)
 	{
