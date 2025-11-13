@@ -1,0 +1,256 @@
+D			[0-9]
+L			[a-zA-Z_]
+H			[a-fA-F0-9]
+E			[Ee][+-]?{D}+
+FS			(f|F|l|L)
+IS			(u|U|l|L)*
+
+%{
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "y.tab.h"
+
+/* ANSI C90 prototypes */
+void count(void);
+int yywrap(void);
+void comment(void);
+int check_type(void);
+
+/* Error reporting state (C90-compatible) */
+int line = 1;
+int column = 0;
+char current_line[1024];
+int current_line_len = 0;
+const char *yyfilename = 0; /* Set by the driver (main) */
+
+/* expose yylval for setting semantic values */
+extern YYSTYPE yylval;
+
+/* C90-safe strdup */
+static char *xstrdup(const char *s) {
+	size_t n;
+	char *d;
+	if (!s) return 0;
+	n = strlen(s);
+	d = (char*)malloc(n + 1);
+	if (!d) return 0;
+	memcpy(d, s, n + 1);
+	return d;
+}
+
+%}
+
+%%
+
+"/*"			{ comment(); }
+
+"auto"			{ count(); return(AUTO); }
+"break"			{ count(); return(BREAK); }
+"case"			{ count(); return(CASE); }
+"char"			{ count(); return(CHAR); }
+"const"			{ count(); return(CONST); }
+"continue"		{ count(); return(CONTINUE); }
+"default"		{ count(); return(DEFAULT); }
+"do"			{ count(); return(DO); }
+"double"		{ count(); return(DOUBLE); }
+"else"			{ count(); return(ELSE); }
+"enum"			{ count(); return(ENUM); }
+"extern"		{ count(); return(EXTERN); }
+"float"			{ count(); return(FLOAT); }
+"for"			{ count(); return(FOR); }
+"goto"			{ count(); return(GOTO); }
+"if"			{ count(); return(IF); }
+"int"			{ count(); return(INT); }
+"long"			{ count(); return(LONG); }
+"register"		{ count(); return(REGISTER); }
+"return"		{ count(); return(RETURN); }
+"short"			{ count(); return(SHORT); }
+"signed"			{ count(); return(SIGNED); }
+"sizeof"		{ count(); return(SIZEOF); }
+"static"		{ count(); return(STATIC); }
+"struct"		{ count(); return(STRUCT); }
+"switch"		{ count(); return(SWITCH); }
+"typedef"		{ count(); return(TYPEDEF); }
+"union"			{ count(); return(UNION); }
+"unsigned"		{ count(); return(UNSIGNED); }
+"void"			{ count(); return(VOID); }
+"volatile"		{ count(); return(VOLATILE); }
+"while"			{ count(); return(WHILE); }
+
+{L}({L}|{D})*		{ count(); yylval.str = xstrdup(yytext); return(check_type()); }
+
+0[xX]{H}+{IS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+0{D}+{IS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+{D}+{IS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+L?'(\\.|[^\\'])+'	{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+
+{D}+{E}{FS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+
+L?\"(\\.|[^\\"])*\"	{ count(); yylval.str = xstrdup(yytext); return(STRING_LITERAL); }
+
+"..."			{ count(); return(ELLIPSIS); }
+">>="			{ count(); return(RIGHT_ASSIGN); }
+"<<="			{ count(); return(LEFT_ASSIGN); }
+"+="			{ count(); return(ADD_ASSIGN); }
+"-="			{ count(); return(SUB_ASSIGN); }
+"*="			{ count(); return(MUL_ASSIGN); }
+"/="			{ count(); return(DIV_ASSIGN); }
+"%="			{ count(); return(MOD_ASSIGN); }
+"&="			{ count(); return(AND_ASSIGN); }
+"^="			{ count(); return(XOR_ASSIGN); }
+"|="			{ count(); return(OR_ASSIGN); }
+">>"			{ count(); return(RIGHT_OP); }
+"<<"			{ count(); return(LEFT_OP); }
+"++"			{ count(); return(INC_OP); }
+"--"			{ count(); return(DEC_OP); }
+"->"			{ count(); return(PTR_OP); }
+"&&"			{ count(); return(AND_OP); }
+"||"			{ count(); return(OR_OP); }
+"<="			{ count(); return(LE_OP); }
+">="			{ count(); return(GE_OP); }
+"=="			{ count(); return(EQ_OP); }
+"!="			{ count(); return(NE_OP); }
+";"			{ count(); return(';'); }
+("{"|"<%")		{ count(); return('{'); }
+("}"|"%>")		{ count(); return('}'); }
+"," 			{ count(); return(','); }
+":"			{ count(); return(':'); }
+"="			{ count(); return('='); }
+"("			{ count(); return('('); }
+")"			{ count(); return(')'); }
+("["|"<:")		{ count(); return('['); }
+("]"|":>")		{ count(); return(']'); }
+"."			{ count(); return('.'); }
+"&"			{ count(); return('&'); }
+"!"			{ count(); return('!'); }
+"~"			{ count(); return('~'); }
+"-"			{ count(); return('-'); }
+"+"			{ count(); return('+'); }
+"*"			{ count(); return('*'); }
+"/"			{ count(); return('/'); }
+"%"			{ count(); return('%'); }
+"<"			{ count(); return('<'); }
+">"			{ count(); return('>'); }
+"^"			{ count(); return('^'); }
+"|"			{ count(); return('|'); }
+"?"			{ count(); return('?'); }
+
+[ \t\v\n\f]		{ count(); }
+.			{ /* ignore bad characters */ }
+
+%%
+
+int yywrap(void)
+{
+	return 1;
+}
+
+
+void comment(void)
+{
+	char c, c1;
+
+loop:
+	while ((c = input()) != '*' && c != 0)
+	{
+		if (c == '\n')
+		{
+			current_line_len = 0;
+			current_line[0] = '\0';
+			line++;
+			column = 0;
+		}
+		else if (c == '\t')
+		{
+			int add = 8 - (column % 8);
+			column += add;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = '\t';
+				current_line[current_line_len] = '\0';
+			}
+		}
+		else
+		{
+			column++;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = c;
+				current_line[current_line_len] = '\0';
+			}
+		}
+	}
+
+	if ((c1 = input()) != '/' && c != 0)
+	{
+		unput(c1);
+		goto loop;
+	}
+	if (c != 0)
+	{
+		/* account for the '/' closing the comment */
+		column++;
+		if (current_line_len < (int)sizeof(current_line) - 1)
+		{
+			current_line[current_line_len++] = '/';
+			current_line[current_line_len] = '\0';
+		}
+	}
+}
+
+void count(void)
+{
+	int i;
+
+	for (i = 0; yytext[i] != '\0'; i++)
+	{
+		char ch = yytext[i];
+		if (ch == '\n')
+		{
+			current_line_len = 0;
+			current_line[0] = '\0';
+			line++;
+			column = 0;
+		}
+		else if (ch == '\t')
+		{
+			int add = 8 - (column % 8);
+			column += add;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = '\t';
+				current_line[current_line_len] = '\0';
+			}
+		}
+		else
+		{
+			column++;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = ch;
+				current_line[current_line_len] = '\0';
+			}
+		}
+	}
+}
+
+int check_type(void)
+{
+/*
+* pseudo code --- this is what it should check
+*
+*    if (yytext == type_name)
+*        return(TYPE_NAME);
+*
+*    return(IDENTIFIER);
+*/
+
+/*
+*    it actually will only return IDENTIFIER
+*/
+
+	return(IDENTIFIER);
+}

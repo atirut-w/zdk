@@ -1,6 +1,4 @@
 #include "ast.h"
-#include "lexer.h"
-#include "parser.h"
 #include "sema.h"
 #include "symbols.h"
 #include "target.h"
@@ -9,6 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+/* Prototypes from the generated parser/lexer (Flex/Bison classic interface) */
+extern int yyparse(void);
+extern FILE *yyin;
+extern const char *yyfilename;
 
 /* strdup is not part of C90 standard */
 static char *my_strdup(const char *s) {
@@ -173,6 +176,7 @@ int main(int argc, char **argv) {
   struct Target *target;
   struct Codegen codegen;
   int success = 0;
+  int parse_result = 0;
 
   if (!parse_args(argc, argv, &args)) {
     return 1;
@@ -231,6 +235,92 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  /* Temporary: invoke the parser directly on the preprocessed input. */
+  yyin = input_file;
+  /* Provide original source filename for error messages */
+  yyfilename = args.input_file;
+  parse_result = yyparse();
+  if (parse_result != 0) {
+    fclose(input_file);
+    if (temp_file) {
+      unlink(temp_file);
+      free(temp_file);
+    }
+    free(asm_filename);
+    if (obj_filename) free(obj_filename);
+    return 1;
+  }
+
+  {
+    /* Retrieve AST from parser */
+    struct ASTNode *tree;
+    struct Sema sema;
+    extern struct ASTNode *parser_get_tree(void);
+    tree = parser_get_tree();
+
+    if (!tree) {
+      fprintf(stderr, "Parse produced no AST\n");
+      fclose(input_file);
+      if (temp_file) {
+        unlink(temp_file);
+        free(temp_file);
+      }
+      free(asm_filename);
+      if (obj_filename) free(obj_filename);
+      return 1;
+    }
+
+    sema_init(&sema);
+    if (!sema_analyze(&sema, tree)) {
+      fprintf(stderr, "Semantic analysis failed with %d error(s)\n", sema.error_count);
+      sema_destroy(&sema);
+      ast_free(tree);
+      fclose(input_file);
+      if (temp_file) {
+        unlink(temp_file);
+        free(temp_file);
+      }
+      free(asm_filename);
+      if (obj_filename) free(obj_filename);
+      return 1;
+    }
+    sema_destroy(&sema);
+
+    asm_file = fopen(asm_filename, "w");
+    if (!asm_file) {
+      fprintf(stderr, "Failed to open output file '%s': %s\n", 
+              asm_filename, strerror(errno));
+      ast_free(tree);
+      fclose(input_file);
+      if (temp_file) {
+        unlink(temp_file);
+        free(temp_file);
+      }
+      free(asm_filename);
+      if (obj_filename) free(obj_filename);
+      return 1;
+    }
+
+    memset(&codegen, 0, sizeof(struct Codegen));
+    codegen.output = asm_file;
+    codegen_init_defaults(&codegen);
+    if (target->init_codegen) {
+      target->init_codegen(&codegen);
+    }
+    if (target->init) {
+      target->init(&codegen);
+    }
+    codegen_generate(&codegen, tree);
+    if (target->finalize) {
+      target->finalize(&codegen);
+    }
+    fclose(asm_file);
+
+    ast_free(tree);
+    success = 1;
+  }
+
+  /* TODO: Reimplement
   {
     struct Symbols syms;
     struct Lexer lx;
@@ -244,9 +334,6 @@ int main(int argc, char **argv) {
 
     tree = parse_translation_unit(&ps);
     if (tree) {
-      /* ast_print(tree, 0); */
-      
-      /* Perform semantic analysis */
       sema_init(&sema);
       if (!sema_analyze(&sema, tree)) {
         fprintf(stderr, "Semantic analysis failed with %d error(s)\n", sema.error_count);
@@ -266,7 +353,6 @@ int main(int argc, char **argv) {
       }
       sema_destroy(&sema);
       
-      /* Open assembly output file */
       asm_file = fopen(asm_filename, "w");
       if (!asm_file) {
         fprintf(stderr, "Failed to open output file '%s': %s\n", 
@@ -285,27 +371,21 @@ int main(int argc, char **argv) {
         return 1;
       }
       
-      /* Initialize codegen context */
       memset(&codegen, 0, sizeof(struct Codegen));
       codegen.output = asm_file;
       
-      /* Initialize with default codegen functions (binutils) */
       codegen_init_defaults(&codegen);
       
-      /* Let target override/customize codegen functions */
       if (target->init_codegen) {
         target->init_codegen(&codegen);
       }
       
-      /* Initialize target-specific data */
       if (target->init) {
         target->init(&codegen);
       }
       
-      /* Generate code by walking the AST */
       codegen_generate(&codegen, tree);
       
-      /* Finalize target */
       if (target->finalize) {
         target->finalize(&codegen);
       }
@@ -320,6 +400,7 @@ int main(int argc, char **argv) {
     lexer_destroy(&lx);
     symbols_free(&syms);
   }
+  */
 
   fclose(input_file);
   if (temp_file) {

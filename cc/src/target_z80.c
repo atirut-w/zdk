@@ -1,5 +1,4 @@
 #include "target.h"
-#include "token.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -166,9 +165,9 @@ static void z80_gen_expression_into(struct Codegen *cg, struct ASTNode *expr, in
   if (expr->u.expr.kind == EXPR_CONST) {
     /* Constants can load directly without spilling */
     if (dest == REG_HL) {
-      fprintf(cg->output, "\tld hl, %s\n", expr->u.expr.const_tok.lexeme);
+      fprintf(cg->output, "\tld hl, %s\n", expr->u.expr.const_lexeme);
     } else {
-      fprintf(cg->output, "\tld de, %s\n", expr->u.expr.const_tok.lexeme);
+      fprintf(cg->output, "\tld de, %s\n", expr->u.expr.const_lexeme);
     }
     return;
   }
@@ -298,13 +297,13 @@ static void z80_gen_expression_into(struct Codegen *cg, struct ASTNode *expr, in
       fprintf(cg->output, "\tcall __modhi3\n");
       fprintf(cg->output, "\tpop bc\n");
       fprintf(cg->output, "\tpop bc\n");
-    } else if (op == T_LEFT_OP) {
+    } else if (op == OP_SHL) {
       fprintf(cg->output, "\tpush de\n");
       fprintf(cg->output, "\tpush hl\n");
       fprintf(cg->output, "\tcall __ashlhi3\n");
       fprintf(cg->output, "\tpop bc\n");
       fprintf(cg->output, "\tpop bc\n");
-    } else if (op == T_RIGHT_OP) {
+    } else if (op == OP_SHR) {
       fprintf(cg->output, "\tpush de\n");
       fprintf(cg->output, "\tpush hl\n");
       fprintf(cg->output, "\tcall __ashrhi3\n");
