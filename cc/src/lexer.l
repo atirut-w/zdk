@@ -16,6 +16,7 @@ void count(void);
 int yywrap(void);
 void comment(void);
 int check_type(void);
+void handle_linemarker(void);
 
 /* Error reporting state (C90-compatible) */
 int line = 1;
@@ -24,8 +25,13 @@ char current_line[1024];
 int current_line_len = 0;
 const char *yyfilename = 0; /* Set by the driver (main) */
 
+/* Track and own current filename set by linemarkers */
+static char *owned_filename = 0;
+
 /* expose yylval for setting semantic values */
 extern YYSTYPE yylval;
+extern int yyleng;
+extern char *yytext;
 
 /* C90-safe strdup */
 static char *xstrdup(const char *s) {
@@ -42,6 +48,8 @@ static char *xstrdup(const char *s) {
 %}
 
 %%
+
+^[ \t]*#[ \t]*{D}+[^\n]*\n?    { handle_linemarker(); }
 
 "/*"			{ comment(); }
 
@@ -253,4 +261,120 @@ int check_type(void)
 */
 
 	return(IDENTIFIER);
+}
+
+/*
+ * Handle GCC-style "linemarker" lines that look like:
+ *   # linenum "filename" flags
+ * Flags (1=new file, 2=returning to file, 3=system header, 4=extern "C").
+ * We treat 3/4 as no-ops. We update 'line' and current filename.
+ */
+void handle_linemarker(void)
+{
+	const char *p = yytext;
+	const char *end = yytext + yyleng;
+	long n = 0;
+	int has_filename = 0;
+	char *new_filename = 0;
+
+	/* Match leading spaces and '#'. */
+	while (p < end && (*p == ' ' || *p == '\t')) p++;
+	if (p < end && *p == '#') p++; else goto done;
+	while (p < end && (*p == ' ' || *p == '\t')) p++;
+
+	/* Parse line number */
+	if (p < end && *p >= '0' && *p <= '9') {
+		char *q;
+		n = strtol((char*)p, &q, 10);
+		if ((const char*)q == p) goto done; /* no digits parsed */
+		p = q;
+	} else {
+		goto done;
+	}
+
+	/* Optional whitespace */
+	while (p < end && (*p == ' ' || *p == '\t')) p++;
+
+	/* Optional filename in quotes */
+	if (p < end && *p == '"') {
+		const char *start;
+		const char *q;
+		start = ++p; /* after opening quote */
+		q = p;
+		while (q < end) {
+			if (*q == '\\') {
+				/* skip escaped char */
+				q++;
+				if (q < end) q++;
+				else break;
+			} else if (*q == '"') {
+				break;
+			} else if (*q == '\n' || *q == '\r') {
+				/* malformed; bail */
+				break;
+			} else {
+				q++;
+			}
+		}
+		if (q < end && *q == '"') {
+			size_t len = (size_t)(q - start);
+			char *buf = (char*)malloc(len + 1);
+			size_t i = 0;
+			if (buf) {
+				/* copy, handling simple backslash escapes */
+				const char *s = start;
+				while (s < q) {
+					if (*s == '\\' && (s + 1) < q) {
+						s++;
+					}
+					buf[i++] = *s++;
+				}
+				buf[i] = '\0';
+				new_filename = buf;
+				has_filename = 1;
+			}
+			p = q + 1; /* after closing quote */
+		}
+	}
+
+	/* Skip whitespace */
+	while (p < end && (*p == ' ' || *p == '\t')) p++;
+
+	/* Parse optional flags (1,2,3,4...) separated by spaces). We only care about 1,2. */
+	{
+		int flag_new = 0;
+		int flag_return = 0;
+		while (p < end && *p >= '0' && *p <= '9') {
+			char *q;
+			long flag = strtol((char*)p, &q, 10);
+			if ((const char*)q == p) break;
+			if (flag == 1) flag_new = 1;
+			else if (flag == 2) flag_return = 1;
+			/* flags 3 and 4 are ignored */
+			p = q;
+			while (p < end && (*p == ' ' || *p == '\t')) p++;
+		}
+
+		/* Update filename: if a filename was provided, use it. */
+		if (has_filename) {
+			if (owned_filename) {
+				free(owned_filename);
+				owned_filename = 0;
+			}
+			owned_filename = new_filename; /* take ownership */
+			new_filename = 0;
+			yyfilename = owned_filename;
+		}
+
+		/* Update line number to apply to the following line of code. */
+		if (n > 0 && n < 2147483647L) {
+			line = (int)n;
+		}
+		column = 0;
+		current_line_len = 0;
+		current_line[0] = '\0';
+	}
+
+done:
+	if (new_filename) free(new_filename);
 }

@@ -121,7 +121,7 @@ static FILE *preprocess_file(const char *input_file, char **temp_file) {
   }
   strcpy(*temp_file, temp_template);
 
-  sprintf(cmd, "cpp -P '%s' -o '%s'", input_file, temp_template);
+  sprintf(cmd, "cpp '%s' -o '%s'", input_file, temp_template);
   ret = system(cmd);
   if (ret != 0) {
     fprintf(stderr, "Preprocessing failed with exit code %d\n", ret);
