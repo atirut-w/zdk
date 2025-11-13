@@ -8,6 +8,10 @@
 #include <string.h>
 #include <unistd.h>
 
+/* Prototypes from the generated parser/lexer (Flex/Bison classic interface) */
+extern int yyparse(void);
+extern FILE *yyin;
+
 /* strdup is not part of C90 standard */
 static char *my_strdup(const char *s) {
   char *result;
@@ -171,6 +175,7 @@ int main(int argc, char **argv) {
   struct Target *target;
   struct Codegen codegen;
   int success = 0;
+  int parse_result = 0;
 
   if (!parse_args(argc, argv, &args)) {
     return 1;
@@ -228,6 +233,31 @@ int main(int argc, char **argv) {
     if (obj_filename) free(obj_filename);
     return 1;
   }
+
+  /* Temporary: invoke the parser directly on the preprocessed input. */
+  yyin = input_file;
+  parse_result = yyparse();
+  if (parse_result != 0) {
+    fprintf(stderr, "Parse failed with code %d\n", parse_result);
+    fclose(input_file);
+    if (temp_file) {
+      unlink(temp_file);
+      free(temp_file);
+    }
+    free(asm_filename);
+    if (obj_filename) free(obj_filename);
+    return 1;
+  }
+
+  /* Parsing succeeded. Code generation is not yet wired; exit cleanly. */
+  fclose(input_file);
+  if (temp_file) {
+    unlink(temp_file);
+    free(temp_file);
+  }
+  free(asm_filename);
+  if (obj_filename) free(obj_filename);
+  return 0;
 
   /* TODO: Reimplement
   {
