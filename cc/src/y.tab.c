@@ -66,6 +66,22 @@
 
 
 
+/* First part of user prologue.  */
+#line 1 "/home/atirut/Projects/zdk/cc/src/parser.y"
+
+#include "ast.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+/* externs from lexer for location */
+extern int line;
+extern int column;
+
+/* Build result */
+static struct ASTNode *parse_tree = 0;
+
+
+#line 85 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -633,28 +649,28 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    22,    22,    23,    24,    25,    29,    30,    31,    32,
-      33,    34,    35,    36,    40,    41,    45,    46,    47,    48,
-      49,    50,    54,    55,    56,    57,    58,    59,    63,    64,
-      68,    69,    70,    71,    75,    76,    77,    81,    82,    83,
-      87,    88,    89,    90,    91,    95,    96,    97,   101,   102,
-     106,   107,   111,   112,   116,   117,   121,   122,   126,   127,
-     131,   132,   136,   137,   138,   139,   140,   141,   142,   143,
-     144,   145,   146,   150,   151,   155,   159,   160,   164,   165,
-     166,   167,   168,   169,   173,   174,   178,   179,   183,   184,
-     185,   186,   187,   191,   192,   193,   194,   195,   196,   197,
-     198,   199,   200,   201,   202,   206,   207,   208,   212,   213,
-     217,   218,   222,   226,   227,   228,   229,   233,   234,   238,
-     239,   240,   244,   245,   246,   250,   251,   255,   256,   260,
-     261,   265,   266,   270,   271,   272,   273,   274,   275,   276,
-     280,   281,   282,   283,   287,   288,   293,   294,   298,   299,
-     303,   304,   305,   309,   310,   314,   315,   319,   320,   321,
-     325,   326,   327,   328,   329,   330,   331,   332,   333,   337,
-     338,   339,   343,   344,   348,   349,   350,   351,   352,   353,
-     357,   358,   359,   363,   364,   365,   366,   370,   371,   375,
-     376,   380,   381,   385,   386,   387,   391,   392,   393,   394,
-     398,   399,   400,   401,   402,   406,   407,   411,   412,   416,
-     417,   418,   419
+       0,    48,    48,    49,    50,    51,    55,    56,    57,    58,
+      59,    60,    61,    62,    66,    67,    71,    72,    73,    74,
+      75,    76,    80,    81,    82,    83,    84,    85,    89,    90,
+      94,    95,    96,    97,   101,   102,   103,   107,   108,   109,
+     113,   114,   115,   116,   117,   121,   122,   123,   127,   128,
+     132,   133,   137,   138,   142,   143,   147,   148,   152,   153,
+     157,   158,   162,   163,   164,   165,   166,   167,   168,   169,
+     170,   171,   172,   176,   177,   181,   185,   186,   190,   191,
+     192,   193,   194,   195,   199,   200,   204,   205,   209,   210,
+     211,   212,   213,   217,   218,   219,   220,   221,   222,   223,
+     224,   225,   226,   227,   228,   232,   233,   234,   238,   239,
+     243,   244,   248,   252,   253,   254,   255,   259,   260,   264,
+     265,   266,   270,   271,   272,   276,   277,   281,   282,   286,
+     287,   291,   292,   296,   297,   298,   299,   300,   301,   302,
+     306,   307,   308,   309,   313,   314,   319,   320,   324,   325,
+     329,   330,   331,   335,   336,   340,   341,   345,   346,   347,
+     351,   352,   353,   354,   355,   356,   357,   358,   359,   363,
+     364,   365,   369,   370,   374,   375,   376,   377,   378,   379,
+     383,   384,   385,   389,   390,   391,   392,   396,   397,   401,
+     402,   406,   407,   411,   412,   413,   417,   418,   419,   420,
+     424,   425,   426,   427,   428,   432,   433,   437,   438,   442,
+     443,   444,   445
 };
 #endif
 
@@ -1646,8 +1662,1154 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
+  case 2: /* primary_expression: IDENTIFIER  */
+#line 48 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                  { (yyval.node) = ast_new_expr_ident((yyvsp[0].str), line, column); free((yyvsp[0].str)); }
+#line 1669 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
 
-#line 1651 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+  case 3: /* primary_expression: CONSTANT  */
+#line 49 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                  { (yyval.node) = ast_new_expr_const((yyvsp[0].str), AST_C_INT, line, column); free((yyvsp[0].str)); }
+#line 1675 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 4: /* primary_expression: STRING_LITERAL  */
+#line 50 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                  { (yyval.node) = ast_new_expr_string((yyvsp[0].str), line, column); free((yyvsp[0].str)); }
+#line 1681 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 5: /* primary_expression: '(' expression ')'  */
+#line 51 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                  { (yyval.node) = (yyvsp[-1].node); }
+#line 1687 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 6: /* postfix_expression: primary_expression  */
+#line 55 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = (yyvsp[0].node); }
+#line 1693 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 7: /* postfix_expression: postfix_expression '[' expression ']'  */
+#line 56 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_index((yyvsp[-3].node), (yyvsp[-1].node), line, column); }
+#line 1699 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 8: /* postfix_expression: postfix_expression '(' ')'  */
+#line 57 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_call((yyvsp[-2].node), 0, line, column); }
+#line 1705 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 9: /* postfix_expression: postfix_expression '(' argument_expression_list ')'  */
+#line 58 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                              { (yyval.node) = ast_new_expr_call((yyvsp[-3].node), (yyvsp[-1].list), line, column); }
+#line 1711 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 10: /* postfix_expression: postfix_expression '.' IDENTIFIER  */
+#line 59 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_member((yyvsp[-2].node), (yyvsp[0].str), 0, line, column); free((yyvsp[0].str)); }
+#line 1717 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 11: /* postfix_expression: postfix_expression PTR_OP IDENTIFIER  */
+#line 60 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_member((yyvsp[-2].node), (yyvsp[0].str), 1, line, column); free((yyvsp[0].str)); }
+#line 1723 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 12: /* postfix_expression: postfix_expression INC_OP  */
+#line 61 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary(OP_POST_INC, (yyvsp[-1].node), line, column); }
+#line 1729 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 13: /* postfix_expression: postfix_expression DEC_OP  */
+#line 62 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary(OP_POST_DEC, (yyvsp[-1].node), line, column); }
+#line 1735 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 14: /* argument_expression_list: assignment_expression  */
+#line 66 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.list) = ast_list_append(0, (yyvsp[0].node)); }
+#line 1741 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 15: /* argument_expression_list: argument_expression_list ',' assignment_expression  */
+#line 67 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                             { (yyval.list) = ast_list_append((yyvsp[-2].list), (yyvsp[0].node)); }
+#line 1747 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 16: /* unary_expression: postfix_expression  */
+#line 71 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = (yyvsp[0].node); }
+#line 1753 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 17: /* unary_expression: INC_OP unary_expression  */
+#line 72 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary(OP_INC, (yyvsp[0].node), line, column); }
+#line 1759 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 18: /* unary_expression: DEC_OP unary_expression  */
+#line 73 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary(OP_DEC, (yyvsp[0].node), line, column); }
+#line 1765 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 19: /* unary_expression: unary_operator cast_expression  */
+#line 74 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary((yyvsp[-1].ival), (yyvsp[0].node), line, column); }
+#line 1771 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 20: /* unary_expression: SIZEOF unary_expression  */
+#line 75 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary(OP_SIZEOF, (yyvsp[0].node), line, column); }
+#line 1777 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 21: /* unary_expression: SIZEOF '(' type_name ')'  */
+#line 76 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_expr_unary(OP_SIZEOF, 0, line, column); }
+#line 1783 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 22: /* unary_operator: '&'  */
+#line 80 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                 { (yyval.ival) = '&'; }
+#line 1789 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 23: /* unary_operator: '*'  */
+#line 81 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                 { (yyval.ival) = '*'; }
+#line 1795 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 24: /* unary_operator: '+'  */
+#line 82 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                 { (yyval.ival) = '+'; }
+#line 1801 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 25: /* unary_operator: '-'  */
+#line 83 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                 { (yyval.ival) = '-'; }
+#line 1807 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 26: /* unary_operator: '~'  */
+#line 84 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                 { (yyval.ival) = '~'; }
+#line 1813 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 27: /* unary_operator: '!'  */
+#line 85 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                 { (yyval.ival) = '!'; }
+#line 1819 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 28: /* cast_expression: unary_expression  */
+#line 89 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1825 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 29: /* cast_expression: '(' type_name ')' cast_expression  */
+#line 90 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_cast((yyvsp[-2].ival), 0, (yyvsp[0].node), line, column); }
+#line 1831 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 30: /* multiplicative_expression: cast_expression  */
+#line 94 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1837 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 31: /* multiplicative_expression: multiplicative_expression '*' cast_expression  */
+#line 95 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('*', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1843 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 32: /* multiplicative_expression: multiplicative_expression '/' cast_expression  */
+#line 96 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('/', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1849 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 33: /* multiplicative_expression: multiplicative_expression '%' cast_expression  */
+#line 97 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('%', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1855 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 34: /* additive_expression: multiplicative_expression  */
+#line 101 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1861 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 35: /* additive_expression: additive_expression '+' multiplicative_expression  */
+#line 102 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                            { (yyval.node) = ast_new_expr_binary('+', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1867 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 36: /* additive_expression: additive_expression '-' multiplicative_expression  */
+#line 103 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                            { (yyval.node) = ast_new_expr_binary('-', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1873 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 37: /* shift_expression: additive_expression  */
+#line 107 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1879 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 38: /* shift_expression: shift_expression LEFT_OP additive_expression  */
+#line 108 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary(OP_SHL, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1885 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 39: /* shift_expression: shift_expression RIGHT_OP additive_expression  */
+#line 109 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary(OP_SHR, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1891 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 40: /* relational_expression: shift_expression  */
+#line 113 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1897 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 41: /* relational_expression: relational_expression '<' shift_expression  */
+#line 114 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('<', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1903 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 42: /* relational_expression: relational_expression '>' shift_expression  */
+#line 115 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('>', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1909 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 43: /* relational_expression: relational_expression LE_OP shift_expression  */
+#line 116 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary(OP_LE, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1915 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 44: /* relational_expression: relational_expression GE_OP shift_expression  */
+#line 117 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary(OP_GE, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1921 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 45: /* equality_expression: relational_expression  */
+#line 121 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1927 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 46: /* equality_expression: equality_expression EQ_OP relational_expression  */
+#line 122 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary(OP_EQ, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1933 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 47: /* equality_expression: equality_expression NE_OP relational_expression  */
+#line 123 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary(OP_NE, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1939 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 48: /* and_expression: equality_expression  */
+#line 127 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1945 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 49: /* and_expression: and_expression '&' equality_expression  */
+#line 128 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('&', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1951 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 50: /* exclusive_or_expression: and_expression  */
+#line 132 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1957 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 51: /* exclusive_or_expression: exclusive_or_expression '^' and_expression  */
+#line 133 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_expr_binary('^', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1963 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 52: /* inclusive_or_expression: exclusive_or_expression  */
+#line 137 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1969 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 53: /* inclusive_or_expression: inclusive_or_expression '|' exclusive_or_expression  */
+#line 138 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                              { (yyval.node) = ast_new_expr_binary('|', (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1975 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 54: /* logical_and_expression: inclusive_or_expression  */
+#line 142 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1981 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 55: /* logical_and_expression: logical_and_expression AND_OP inclusive_or_expression  */
+#line 143 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                { (yyval.node) = ast_new_expr_binary(OP_LAND, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1987 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 56: /* logical_or_expression: logical_and_expression  */
+#line 147 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 1993 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 57: /* logical_or_expression: logical_or_expression OR_OP logical_and_expression  */
+#line 148 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                             { (yyval.node) = ast_new_expr_binary(OP_LOR, (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 1999 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 58: /* conditional_expression: logical_or_expression  */
+#line 152 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 2005 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 59: /* conditional_expression: logical_or_expression '?' expression ':' conditional_expression  */
+#line 153 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                          { (yyval.node) = ast_new_expr_cond((yyvsp[-4].node), (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2011 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 60: /* assignment_expression: conditional_expression  */
+#line 157 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 2017 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 61: /* assignment_expression: unary_expression assignment_operator assignment_expression  */
+#line 158 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                     { (yyval.node) = ast_new_expr_binary((yyvsp[-1].ival), (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2023 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 62: /* assignment_operator: '='  */
+#line 162 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = '='; }
+#line 2029 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 63: /* assignment_operator: MUL_ASSIGN  */
+#line 163 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_MUL_ASSIGN; }
+#line 2035 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 64: /* assignment_operator: DIV_ASSIGN  */
+#line 164 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_DIV_ASSIGN; }
+#line 2041 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 65: /* assignment_operator: MOD_ASSIGN  */
+#line 165 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_MOD_ASSIGN; }
+#line 2047 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 66: /* assignment_operator: ADD_ASSIGN  */
+#line 166 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_ADD_ASSIGN; }
+#line 2053 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 67: /* assignment_operator: SUB_ASSIGN  */
+#line 167 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_SUB_ASSIGN; }
+#line 2059 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 68: /* assignment_operator: LEFT_ASSIGN  */
+#line 168 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_SHL_ASSIGN; }
+#line 2065 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 69: /* assignment_operator: RIGHT_ASSIGN  */
+#line 169 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_SHR_ASSIGN; }
+#line 2071 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 70: /* assignment_operator: AND_ASSIGN  */
+#line 170 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_AND_ASSIGN; }
+#line 2077 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 71: /* assignment_operator: XOR_ASSIGN  */
+#line 171 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_XOR_ASSIGN; }
+#line 2083 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 72: /* assignment_operator: OR_ASSIGN  */
+#line 172 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                       { (yyval.ival) = OP_OR_ASSIGN; }
+#line 2089 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 73: /* expression: assignment_expression  */
+#line 176 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 2095 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 74: /* expression: expression ',' assignment_expression  */
+#line 177 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = (yyvsp[0].node); }
+#line 2101 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 75: /* constant_expression: conditional_expression  */
+#line 181 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 2107 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 76: /* declaration: declaration_specifiers ';'  */
+#line 185 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_decl((yyvsp[-1].ival), 0, 0, line, column); }
+#line 2113 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 77: /* declaration: declaration_specifiers init_declarator_list ';'  */
+#line 186 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[-1].node); if ((yyval.node)) { (yyval.node)->u.decl.spec_flags |= (yyvsp[-2].ival); } }
+#line 2119 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 78: /* declaration_specifiers: storage_class_specifier  */
+#line 190 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = (yyvsp[0].ival); }
+#line 2125 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 79: /* declaration_specifiers: storage_class_specifier declaration_specifiers  */
+#line 191 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = (yyvsp[-1].ival) | (yyvsp[0].ival); }
+#line 2131 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 80: /* declaration_specifiers: type_specifier  */
+#line 192 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = (yyvsp[0].ival); }
+#line 2137 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 81: /* declaration_specifiers: type_specifier declaration_specifiers  */
+#line 193 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = (yyvsp[-1].ival) | (yyvsp[0].ival); }
+#line 2143 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 82: /* declaration_specifiers: type_qualifier  */
+#line 194 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = (yyvsp[0].ival); }
+#line 2149 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 83: /* declaration_specifiers: type_qualifier declaration_specifiers  */
+#line 195 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = (yyvsp[-1].ival) | (yyvsp[0].ival); }
+#line 2155 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 84: /* init_declarator_list: init_declarator  */
+#line 199 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[0].node); }
+#line 2161 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 85: /* init_declarator_list: init_declarator_list ',' init_declarator  */
+#line 200 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = (yyvsp[-2].node); }
+#line 2167 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 86: /* init_declarator: declarator  */
+#line 204 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_decl(0, (yyvsp[0].decltor), 0, line, column); }
+#line 2173 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 87: /* init_declarator: declarator '=' initializer  */
+#line 205 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.node) = ast_new_decl(0, (yyvsp[-2].decltor), (yyvsp[0].node), line, column); }
+#line 2179 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 88: /* storage_class_specifier: TYPEDEF  */
+#line 209 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_TYPEDEF; }
+#line 2185 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 89: /* storage_class_specifier: EXTERN  */
+#line 210 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_EXTERN; }
+#line 2191 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 90: /* storage_class_specifier: STATIC  */
+#line 211 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_STATIC; }
+#line 2197 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 91: /* storage_class_specifier: AUTO  */
+#line 212 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_AUTO; }
+#line 2203 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 92: /* storage_class_specifier: REGISTER  */
+#line 213 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_REGISTER; }
+#line 2209 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 93: /* type_specifier: VOID  */
+#line 217 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_VOID; }
+#line 2215 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 94: /* type_specifier: CHAR  */
+#line 218 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_CHAR; }
+#line 2221 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 95: /* type_specifier: SHORT  */
+#line 219 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_SHORT; }
+#line 2227 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 96: /* type_specifier: INT  */
+#line 220 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_INT; }
+#line 2233 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 97: /* type_specifier: LONG  */
+#line 221 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_LONG; }
+#line 2239 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 98: /* type_specifier: FLOAT  */
+#line 222 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_FLOAT; }
+#line 2245 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 99: /* type_specifier: DOUBLE  */
+#line 223 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_DOUBLE; }
+#line 2251 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 100: /* type_specifier: SIGNED  */
+#line 224 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_SIGNED; }
+#line 2257 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 101: /* type_specifier: UNSIGNED  */
+#line 225 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_UNSIGNED; }
+#line 2263 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 102: /* type_specifier: struct_or_union_specifier  */
+#line 226 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                    { (yyval.ival) = 0; }
+#line 2269 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 103: /* type_specifier: enum_specifier  */
+#line 227 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                    { (yyval.ival) = 0; }
+#line 2275 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 104: /* type_specifier: TYPE_NAME  */
+#line 228 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                    { (yyval.ival) = 0; }
+#line 2281 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 113: /* specifier_qualifier_list: type_specifier specifier_qualifier_list  */
+#line 252 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[-1].ival) | (yyvsp[0].ival); }
+#line 2287 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 114: /* specifier_qualifier_list: type_specifier  */
+#line 253 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[0].ival); }
+#line 2293 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 115: /* specifier_qualifier_list: type_qualifier specifier_qualifier_list  */
+#line 254 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[-1].ival) | (yyvsp[0].ival); }
+#line 2299 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 116: /* specifier_qualifier_list: type_qualifier  */
+#line 255 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[0].ival); }
+#line 2305 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 129: /* type_qualifier: CONST  */
+#line 286 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_CONST; }
+#line 2311 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 130: /* type_qualifier: VOLATILE  */
+#line 287 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                    { (yyval.ival) = SPF_VOLATILE; }
+#line 2317 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 131: /* declarator: pointer direct_declarator  */
+#line 291 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { ast_set_declarator_pointer((yyvsp[0].decltor), (yyvsp[-1].ival)); (yyval.decltor) = (yyvsp[0].decltor); }
+#line 2323 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 132: /* declarator: direct_declarator  */
+#line 292 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.decltor) = (yyvsp[0].decltor); }
+#line 2329 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 133: /* direct_declarator: IDENTIFIER  */
+#line 296 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.decltor) = ast_new_declarator((yyvsp[0].str)); free((yyvsp[0].str)); }
+#line 2335 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 134: /* direct_declarator: '(' declarator ')'  */
+#line 297 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.decltor) = (yyvsp[-1].decltor); }
+#line 2341 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 135: /* direct_declarator: direct_declarator '[' constant_expression ']'  */
+#line 298 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { ast_set_declarator_array((yyvsp[-3].decltor), (yyvsp[-1].node)); (yyval.decltor) = (yyvsp[-3].decltor); }
+#line 2347 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 136: /* direct_declarator: direct_declarator '[' ']'  */
+#line 299 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { ast_set_declarator_array((yyvsp[-2].decltor), 0); (yyval.decltor) = (yyvsp[-2].decltor); }
+#line 2353 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 137: /* direct_declarator: direct_declarator '(' parameter_type_list ')'  */
+#line 300 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { ast_set_declarator_function((yyvsp[-3].decltor), (yyvsp[-1].list)); (yyval.decltor) = (yyvsp[-3].decltor); }
+#line 2359 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 138: /* direct_declarator: direct_declarator '(' identifier_list ')'  */
+#line 301 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { ast_set_declarator_function((yyvsp[-3].decltor), 0); (yyval.decltor) = (yyvsp[-3].decltor); }
+#line 2365 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 139: /* direct_declarator: direct_declarator '(' ')'  */
+#line 302 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { ast_set_declarator_function((yyvsp[-2].decltor), 0); (yyval.decltor) = (yyvsp[-2].decltor); }
+#line 2371 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 140: /* pointer: '*'  */
+#line 306 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.ival) = 1; }
+#line 2377 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 141: /* pointer: '*' type_qualifier_list  */
+#line 307 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.ival) = 1; }
+#line 2383 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 142: /* pointer: '*' pointer  */
+#line 308 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.ival) = 1 + (yyvsp[0].ival); }
+#line 2389 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 143: /* pointer: '*' type_qualifier_list pointer  */
+#line 309 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.ival) = 1 + (yyvsp[0].ival); }
+#line 2395 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 144: /* type_qualifier_list: type_qualifier  */
+#line 313 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.ival) = (yyvsp[0].ival); }
+#line 2401 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 145: /* type_qualifier_list: type_qualifier_list type_qualifier  */
+#line 314 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.ival) = (yyvsp[-1].ival) | (yyvsp[0].ival); }
+#line 2407 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 146: /* parameter_type_list: parameter_list  */
+#line 319 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.list) = (yyvsp[0].list); }
+#line 2413 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 147: /* parameter_type_list: parameter_list ',' ELLIPSIS  */
+#line 320 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.list) = (yyvsp[-2].list); }
+#line 2419 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 148: /* parameter_list: parameter_declaration  */
+#line 324 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                             { (yyval.list) = ast_list_append(0, (yyvsp[0].node)); }
+#line 2425 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 149: /* parameter_list: parameter_list ',' parameter_declaration  */
+#line 325 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                   { (yyval.list) = ast_list_append((yyvsp[-2].list), (yyvsp[0].node)); }
+#line 2431 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 150: /* parameter_declaration: declaration_specifiers declarator  */
+#line 329 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                        { (yyval.node) = ast_new_decl((yyvsp[-1].ival), (yyvsp[0].decltor), 0, line, column); }
+#line 2437 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 151: /* parameter_declaration: declaration_specifiers abstract_declarator  */
+#line 330 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                        { (yyval.node) = ast_new_decl((yyvsp[-1].ival), 0, 0, line, column); }
+#line 2443 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 152: /* parameter_declaration: declaration_specifiers  */
+#line 331 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                        { (yyval.node) = ast_new_decl((yyvsp[0].ival), 0, 0, line, column); }
+#line 2449 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 153: /* identifier_list: IDENTIFIER  */
+#line 335 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                              { free((yyvsp[0].str)); (yyval.node) = 0; }
+#line 2455 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 154: /* identifier_list: identifier_list ',' IDENTIFIER  */
+#line 336 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                              { free((yyvsp[0].str)); (yyval.node) = 0; }
+#line 2461 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 155: /* type_name: specifier_qualifier_list  */
+#line 340 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[0].ival); }
+#line 2467 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 156: /* type_name: specifier_qualifier_list abstract_declarator  */
+#line 341 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[-1].ival); }
+#line 2473 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 157: /* abstract_declarator: pointer  */
+#line 345 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[0].ival); }
+#line 2479 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 158: /* abstract_declarator: direct_abstract_declarator  */
+#line 346 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = 0; }
+#line 2485 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 159: /* abstract_declarator: pointer direct_abstract_declarator  */
+#line 347 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.ival) = (yyvsp[-1].ival); }
+#line 2491 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 160: /* direct_abstract_declarator: '(' abstract_declarator ')'  */
+#line 351 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2497 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 161: /* direct_abstract_declarator: '[' ']'  */
+#line 352 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2503 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 162: /* direct_abstract_declarator: '[' constant_expression ']'  */
+#line 353 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2509 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 163: /* direct_abstract_declarator: direct_abstract_declarator '[' ']'  */
+#line 354 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2515 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 164: /* direct_abstract_declarator: direct_abstract_declarator '[' constant_expression ']'  */
+#line 355 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                 { (yyval.ival) = 0; }
+#line 2521 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 165: /* direct_abstract_declarator: '(' ')'  */
+#line 356 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2527 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 166: /* direct_abstract_declarator: '(' parameter_type_list ')'  */
+#line 357 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2533 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 167: /* direct_abstract_declarator: direct_abstract_declarator '(' ')'  */
+#line 358 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                          { (yyval.ival) = 0; }
+#line 2539 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 168: /* direct_abstract_declarator: direct_abstract_declarator '(' parameter_type_list ')'  */
+#line 359 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                 { (yyval.ival) = 0; }
+#line 2545 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 169: /* initializer: assignment_expression  */
+#line 363 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2551 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 170: /* initializer: '{' initializer_list '}'  */
+#line 364 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = 0; }
+#line 2557 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 171: /* initializer: '{' initializer_list ',' '}'  */
+#line 365 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = 0; }
+#line 2563 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 172: /* initializer_list: initializer  */
+#line 369 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.list) = 0; }
+#line 2569 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 173: /* initializer_list: initializer_list ',' initializer  */
+#line 370 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.list) = 0; }
+#line 2575 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 174: /* statement: labeled_statement  */
+#line 374 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2581 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 175: /* statement: compound_statement  */
+#line 375 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2587 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 176: /* statement: expression_statement  */
+#line 376 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2593 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 177: /* statement: selection_statement  */
+#line 377 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2599 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 178: /* statement: iteration_statement  */
+#line 378 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2605 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 179: /* statement: jump_statement  */
+#line 379 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2611 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 180: /* labeled_statement: IDENTIFIER ':' statement  */
+#line 383 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_label((yyvsp[-2].str), (yyvsp[0].node), line, column); free((yyvsp[-2].str)); }
+#line 2617 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 181: /* labeled_statement: CASE constant_expression ':' statement  */
+#line 384 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_case((yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2623 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 182: /* labeled_statement: DEFAULT ':' statement  */
+#line 385 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_default((yyvsp[0].node), line, column); }
+#line 2629 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 183: /* compound_statement: '{' '}'  */
+#line 389 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_compound(0, line, column); }
+#line 2635 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 184: /* compound_statement: '{' statement_list '}'  */
+#line 390 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_compound((yyvsp[-1].list), line, column); }
+#line 2641 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 185: /* compound_statement: '{' declaration_list '}'  */
+#line 391 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_compound((yyvsp[-1].list), line, column); }
+#line 2647 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 186: /* compound_statement: '{' declaration_list statement_list '}'  */
+#line 392 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_compound(ast_list_concat((yyvsp[-2].list), (yyvsp[-1].list)), line, column); }
+#line 2653 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 187: /* declaration_list: declaration  */
+#line 396 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.list) = ast_list_append(0, (yyvsp[0].node)); }
+#line 2659 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 188: /* declaration_list: declaration_list declaration  */
+#line 397 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.list) = ast_list_append((yyvsp[-1].list), (yyvsp[0].node)); }
+#line 2665 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 189: /* statement_list: statement  */
+#line 401 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.list) = ast_list_append(0, (yyvsp[0].node)); }
+#line 2671 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 190: /* statement_list: statement_list statement  */
+#line 402 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.list) = ast_list_append((yyvsp[-1].list), (yyvsp[0].node)); }
+#line 2677 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 191: /* expression_statement: ';'  */
+#line 406 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_expr(0, line, column); }
+#line 2683 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 192: /* expression_statement: expression ';'  */
+#line 407 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_expr((yyvsp[-1].node), line, column); }
+#line 2689 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 193: /* selection_statement: IF '(' expression ')' statement  */
+#line 411 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_if((yyvsp[-2].node), (yyvsp[0].node), 0, line, column); }
+#line 2695 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 194: /* selection_statement: IF '(' expression ')' statement ELSE statement  */
+#line 412 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_if((yyvsp[-4].node), (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2701 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 195: /* selection_statement: SWITCH '(' expression ')' statement  */
+#line 413 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_switch((yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2707 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 196: /* iteration_statement: WHILE '(' expression ')' statement  */
+#line 417 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_while((yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2713 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 197: /* iteration_statement: DO statement WHILE '(' expression ')' ';'  */
+#line 418 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_dowhile((yyvsp[-5].node), (yyvsp[-2].node), line, column); }
+#line 2719 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 198: /* iteration_statement: FOR '(' expression_statement expression_statement ')' statement  */
+#line 419 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                          { (yyval.node) = ast_new_stmt_for((yyvsp[-3].node), (yyvsp[-2].node), 0, (yyvsp[0].node), line, column); }
+#line 2725 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 199: /* iteration_statement: FOR '(' expression_statement expression_statement expression ')' statement  */
+#line 420 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                                     { (yyval.node) = ast_new_stmt_for((yyvsp[-4].node), (yyvsp[-3].node), (yyvsp[-2].node), (yyvsp[0].node), line, column); }
+#line 2731 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 200: /* jump_statement: GOTO IDENTIFIER ';'  */
+#line 424 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_goto((yyvsp[-1].str), line, column); free((yyvsp[-1].str)); }
+#line 2737 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 201: /* jump_statement: CONTINUE ';'  */
+#line 425 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_continue(line, column); }
+#line 2743 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 202: /* jump_statement: BREAK ';'  */
+#line 426 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_break(line, column); }
+#line 2749 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 203: /* jump_statement: RETURN ';'  */
+#line 427 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_return(0, line, column); }
+#line 2755 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 204: /* jump_statement: RETURN expression ';'  */
+#line 428 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_return((yyvsp[-1].node), line, column); }
+#line 2761 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 205: /* translation_unit: external_declaration  */
+#line 432 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_stmt_compound(ast_list_append(0, (yyvsp[0].node)), line, column); parse_tree = (yyval.node); }
+#line 2767 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 206: /* translation_unit: translation_unit external_declaration  */
+#line 433 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[-1].node); (yyval.node)->u.stmt.stmts = ast_list_append((yyval.node)->u.stmt.stmts, (yyvsp[0].node)); parse_tree = (yyval.node); }
+#line 2773 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 207: /* external_declaration: function_definition  */
+#line 437 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = (yyvsp[0].node); }
+#line 2779 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 208: /* external_declaration: declaration  */
+#line 438 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                           { (yyval.node) = ast_new_external((yyvsp[0].node), 0, line, column); }
+#line 2785 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 209: /* function_definition: declaration_specifiers declarator declaration_list compound_statement  */
+#line 442 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                                                { (yyval.node) = ast_new_external(ast_new_decl((yyvsp[-3].ival), (yyvsp[-2].decltor), 0, line, column), (yyvsp[0].node), line, column); }
+#line 2791 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 210: /* function_definition: declaration_specifiers declarator compound_statement  */
+#line 443 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                               { (yyval.node) = ast_new_external(ast_new_decl((yyvsp[-2].ival), (yyvsp[-1].decltor), 0, line, column), (yyvsp[0].node), line, column); }
+#line 2797 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 211: /* function_definition: declarator declaration_list compound_statement  */
+#line 444 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                                         { (yyval.node) = ast_new_external(ast_new_decl(0, (yyvsp[-2].decltor), 0, line, column), (yyvsp[0].node), line, column); }
+#line 2803 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+  case 212: /* function_definition: declarator compound_statement  */
+#line 445 "/home/atirut/Projects/zdk/cc/src/parser.y"
+                                        { (yyval.node) = ast_new_external(ast_new_decl(0, (yyvsp[-1].decltor), 0, line, column), (yyvsp[0].node), line, column); }
+#line 2809 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
+    break;
+
+
+#line 2813 "/home/atirut/Projects/zdk/cc/src/y.tab.c"
 
       default: break;
     }
@@ -1840,7 +3002,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 422 "/home/atirut/Projects/zdk/cc/src/parser.y"
+#line 448 "/home/atirut/Projects/zdk/cc/src/parser.y"
 
 #include <stdio.h>
 
@@ -1892,3 +3054,6 @@ int yyerror(char *s)
 	print_caret_line(stderr);
 	return 0;
 }
+
+/* Accessor for the built AST */
+struct ASTNode *parser_get_tree(void) { return parse_tree; }

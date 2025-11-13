@@ -120,11 +120,15 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 1 "/home/atirut/Projects/zdk/cc/src/parser.y"
+#line 15 "/home/atirut/Projects/zdk/cc/src/parser.y"
 
 	char *str;
+	struct ASTNode *node;
+	struct ASTList *list;
+	struct Declarator *decltor;
+	int ival; /* flags, pointer level, etc. */
 
-#line 128 "/home/atirut/Projects/zdk/cc/src/y.tab.h"
+#line 132 "/home/atirut/Projects/zdk/cc/src/y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

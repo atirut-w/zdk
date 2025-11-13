@@ -251,15 +251,74 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  /* Parsing succeeded. Code generation is not yet wired; exit cleanly. */
-  fclose(input_file);
-  if (temp_file) {
-    unlink(temp_file);
-    free(temp_file);
+  {
+    /* Retrieve AST from parser */
+    struct ASTNode *tree;
+    struct Sema sema;
+    extern struct ASTNode *parser_get_tree(void);
+    tree = parser_get_tree();
+
+    if (!tree) {
+      fprintf(stderr, "Parse produced no AST\n");
+      fclose(input_file);
+      if (temp_file) {
+        unlink(temp_file);
+        free(temp_file);
+      }
+      free(asm_filename);
+      if (obj_filename) free(obj_filename);
+      return 1;
+    }
+
+    sema_init(&sema);
+    if (!sema_analyze(&sema, tree)) {
+      fprintf(stderr, "Semantic analysis failed with %d error(s)\n", sema.error_count);
+      sema_destroy(&sema);
+      ast_free(tree);
+      fclose(input_file);
+      if (temp_file) {
+        unlink(temp_file);
+        free(temp_file);
+      }
+      free(asm_filename);
+      if (obj_filename) free(obj_filename);
+      return 1;
+    }
+    sema_destroy(&sema);
+
+    asm_file = fopen(asm_filename, "w");
+    if (!asm_file) {
+      fprintf(stderr, "Failed to open output file '%s': %s\n", 
+              asm_filename, strerror(errno));
+      ast_free(tree);
+      fclose(input_file);
+      if (temp_file) {
+        unlink(temp_file);
+        free(temp_file);
+      }
+      free(asm_filename);
+      if (obj_filename) free(obj_filename);
+      return 1;
+    }
+
+    memset(&codegen, 0, sizeof(struct Codegen));
+    codegen.output = asm_file;
+    codegen_init_defaults(&codegen);
+    if (target->init_codegen) {
+      target->init_codegen(&codegen);
+    }
+    if (target->init) {
+      target->init(&codegen);
+    }
+    codegen_generate(&codegen, tree);
+    if (target->finalize) {
+      target->finalize(&codegen);
+    }
+    fclose(asm_file);
+
+    ast_free(tree);
+    success = 1;
   }
-  free(asm_filename);
-  if (obj_filename) free(obj_filename);
-  return 0;
 
   /* TODO: Reimplement
   {
