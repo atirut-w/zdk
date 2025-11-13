@@ -1,8 +1,13 @@
-%token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
+%union {
+	char *str;
+}
+
+%token <str> IDENTIFIER CONSTANT STRING_LITERAL TYPE_NAME
+%token SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
-%token XOR_ASSIGN OR_ASSIGN TYPE_NAME
+%token XOR_ASSIGN OR_ASSIGN
 
 %token TYPEDEF EXTERN STATIC AUTO REGISTER
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
@@ -418,11 +423,50 @@ function_definition
 #include <stdio.h>
 
 extern char yytext[];
+extern int line;
 extern int column;
+extern const char *yyfilename;
+extern char current_line[];
+extern int current_line_len;
+
+static void print_caret_line(FILE *out)
+{
+	int i, vc;
+	int target;
+	vc = 0;
+	/* Place caret under the offending character (column is 1-based visually) */
+	target = column > 0 ? column - 1 : 0;
+	for (i = 0; i < current_line_len && vc < target; i++)
+	{
+		if (current_line[i] == '\t')
+		{
+			/* keep tabs so caret aligns visually */
+			fputc('\t', out);
+			vc += 8 - (vc % 8);
+		}
+		else
+		{
+			fputc(' ', out);
+			vc++;
+		}
+	}
+	fputc('^', out);
+	fputc('\n', out);
+}
 
 int yyerror(char *s)
 {
-	fflush(stdout);
-	printf("\n%*s\n%*s\n", column, "^", column, s);
+	const char *fname = yyfilename ? yyfilename : "<stdin>";
+	/* error header */
+	fprintf(stderr, "%s:%d:%d: error: %s\n", fname, line, column, s);
+	/* offending line */
+	if (current_line_len > 0)
+	{
+		/* ensure it ends with a newline for readability */
+		fwrite(current_line, 1, (size_t)current_line_len, stderr);
+		fputc('\n', stderr);
+	}
+	/* caret */
+	print_caret_line(stderr);
 	return 0;
 }

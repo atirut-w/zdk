@@ -11,6 +11,7 @@
 /* Prototypes from the generated parser/lexer (Flex/Bison classic interface) */
 extern int yyparse(void);
 extern FILE *yyin;
+extern const char *yyfilename;
 
 /* strdup is not part of C90 standard */
 static char *my_strdup(const char *s) {
@@ -236,9 +237,10 @@ int main(int argc, char **argv) {
 
   /* Temporary: invoke the parser directly on the preprocessed input. */
   yyin = input_file;
+  /* Provide original source filename for error messages */
+  yyfilename = args.input_file;
   parse_result = yyparse();
   if (parse_result != 0) {
-    fprintf(stderr, "Parse failed with code %d\n", parse_result);
     fclose(input_file);
     if (temp_file) {
       unlink(temp_file);

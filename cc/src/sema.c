@@ -802,19 +802,19 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       
     case EXPR_CONST:
       /* Determine type from constant kind */
-      switch (expr->u.expr.const_tok.const_kind) {
-        case C_INT:
+      switch (expr->u.expr.const_kind) {
+        case AST_C_INT:
           return type_new_basic(TYPE_INT);
-        case C_UINT: {
+        case AST_C_UINT: {
           struct Type *ti = type_new_basic(TYPE_INT);
           ti->is_signed = 0;
           return ti;
         }
-        case C_CHAR:
+        case AST_C_CHAR:
           return type_new_basic(TYPE_CHAR);
-        case C_FLOAT:
+        case AST_C_FLOAT:
           return type_new_basic(TYPE_FLOAT);
-        case C_DOUBLE:
+        case AST_C_DOUBLE:
           sema_error(sema, expr->line, expr->column,
                      "double constant is not supported on this target (>32-bit)");
           return type_new_basic(TYPE_DOUBLE);
@@ -876,8 +876,8 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
           type_free(t1);
           return type_new_basic(TYPE_INT);
           
-        case T_INC_OP:
-        case T_DEC_OP:
+        case OP_INC:
+        case OP_DEC:
           /* Increment/decrement - require arithmetic or pointer */
           if (t1 && !type_is_arithmetic(t1) && !type_is_pointer(t1)) {
             sema_error(sema, expr->line, expr->column,
@@ -885,7 +885,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
           }
           return t1;
           
-        case T_SIZEOF:
+        case OP_SIZEOF:
           /* sizeof always returns size_t (we use int for simplicity) */
           type_free(t1);
           return type_new_basic(TYPE_INT);
@@ -934,11 +934,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       }
       
       /* Compound assignment operators */
-      if (expr->u.expr.op == T_ADD_ASSIGN || expr->u.expr.op == T_SUB_ASSIGN ||
-          expr->u.expr.op == T_MUL_ASSIGN || expr->u.expr.op == T_DIV_ASSIGN ||
-          expr->u.expr.op == T_MOD_ASSIGN || expr->u.expr.op == T_AND_ASSIGN ||
-          expr->u.expr.op == T_OR_ASSIGN || expr->u.expr.op == T_XOR_ASSIGN ||
-          expr->u.expr.op == T_LEFT_ASSIGN || expr->u.expr.op == T_RIGHT_ASSIGN) {
+      if (expr->u.expr.op == OP_ADD_ASSIGN || expr->u.expr.op == OP_SUB_ASSIGN ||
+          expr->u.expr.op == OP_MUL_ASSIGN || expr->u.expr.op == OP_DIV_ASSIGN ||
+          expr->u.expr.op == OP_MOD_ASSIGN || expr->u.expr.op == OP_AND_ASSIGN ||
+          expr->u.expr.op == OP_OR_ASSIGN || expr->u.expr.op == OP_XOR_ASSIGN ||
+          expr->u.expr.op == OP_SHL_ASSIGN || expr->u.expr.op == OP_SHR_ASSIGN) {
         /* Similar rules to simple assignment but with arithmetic operation */
         if (!type_is_arithmetic(t1) || !type_is_arithmetic(t2)) {
           sema_error(sema, expr->line, expr->column,
@@ -978,8 +978,8 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       
       /* Comparison operators */
       if (expr->u.expr.op == '<' || expr->u.expr.op == '>' ||
-          expr->u.expr.op == T_LE_OP || expr->u.expr.op == T_GE_OP ||
-          expr->u.expr.op == T_EQ_OP || expr->u.expr.op == T_NE_OP) {
+          expr->u.expr.op == OP_LE || expr->u.expr.op == OP_GE ||
+          expr->u.expr.op == OP_EQ || expr->u.expr.op == OP_NE) {
         /* Can compare arithmetic or pointer types */
         if (!type_is_arithmetic(t1) && !type_is_pointer(t1)) {
           sema_error(sema, expr->line, expr->column,
@@ -992,7 +992,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       
       /* Bitwise operators */
       if (expr->u.expr.op == '&' || expr->u.expr.op == '|' || expr->u.expr.op == '^' ||
-          expr->u.expr.op == T_LEFT_OP || expr->u.expr.op == T_RIGHT_OP) {
+          expr->u.expr.op == OP_SHL || expr->u.expr.op == OP_SHR) {
         if (!type_is_integer(t1) || !type_is_integer(t2)) {
           sema_error(sema, expr->line, expr->column,
                      "bitwise operator requires integer operands");
@@ -1000,7 +1000,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       }
       
       /* Logical operators */
-      if (expr->u.expr.op == T_AND_OP || expr->u.expr.op == T_OR_OP) {
+      if (expr->u.expr.op == OP_LAND || expr->u.expr.op == OP_LOR) {
         /* Accept any scalar type */
         type_free(t1);
         type_free(t2);

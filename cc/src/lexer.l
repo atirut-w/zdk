@@ -7,6 +7,8 @@ IS			(u|U|l|L)*
 
 %{
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "y.tab.h"
 
 /* ANSI C90 prototypes */
@@ -14,9 +16,33 @@ void count(void);
 int yywrap(void);
 void comment(void);
 int check_type(void);
+
+/* Error reporting state (C90-compatible) */
+int line = 1;
+int column = 0;
+char current_line[1024];
+int current_line_len = 0;
+const char *yyfilename = 0; /* Set by the driver (main) */
+
+/* expose yylval for setting semantic values */
+extern YYSTYPE yylval;
+
+/* C90-safe strdup */
+static char *xstrdup(const char *s) {
+	size_t n;
+	char *d;
+	if (!s) return 0;
+	n = strlen(s);
+	d = (char*)malloc(n + 1);
+	if (!d) return 0;
+	memcpy(d, s, n + 1);
+	return d;
+}
+
 %}
 
 %%
+
 "/*"			{ comment(); }
 
 "auto"			{ count(); return(AUTO); }
@@ -40,7 +66,7 @@ int check_type(void);
 "register"		{ count(); return(REGISTER); }
 "return"		{ count(); return(RETURN); }
 "short"			{ count(); return(SHORT); }
-"signed"		{ count(); return(SIGNED); }
+"signed"			{ count(); return(SIGNED); }
 "sizeof"		{ count(); return(SIZEOF); }
 "static"		{ count(); return(STATIC); }
 "struct"		{ count(); return(STRUCT); }
@@ -52,18 +78,18 @@ int check_type(void);
 "volatile"		{ count(); return(VOLATILE); }
 "while"			{ count(); return(WHILE); }
 
-{L}({L}|{D})*		{ count(); return(check_type()); }
+{L}({L}|{D})*		{ count(); yylval.str = xstrdup(yytext); return(check_type()); }
 
-0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
-0{D}+{IS}?		{ count(); return(CONSTANT); }
-{D}+{IS}?		{ count(); return(CONSTANT); }
-L?'(\\.|[^\\'])+'	{ count(); return(CONSTANT); }
+0[xX]{H}+{IS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+0{D}+{IS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+{D}+{IS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+L?'(\\.|[^\\'])+'	{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 
-{D}+{E}{FS}?		{ count(); return(CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	{ count(); return(CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
+{D}+{E}{FS}?		{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 
-L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
+L?\"(\\.|[^\\"])*\"	{ count(); yylval.str = xstrdup(yytext); return(STRING_LITERAL); }
 
 "..."			{ count(); return(ELLIPSIS); }
 ">>="			{ count(); return(RIGHT_ASSIGN); }
@@ -90,7 +116,7 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 ";"			{ count(); return(';'); }
 ("{"|"<%")		{ count(); return('{'); }
 ("}"|"%>")		{ count(); return('}'); }
-","			{ count(); return(','); }
+"," 			{ count(); return(','); }
 ":"			{ count(); return(':'); }
 "="			{ count(); return('='); }
 "("			{ count(); return('('); }
@@ -129,50 +155,101 @@ void comment(void)
 
 loop:
 	while ((c = input()) != '*' && c != 0)
-		putchar(c);
+	{
+		if (c == '\n')
+		{
+			current_line_len = 0;
+			current_line[0] = '\0';
+			line++;
+			column = 0;
+		}
+		else if (c == '\t')
+		{
+			int add = 8 - (column % 8);
+			column += add;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = '\t';
+				current_line[current_line_len] = '\0';
+			}
+		}
+		else
+		{
+			column++;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = c;
+				current_line[current_line_len] = '\0';
+			}
+		}
+	}
 
 	if ((c1 = input()) != '/' && c != 0)
 	{
 		unput(c1);
 		goto loop;
 	}
-
 	if (c != 0)
-		putchar(c1);
+	{
+		/* account for the '/' closing the comment */
+		column++;
+		if (current_line_len < (int)sizeof(current_line) - 1)
+		{
+			current_line[current_line_len++] = '/';
+			current_line[current_line_len] = '\0';
+		}
+	}
 }
-
-
-int column = 0;
 
 void count(void)
 {
 	int i;
 
 	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n')
+	{
+		char ch = yytext[i];
+		if (ch == '\n')
+		{
+			current_line_len = 0;
+			current_line[0] = '\0';
+			line++;
 			column = 0;
-		else if (yytext[i] == '\t')
-			column += 8 - (column % 8);
+		}
+		else if (ch == '\t')
+		{
+			int add = 8 - (column % 8);
+			column += add;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = '\t';
+				current_line[current_line_len] = '\0';
+			}
+		}
 		else
+		{
 			column++;
-
-	ECHO;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = ch;
+				current_line[current_line_len] = '\0';
+			}
+		}
+	}
 }
-
 
 int check_type(void)
 {
 /*
 * pseudo code --- this is what it should check
 *
-*	if (yytext == type_name)
-*		return(TYPE_NAME);
+*    if (yytext == type_name)
+*        return(TYPE_NAME);
 *
-*	return(IDENTIFIER);
+*    return(IDENTIFIER);
 */
 
 /*
-*	it actually will only return IDENTIFIER
+*    it actually will only return IDENTIFIER
 */
 
 	return(IDENTIFIER);

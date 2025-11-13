@@ -71,19 +71,16 @@ struct ASTNode *ast_new_expr_ident(const char *name, int line, int col) {
   return n;
 }
 
-struct ASTNode *ast_new_expr_const(struct Token *tok) {
+struct ASTNode *ast_new_expr_const(const char *lexeme, int const_kind, int line, int col) {
   struct ASTNode *n = ast_alloc();
   if (!n)
     return 0;
   n->kind_tag = 0;
-  n->line = tok->line;
-  n->column = tok->column;
+  n->line = line;
+  n->column = col;
   n->u.expr.kind = EXPR_CONST;
-  n->u.expr.const_tok =
-      *tok; /* shallow copy (lexeme owned by token in parse?) */
-  if (tok->lexeme) {
-    n->u.expr.const_tok.lexeme = dupstr(tok->lexeme);
-  }
+  n->u.expr.const_lexeme = dupstr(lexeme);
+  n->u.expr.const_kind = const_kind;
   return n;
 }
 
@@ -311,7 +308,6 @@ struct ASTNode *ast_new_stmt_continue(int line, int col) {
   return n;
 }
 /* New statements */
-static char *dupstr(const char *s);
 struct ASTNode *ast_new_stmt_switch(struct ASTNode *cond, struct ASTNode *body,
                                     int line, int col) {
   struct ASTNode *n = ast_alloc();
@@ -454,8 +450,8 @@ void ast_free(struct ASTNode *node) {
       free(node->u.expr.ident);
     if (node->u.expr.str)
       free(node->u.expr.str);
-    if (node->u.expr.const_tok.lexeme)
-      free(node->u.expr.const_tok.lexeme);
+    if (node->u.expr.const_lexeme)
+      free(node->u.expr.const_lexeme);
     break;
   case 1: /* stmt */
     if (node->u.stmt.stmts)
@@ -511,8 +507,8 @@ void ast_print(struct ASTNode *node, int ind) {
       printf(" ident=%s", node->u.expr.ident);
     if (node->u.expr.str)
       printf(" str=\"%s\"", node->u.expr.str);
-    if (node->u.expr.kind == EXPR_CONST && node->u.expr.const_tok.lexeme)
-      printf(" const=%s", node->u.expr.const_tok.lexeme);
+    if (node->u.expr.kind == EXPR_CONST && node->u.expr.const_lexeme)
+      printf(" const=%s", node->u.expr.const_lexeme);
     printf("\n");
     if (node->u.expr.e1)
       ast_print(node->u.expr.e1, ind + 2);

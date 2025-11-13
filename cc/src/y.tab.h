@@ -57,29 +57,29 @@ extern int yydebug;
     IDENTIFIER = 258,              /* IDENTIFIER  */
     CONSTANT = 259,                /* CONSTANT  */
     STRING_LITERAL = 260,          /* STRING_LITERAL  */
-    SIZEOF = 261,                  /* SIZEOF  */
-    PTR_OP = 262,                  /* PTR_OP  */
-    INC_OP = 263,                  /* INC_OP  */
-    DEC_OP = 264,                  /* DEC_OP  */
-    LEFT_OP = 265,                 /* LEFT_OP  */
-    RIGHT_OP = 266,                /* RIGHT_OP  */
-    LE_OP = 267,                   /* LE_OP  */
-    GE_OP = 268,                   /* GE_OP  */
-    EQ_OP = 269,                   /* EQ_OP  */
-    NE_OP = 270,                   /* NE_OP  */
-    AND_OP = 271,                  /* AND_OP  */
-    OR_OP = 272,                   /* OR_OP  */
-    MUL_ASSIGN = 273,              /* MUL_ASSIGN  */
-    DIV_ASSIGN = 274,              /* DIV_ASSIGN  */
-    MOD_ASSIGN = 275,              /* MOD_ASSIGN  */
-    ADD_ASSIGN = 276,              /* ADD_ASSIGN  */
-    SUB_ASSIGN = 277,              /* SUB_ASSIGN  */
-    LEFT_ASSIGN = 278,             /* LEFT_ASSIGN  */
-    RIGHT_ASSIGN = 279,            /* RIGHT_ASSIGN  */
-    AND_ASSIGN = 280,              /* AND_ASSIGN  */
-    XOR_ASSIGN = 281,              /* XOR_ASSIGN  */
-    OR_ASSIGN = 282,               /* OR_ASSIGN  */
-    TYPE_NAME = 283,               /* TYPE_NAME  */
+    TYPE_NAME = 261,               /* TYPE_NAME  */
+    SIZEOF = 262,                  /* SIZEOF  */
+    PTR_OP = 263,                  /* PTR_OP  */
+    INC_OP = 264,                  /* INC_OP  */
+    DEC_OP = 265,                  /* DEC_OP  */
+    LEFT_OP = 266,                 /* LEFT_OP  */
+    RIGHT_OP = 267,                /* RIGHT_OP  */
+    LE_OP = 268,                   /* LE_OP  */
+    GE_OP = 269,                   /* GE_OP  */
+    EQ_OP = 270,                   /* EQ_OP  */
+    NE_OP = 271,                   /* NE_OP  */
+    AND_OP = 272,                  /* AND_OP  */
+    OR_OP = 273,                   /* OR_OP  */
+    MUL_ASSIGN = 274,              /* MUL_ASSIGN  */
+    DIV_ASSIGN = 275,              /* DIV_ASSIGN  */
+    MOD_ASSIGN = 276,              /* MOD_ASSIGN  */
+    ADD_ASSIGN = 277,              /* ADD_ASSIGN  */
+    SUB_ASSIGN = 278,              /* SUB_ASSIGN  */
+    LEFT_ASSIGN = 279,             /* LEFT_ASSIGN  */
+    RIGHT_ASSIGN = 280,            /* RIGHT_ASSIGN  */
+    AND_ASSIGN = 281,              /* AND_ASSIGN  */
+    XOR_ASSIGN = 282,              /* XOR_ASSIGN  */
+    OR_ASSIGN = 283,               /* OR_ASSIGN  */
     TYPEDEF = 284,                 /* TYPEDEF  */
     EXTERN = 285,                  /* EXTERN  */
     STATIC = 286,                  /* STATIC  */
@@ -118,7 +118,16 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+union YYSTYPE
+{
+#line 1 "/home/atirut/Projects/zdk/cc/src/parser.y"
+
+	char *str;
+
+#line 128 "/home/atirut/Projects/zdk/cc/src/y.tab.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

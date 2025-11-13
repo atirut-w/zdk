@@ -618,6 +618,8 @@ char *yytext;
 #line 1 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 #line 9 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "y.tab.h"
 
 /* ANSI C90 prototypes */
@@ -625,8 +627,31 @@ void count(void);
 int yywrap(void);
 void comment(void);
 int check_type(void);
-#line 628 "/home/atirut/Projects/zdk/cc/src/lexer.c"
-#line 629 "/home/atirut/Projects/zdk/cc/src/lexer.c"
+
+/* Error reporting state (C90-compatible) */
+int line = 1;
+int column = 0;
+char current_line[1024];
+int current_line_len = 0;
+const char *yyfilename = 0; /* Set by the driver (main) */
+
+/* expose yylval for setting semantic values */
+extern YYSTYPE yylval;
+
+/* C90-safe strdup */
+static char *xstrdup(const char *s) {
+	size_t n;
+	char *d;
+	if (!s) return 0;
+	n = strlen(s);
+	d = (char*)malloc(n + 1);
+	if (!d) return 0;
+	memcpy(d, s, n + 1);
+	return d;
+}
+
+#line 653 "/home/atirut/Projects/zdk/cc/src/lexer.c"
+#line 654 "/home/atirut/Projects/zdk/cc/src/lexer.c"
 
 #define INITIAL 0
 
@@ -843,9 +868,10 @@ YY_DECL
 		}
 
 	{
-#line 19 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 44 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 
-#line 848 "/home/atirut/Projects/zdk/cc/src/lexer.c"
+
+#line 874 "/home/atirut/Projects/zdk/cc/src/lexer.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -904,463 +930,463 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 20 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 46 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { comment(); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 22 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 48 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(AUTO); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 23 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 49 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(BREAK); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 24 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 50 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(CASE); }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 25 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 51 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(CHAR); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 26 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 52 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(CONST); }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 27 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 53 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(CONTINUE); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 28 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 54 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(DEFAULT); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 29 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 55 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(DO); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 30 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 56 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(DOUBLE); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 31 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 57 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(ELSE); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 32 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 58 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(ENUM); }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 33 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 59 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(EXTERN); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 34 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 60 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(FLOAT); }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 35 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 61 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(FOR); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 36 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 62 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(GOTO); }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 37 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 63 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(IF); }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 38 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 64 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(INT); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 39 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 65 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(LONG); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 40 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 66 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(REGISTER); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 41 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 67 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(RETURN); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 42 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 68 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(SHORT); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 43 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 69 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(SIGNED); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 44 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 70 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(SIZEOF); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 45 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 71 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(STATIC); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 46 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 72 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(STRUCT); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 47 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 73 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(SWITCH); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 48 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 74 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(TYPEDEF); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 49 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 75 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(UNION); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 50 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 76 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(UNSIGNED); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 51 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 77 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(VOID); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 52 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 78 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(VOLATILE); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 53 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 79 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(WHILE); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 55 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(check_type()); }
+#line 81 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(check_type()); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 57 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 83 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 58 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 84 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 59 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 85 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 38:
 /* rule 38 can match eol */
 YY_RULE_SETUP
-#line 60 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 86 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 62 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 88 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 63 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 89 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 64 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(CONSTANT); }
+#line 90 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 42:
 /* rule 42 can match eol */
 YY_RULE_SETUP
-#line 66 "/home/atirut/Projects/zdk/cc/src/lexer.l"
-{ count(); return(STRING_LITERAL); }
+#line 92 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+{ count(); yylval.str = xstrdup(yytext); return(STRING_LITERAL); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 68 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 94 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(ELLIPSIS); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 69 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 95 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(RIGHT_ASSIGN); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 70 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 96 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(LEFT_ASSIGN); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 71 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 97 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(ADD_ASSIGN); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 72 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 98 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(SUB_ASSIGN); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 73 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 99 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(MUL_ASSIGN); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 74 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 100 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(DIV_ASSIGN); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 75 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 101 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(MOD_ASSIGN); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 76 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 102 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(AND_ASSIGN); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 77 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 103 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(XOR_ASSIGN); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 78 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 104 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(OR_ASSIGN); }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 79 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 105 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(RIGHT_OP); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 80 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 106 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(LEFT_OP); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 81 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 107 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(INC_OP); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 82 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 108 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(DEC_OP); }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 83 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 109 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(PTR_OP); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 84 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 110 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(AND_OP); }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 85 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 111 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(OR_OP); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 86 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 112 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(LE_OP); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 87 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 113 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(GE_OP); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 88 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 114 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(EQ_OP); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 89 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 115 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(NE_OP); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 90 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 116 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(';'); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 91 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 117 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('{'); }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 92 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 118 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('}'); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 93 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 119 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(','); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 94 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 120 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(':'); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 95 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 121 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('='); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 96 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 122 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('('); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 97 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 123 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(')'); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 98 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 124 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('['); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 99 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 125 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return(']'); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 100 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 126 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('.'); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 101 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 127 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('&'); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 102 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 128 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('!'); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 103 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 129 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('~'); }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 104 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 130 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('-'); }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 105 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 131 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('+'); }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 106 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 132 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('*'); }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 107 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 133 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('/'); }
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 108 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 134 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('%'); }
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 109 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 135 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('<'); }
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 110 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 136 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('>'); }
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 111 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 137 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('^'); }
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 112 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 138 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('|'); }
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 113 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 139 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); return('?'); }
 	YY_BREAK
 case 89:
 /* rule 89 can match eol */
 YY_RULE_SETUP
-#line 115 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 141 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { count(); }
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 116 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 142 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 { /* ignore bad characters */ }
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 118 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 144 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1363 "/home/atirut/Projects/zdk/cc/src/lexer.c"
+#line 1389 "/home/atirut/Projects/zdk/cc/src/lexer.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2365,7 +2391,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 118 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 144 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 
 
 int yywrap(void)
@@ -2380,50 +2406,101 @@ void comment(void)
 
 loop:
 	while ((c = input()) != '*' && c != 0)
-		putchar(c);
+	{
+		if (c == '\n')
+		{
+			current_line_len = 0;
+			current_line[0] = '\0';
+			line++;
+			column = 0;
+		}
+		else if (c == '\t')
+		{
+			int add = 8 - (column % 8);
+			column += add;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = '\t';
+				current_line[current_line_len] = '\0';
+			}
+		}
+		else
+		{
+			column++;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = c;
+				current_line[current_line_len] = '\0';
+			}
+		}
+	}
 
 	if ((c1 = input()) != '/' && c != 0)
 	{
 		unput(c1);
 		goto loop;
 	}
-
 	if (c != 0)
-		putchar(c1);
+	{
+		/* account for the '/' closing the comment */
+		column++;
+		if (current_line_len < (int)sizeof(current_line) - 1)
+		{
+			current_line[current_line_len++] = '/';
+			current_line[current_line_len] = '\0';
+		}
+	}
 }
-
-
-int column = 0;
 
 void count(void)
 {
 	int i;
 
 	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n')
+	{
+		char ch = yytext[i];
+		if (ch == '\n')
+		{
+			current_line_len = 0;
+			current_line[0] = '\0';
+			line++;
 			column = 0;
-		else if (yytext[i] == '\t')
-			column += 8 - (column % 8);
+		}
+		else if (ch == '\t')
+		{
+			int add = 8 - (column % 8);
+			column += add;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = '\t';
+				current_line[current_line_len] = '\0';
+			}
+		}
 		else
+		{
 			column++;
-
-	ECHO;
+			if (current_line_len < (int)sizeof(current_line) - 1)
+			{
+				current_line[current_line_len++] = ch;
+				current_line[current_line_len] = '\0';
+			}
+		}
+	}
 }
-
 
 int check_type(void)
 {
 /*
 * pseudo code --- this is what it should check
 *
-*	if (yytext == type_name)
-*		return(TYPE_NAME);
+*    if (yytext == type_name)
+*        return(TYPE_NAME);
 *
-*	return(IDENTIFIER);
+*    return(IDENTIFIER);
 */
 
 /*
-*	it actually will only return IDENTIFIER
+*    it actually will only return IDENTIFIER
 */
 
 	return(IDENTIFIER);

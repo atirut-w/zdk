@@ -1,9 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
-#include "token.h"
-
-/* Simple AST for C90 subset. Keep structures minimal and C90-friendly. */
+/* Simple AST for a C90-like grammar. Keep structures minimal and C90-friendly. */
 
 struct ASTNode;
 struct ASTList {
@@ -44,6 +42,49 @@ enum ASTStmtKind {
   STMT_DEFAULT
 };
 
+/* Constant kinds (formerly in token.h) */
+enum ASTConstKind {
+  AST_C_NONE = 0,
+  AST_C_INT,
+  AST_C_UINT,
+  AST_C_CHAR,
+  AST_C_FLOAT,
+  AST_C_DOUBLE,
+  AST_C_STRING
+};
+
+/* Operator codes for multi-char and logical operators (avoid token.h) */
+enum ASTOp {
+  OP_NONE = 0,
+  /* multi-char */
+  OP_PTR,        /* -> */
+  OP_INC,        /* ++ (prefix) */
+  OP_DEC,        /* -- (prefix) */
+  OP_POST_INC,   /* ++ (postfix) */
+  OP_POST_DEC,   /* -- (postfix) */
+  OP_SIZEOF,     /* sizeof */
+  OP_SHL,        /* << */
+  OP_SHR,        /* >> */
+  OP_LE,         /* <= */
+  OP_GE,         /* >= */
+  OP_EQ,         /* == */
+  OP_NE,         /* != */
+  /* assignments */
+  OP_MUL_ASSIGN,
+  OP_DIV_ASSIGN,
+  OP_MOD_ASSIGN,
+  OP_ADD_ASSIGN,
+  OP_SUB_ASSIGN,
+  OP_SHL_ASSIGN,
+  OP_SHR_ASSIGN,
+  OP_AND_ASSIGN,
+  OP_XOR_ASSIGN,
+  OP_OR_ASSIGN,
+  /* logical */
+  OP_LAND,       /* && */
+  OP_LOR         /* || */
+};
+
 /* Declaration spec flags */
 enum SpecFlags {
   SPF_NONE = 0,
@@ -67,13 +108,13 @@ enum SpecFlags {
   SPF_VOLATILE = 1 << 15
 };
 
-/* Declarator shape (simplified) */
+/* Declarator shape (still simplified for now) */
 struct Declarator {
-  char *name;             /* identifier */
-  int pointer_level;      /* number of * */
-  int is_function;        /* 1 if function declarator */
-  struct ASTList *params; /* list of declarations or identifiers (simplified) */
-  int is_array;           /* 1 if array declarator */
+  char *name;                 /* identifier (NULL for abstract) */
+  int pointer_level;          /* number of * (aggregated) */
+  int is_function;            /* 1 if function declarator */
+  struct ASTList *params;     /* list of declarations or identifiers (simplified) */
+  int is_array;               /* 1 if array declarator */
   struct ASTNode *array_size; /* optional constant expression */
 };
 
@@ -85,14 +126,15 @@ struct ASTNode {
     /* expr */
     struct {
       int kind;             /* enum ASTExprKind */
-      int op;               /* for unary/binary: operator token or char */
+      int op;               /* for unary/binary: operator (ASCII or enum ASTOp) */
       struct ASTNode *e1;   /* or function in call */
       struct ASTNode *e2;   /* rhs or index or member */
       struct ASTNode *e3;   /* conditional third */
       struct ASTList *args; /* for calls */
       char *ident;
       char *str;
-      struct Token const_tok; /* for constants */
+      char *const_lexeme;   /* textual form of constant */
+      int const_kind;       /* enum ASTConstKind */
     } expr;
     /* stmt */
     struct {
@@ -123,7 +165,7 @@ struct ASTNode {
 
 /* Constructors and utilities */
 struct ASTNode *ast_new_expr_ident(const char *name, int line, int col);
-struct ASTNode *ast_new_expr_const(struct Token *tok);
+struct ASTNode *ast_new_expr_const(const char *lexeme, int const_kind, int line, int col);
 struct ASTNode *ast_new_expr_string(const char *s, int line, int col);
 struct ASTNode *ast_new_expr_unary(int op, struct ASTNode *e1, int line,
                                    int col);
