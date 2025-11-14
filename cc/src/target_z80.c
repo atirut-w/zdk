@@ -191,8 +191,9 @@ static void z80_act_load_int(struct Codegen *cg) {
 }
 
 static void z80_act_load_char(struct Codegen *cg) {
-  /* Zero-extend 8-bit load from [IY] into A */
+  /* Load 8-bit from [IY]; A and L receive the byte; H left undefined */
   fprintf(cg->output, "\tld a, (iy+0)\n");
+  fprintf(cg->output, "\tld l, a\n");
 }
 
 static void z80_act_store_int(struct Codegen *cg) {
@@ -226,11 +227,37 @@ static void z80_act_value_to_char(struct Codegen *cg) {
   fprintf(cg->output, "\tld a, l\n");
 }
 
-static void z80_act_char_to_value(struct Codegen *cg) {
-  /* Zero-extend A into HL */
-  fprintf(cg->output, "\tld l, a\n");
-  fprintf(cg->output, "\txor a\n");
-  fprintf(cg->output, "\tld h, a\n");
+/* Generic extension helpers
+   from_bits / to_bits allow future widening beyond 8->16.
+   Current implementation handles only 8->16; other sizes emit a comment. */
+static void z80_zero_extend(struct Codegen *cg, int from_bits, int to_bits) {
+  if (!cg || !cg->output) return;
+  if (from_bits == 8 && to_bits == 16) {
+    fprintf(cg->output, "\tld l, a\n");
+    fprintf(cg->output, "\txor a\n");
+    fprintf(cg->output, "\tld h, a\n");
+  } else if (from_bits == to_bits) {
+    /* No-op; ensure value resides in expected register set if needed */
+    fprintf(cg->output, "\t; zero_extend %d->%d no-op\n", from_bits, to_bits);
+  } else {
+    fprintf(cg->output, "\t; TODO zero_extend %d->%d unsupported\n", from_bits, to_bits);
+  }
+}
+
+static void z80_sign_extend(struct Codegen *cg, int from_bits, int to_bits) {
+  if (!cg || !cg->output) return;
+  if (from_bits == 8 && to_bits == 16) {
+    /* Preserve original A in L first */
+    fprintf(cg->output, "\tld l, a\n");
+    /* Sign bit to all bits: add a,a; sbc a,a -> 0x00 or 0xFF */
+    fprintf(cg->output, "\tadd a, a\n");
+    fprintf(cg->output, "\tsbc a, a\n");
+    fprintf(cg->output, "\tld h, a\n");
+  } else if (from_bits == to_bits) {
+    fprintf(cg->output, "\t; sign_extend %d->%d no-op\n", from_bits, to_bits);
+  } else {
+    fprintf(cg->output, "\t; TODO sign_extend %d->%d unsupported\n", from_bits, to_bits);
+  }
 }
 
 static void z80_act_op_add(struct Codegen *cg) { fprintf(cg->output, "\tadd hl, de\n"); }
@@ -264,40 +291,8 @@ static void z80_act_divide_value_by(struct Codegen *cg, int divisor) {
   z80_act_op_div(cg); /* HL = value / divisor */
 }
 
-/* 8-bit (char) arithmetic variants */
-static void z80_op_add_char(struct Codegen *cg) {
-  fprintf(cg->output, "\tld a, l\n");
-  fprintf(cg->output, "\tadd a, e\n");
-  fprintf(cg->output, "\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_sub_char(struct Codegen *cg) {
-  fprintf(cg->output, "\tld a, l\n");
-  fprintf(cg->output, "\tsub e\n");
-  fprintf(cg->output, "\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_neg_char(struct Codegen *cg) {
-  fprintf(cg->output, "\tld a, l\n\txor a\n\tsub l\n\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_mul_char(struct Codegen *cg) {
-  z80_act_op_mul(cg);
-  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_div_char(struct Codegen *cg) {
-  z80_act_op_div(cg);
-  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_mod_char(struct Codegen *cg) {
-  z80_act_op_mod(cg);
-  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_shl_char(struct Codegen *cg) {
-  z80_act_op_shl(cg);
-  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
-}
-static void z80_op_shr_char(struct Codegen *cg) {
-  z80_act_op_shr(cg);
-  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
-}
+/* Generic truncate helper -> A (low byte) */
+static void z80_truncate_to_char(struct Codegen *cg) { fprintf(cg->output, "\tld a, l\n"); }
 
 static void z80_act_push_arg(struct Codegen *cg) { fprintf(cg->output, "\tpush hl\n"); }
 static void z80_act_call_direct(struct Codegen *cg, const char *name) { fprintf(cg->output, "\tcall %s\n", name); }
@@ -311,6 +306,11 @@ static void z80_act_cleanup_args(struct Codegen *cg, int num_bytes) {
 
   }
 }
+
+/* Generic helpers now exposed via Codegen for non-target code */
+static void z80_save_value(struct Codegen *cg) { fprintf(cg->output, "\tpush hl\n"); }
+static void z80_restore_value(struct Codegen *cg) { fprintf(cg->output, "\tpop hl\n"); }
+static void z80_jump_label(struct Codegen *cg, const char *label) { fprintf(cg->output, "\tjp %s\n", label); }
 
 static void z80_init_codegen(struct Codegen *cg) {
   cg->fn_prologue = z80_act_fn_prologue;
@@ -328,31 +328,26 @@ static void z80_init_codegen(struct Codegen *cg) {
   cg->emit_const_char = z80_act_emit_const_char;
   cg->value_to_rhs = z80_act_value_to_rhs;
   cg->rhs_to_lhs = z80_act_rhs_to_lhs;
-  cg->value_to_char = z80_act_value_to_char;
-  cg->char_to_value = z80_act_char_to_value;
-  /* 16-bit (int) arithmetic */
-  cg->op_add_int = z80_act_op_add;
-  cg->op_sub_int = z80_act_op_sub;
-  cg->op_neg_int = z80_act_op_neg;
-  cg->op_mul_int = z80_act_op_mul;
-  cg->op_div_int = z80_act_op_div;
-  cg->op_mod_int = z80_act_op_mod;
-  cg->op_shl_int = z80_act_op_shl;
-  cg->op_shr_int = z80_act_op_shr;
-  /* 8-bit (char) arithmetic */
-  cg->op_add_char = z80_op_add_char;
-  cg->op_sub_char = z80_op_sub_char;
-  cg->op_neg_char = z80_op_neg_char;
-  cg->op_mul_char = z80_op_mul_char;
-  cg->op_div_char = z80_op_div_char;
-  cg->op_mod_char = z80_op_mod_char;
-  cg->op_shl_char = z80_op_shl_char;
-  cg->op_shr_char = z80_op_shr_char;
+  cg->truncate_to_char = z80_truncate_to_char;
+  cg->zero_extend = z80_zero_extend;
+  cg->sign_extend = z80_sign_extend;
+  /* Generic arithmetic (operands already promoted) */
+  cg->op_add = z80_act_op_add;
+  cg->op_sub = z80_act_op_sub;
+  cg->op_neg = z80_act_op_neg;
+  cg->op_mul = z80_act_op_mul;
+  cg->op_div = z80_act_op_div;
+  cg->op_mod = z80_act_op_mod;
+  cg->op_shl = z80_act_op_shl;
+  cg->op_shr = z80_act_op_shr;
   cg->scale_rhs_by = z80_act_scale_rhs_by;
   cg->divide_value_by = z80_act_divide_value_by;
   cg->push_arg = z80_act_push_arg;
   cg->call_direct = z80_act_call_direct;
   cg->cleanup_args = z80_act_cleanup_args;
+  cg->save_value = z80_save_value;
+  cg->restore_value = z80_restore_value;
+  cg->jump_label = z80_jump_label;
 }
 
 /* Public target descriptor */

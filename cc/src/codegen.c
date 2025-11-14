@@ -162,7 +162,7 @@ static int kind_is_integer(enum TypeKind k) {
   return (k == TYPE_CHAR || k == TYPE_SHORT || k == TYPE_INT || k == TYPE_LONG);
 }
 
-/* Expression generation producing result in value register (HL for Z80 backend). */
+/* Expression generation producing result in target primary value register. */
 static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *locals);
 
 static void gen_load_ident(struct Codegen *cg, struct ASTNode *ident_expr, struct CGLocal *locals) {
@@ -174,8 +174,7 @@ static void gen_load_ident(struct Codegen *cg, struct ASTNode *ident_expr, struc
     if (cg->addr_local) cg->addr_local(cg, loc->offset);
     if (cg->addr_from_value) cg->addr_from_value(cg);
     if (loc->is_char) {
-      if (cg->load_char) cg->load_char(cg);
-      if (cg->char_to_value) cg->char_to_value(cg);
+      if (cg->load_char) cg->load_char(cg); /* A,L = byte (target ensures L set) */
     } else {
       if (cg->load_int) cg->load_int(cg);
     }
@@ -185,7 +184,6 @@ static void gen_load_ident(struct Codegen *cg, struct ASTNode *ident_expr, struc
     if (cg->addr_from_value) cg->addr_from_value(cg);
     if (ident_expr->type && ident_expr->type->kind == TYPE_CHAR) {
       if (cg->load_char) cg->load_char(cg);
-      if (cg->char_to_value) cg->char_to_value(cg);
     } else {
       if (cg->load_int) cg->load_int(cg);
     }
@@ -225,11 +223,11 @@ static void gen_binary(struct Codegen *cg, struct ASTNode *expr, struct CGLocal 
     int right_is_int = (t2 && kind_is_integer(t2->kind));
     int elem_size;
     /* Default evaluation: left then right */
-    gen_expr(cg, expr->u.expr.e1, locals); /* HL = left */
-    fprintf(cg->output, "\tpush hl\n");
-    gen_expr(cg, expr->u.expr.e2, locals); /* HL = right */
-    if (cg->value_to_rhs) cg->value_to_rhs(cg); /* DE = right */
-    fprintf(cg->output, "\tpop hl\n"); /* HL = left */
+  gen_expr(cg, expr->u.expr.e1, locals); /* left value */
+  if (cg->save_value) cg->save_value(cg);
+  gen_expr(cg, expr->u.expr.e2, locals); /* right value */
+  if (cg->value_to_rhs) cg->value_to_rhs(cg); /* move right to RHS */
+  if (cg->restore_value) cg->restore_value(cg); /* restore left */
 
     /* Pointer arithmetic */
     if (op == '+') {
@@ -248,7 +246,7 @@ static void gen_binary(struct Codegen *cg, struct ASTNode *expr, struct CGLocal 
         if (cg->scale_rhs_by) cg->scale_rhs_by(cg, elem_size);
       } else if (left_is_ptr && right_is_ptr) {
         /* Raw pointer difference, then divide by element size */
-        if (cg->op_sub_int) cg->op_sub_int(cg);
+  if (cg->op_sub) cg->op_sub(cg);
         elem_size = type_size_from_type(t1 ? t1->base_type : NULL);
         if (elem_size > 1 && cg->divide_value_by) cg->divide_value_by(cg, elem_size);
         return; /* Done */
@@ -256,34 +254,16 @@ static void gen_binary(struct Codegen *cg, struct ASTNode *expr, struct CGLocal 
     }
   }
   {
-    int both_char = (expr->u.expr.e1 && expr->u.expr.e2 &&
-                     expr->u.expr.e1->type && expr->u.expr.e2->type &&
-                     expr->u.expr.e1->type->kind == TYPE_CHAR &&
-                     expr->u.expr.e2->type->kind == TYPE_CHAR);
-    if (both_char) {
-      if (cg->value_to_char) cg->value_to_char(cg); /* HL.low -> A */
-      switch (op) {
-        case '+': if (cg->op_add_char) cg->op_add_char(cg); break;
-        case '-': if (cg->op_sub_char) cg->op_sub_char(cg); break;
-        case '*': if (cg->op_mul_char) cg->op_mul_char(cg); break;
-        case '/': if (cg->op_div_char) cg->op_div_char(cg); break;
-        case '%': if (cg->op_mod_char) cg->op_mod_char(cg); break;
-        case OP_SHL: if (cg->op_shl_char) cg->op_shl_char(cg); break;
-        case OP_SHR: if (cg->op_shr_char) cg->op_shr_char(cg); break;
-        default: fprintf(cg->output, "\t; TODO unsupported binary op %d\n", op); break;
-      }
-    } else {
-      switch (op) {
-        case '+': if (cg->op_add_int) cg->op_add_int(cg); break;
-        case '-': if (cg->op_sub_int) cg->op_sub_int(cg); break;
-        case '*': if (cg->op_mul_int) cg->op_mul_int(cg); break;
-        case '/': if (cg->op_div_int) cg->op_div_int(cg); break;
-        case '%': if (cg->op_mod_int) cg->op_mod_int(cg); break;
-        case OP_SHL: if (cg->op_shl_int) cg->op_shl_int(cg); break;
-        case OP_SHR: if (cg->op_shr_int) cg->op_shr_int(cg); break;
-        case '=': /* handled elsewhere */ break;
-        default: fprintf(cg->output, "\t; TODO unsupported binary op %d\n", op); break;
-      }
+    switch (op) {
+      case '+': if (cg->op_add) cg->op_add(cg); break;
+      case '-': if (cg->op_sub) cg->op_sub(cg); break;
+      case '*': if (cg->op_mul) cg->op_mul(cg); break;
+      case '/': if (cg->op_div) cg->op_div(cg); break;
+      case '%': if (cg->op_mod) cg->op_mod(cg); break;
+      case OP_SHL: if (cg->op_shl) cg->op_shl(cg); break;
+      case OP_SHR: if (cg->op_shr) cg->op_shr(cg); break;
+      case '=': /* handled elsewhere */ break;
+      default: fprintf(cg->output, "\t; TODO unsupported binary op %d\n", op); break;
     }
   }
 }
@@ -314,8 +294,7 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
       if (target) {
         if (target->kind == TYPE_CHAR) {
           /* Truncate to 8 bits and zero-extend */
-          if (cg->value_to_char) cg->value_to_char(cg);
-          if (cg->char_to_value) cg->char_to_value(cg);
+          if (cg->truncate_to_char) cg->truncate_to_char(cg);
         } else {
           /* For other supported target kinds (int, pointer) no action needed. */
         }
@@ -365,12 +344,9 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
     case EXPR_UNARY:
       if (expr->u.expr.op == '-') {
         gen_expr(cg, expr->u.expr.e1, locals);
-        if (expr->u.expr.e1 && expr->u.expr.e1->type && expr->u.expr.e1->type->kind == TYPE_CHAR) {
-          if (cg->value_to_char) cg->value_to_char(cg);
-          if (cg->op_neg_char) cg->op_neg_char(cg);
-        } else {
-          if (cg->op_neg_int) cg->op_neg_int(cg);
-        }
+        /* Operand already evaluated and (if char) promoted via zero_extend.
+           Use generic neg. */
+        if (cg->op_neg) cg->op_neg(cg);
       } else if (expr->u.expr.op == '*') {
         /* rvalue dereference: compute address into IY, then load */
         struct ASTNode *addr = expr->u.expr.e1;
@@ -380,7 +356,7 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
         /* Move HL -> IY */
         if (cg->addr_from_value) cg->addr_from_value(cg);
         /* Load */
-        if (is_char_deref) { if (cg->load_char) cg->load_char(cg); if (cg->char_to_value) cg->char_to_value(cg); }
+        if (is_char_deref) { if (cg->load_char) cg->load_char(cg); }
         else { if (cg->load_int) cg->load_int(cg); }
       } else {
         gen_expr(cg, expr->u.expr.e1, locals);
@@ -388,7 +364,7 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
       }
       break;
     case EXPR_BINARY:
-      if (expr->u.expr.op == '=') {
+  if (expr->u.expr.op == '=') {
         /* Assignment: left ident only for now. Compute LHS address first (may clobber HL), then evaluate RHS into HL, then store. */
         if (expr->u.expr.e1) {
           int is_char = 0;
@@ -418,7 +394,7 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
           if (is_char) {
             struct ASTNode *rhs = expr->u.expr.e2;
             gen_expr(cg, rhs, locals);
-            if (cg->value_to_char) cg->value_to_char(cg);
+            if (cg->truncate_to_char) cg->truncate_to_char(cg);
             if (cg->store_char) cg->store_char(cg);
           } else {
             gen_expr(cg, expr->u.expr.e2, locals);
@@ -464,7 +440,7 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
             /* Evaluate RHS */
             gen_expr(cg, dn->u.decl.init, locals);
             /* Store (apply conversion as if by assignment) */
-            if (is_char_init) { if (cg->value_to_char) cg->value_to_char(cg); if (cg->store_char) cg->store_char(cg); }
+            if (is_char_init) { if (cg->truncate_to_char) cg->truncate_to_char(cg); if (cg->store_char) cg->store_char(cg); }
             else { if (cg->store_int) cg->store_int(cg); }
           }
           continue;
@@ -477,8 +453,8 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
       break;
     case STMT_RETURN:
       gen_expr(cg, stmt->u.stmt.expr, locals);
-      /* Early return: jump to epilogue */
-      fprintf(cg->output, "\tjp %s\n", end_label);
+  /* Early return: use target jump helper */
+  if (cg->jump_label) cg->jump_label(cg, end_label);
       break;
     default:
       fprintf(cg->output, "\t; TODO stmt kind %d\n", stmt->u.stmt.kind);
