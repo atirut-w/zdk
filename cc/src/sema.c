@@ -25,6 +25,54 @@ static char *my_strdup(const char *s) {
 
 /* Forward declarations */
 static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr);
+static void set_expr_type(struct ASTNode *expr, struct Type *t) {
+  if (!expr || expr->kind_tag != 0) return;
+  if (expr->type) {
+    type_free(expr->type);
+    expr->type = NULL;
+  }
+  if (t) {
+    expr->type = type_copy(t);
+  }
+}
+
+/* Recursive walker to annotate expression nodes with inferred types */
+static void annotate_expr_types(struct Sema *sema, struct ASTNode *n) {
+  struct ASTList *it;
+  struct Type *t;
+  if (!n) return;
+  switch (n->kind_tag) {
+    case 0: /* expr */
+      t = analyze_expr(sema, n);
+      set_expr_type(n, t);
+      type_free(t);
+      /* Visit children */
+      annotate_expr_types(sema, n->u.expr.e1);
+      annotate_expr_types(sema, n->u.expr.e2);
+      annotate_expr_types(sema, n->u.expr.e3);
+      for (it = n->u.expr.args; it; it = it->next) annotate_expr_types(sema, it->node);
+      break;
+    case 1: /* stmt */
+      if (n->u.stmt.stmts) {
+        for (it = n->u.stmt.stmts; it; it = it->next) annotate_expr_types(sema, it->node);
+      }
+      annotate_expr_types(sema, n->u.stmt.s1);
+      annotate_expr_types(sema, n->u.stmt.s2);
+      annotate_expr_types(sema, n->u.stmt.s3);
+      annotate_expr_types(sema, n->u.stmt.expr);
+      break;
+    case 2: /* decl */
+      if (n->u.decl.init) annotate_expr_types(sema, n->u.decl.init);
+      if (n->u.decl.decls) {
+        for (it = n->u.decl.decls; it; it = it->next) annotate_expr_types(sema, it->node);
+      }
+      break;
+    case 3: /* ext */
+      annotate_expr_types(sema, n->u.ext.decl);
+      annotate_expr_types(sema, n->u.ext.body);
+      break;
+  }
+}
 static void analyze_stmt(struct Sema *sema, struct ASTNode *stmt);
 static void analyze_compound(struct Sema *sema, struct ASTNode *compound);
 static void sema_error(struct Sema *sema, int line, int col, const char *msg);
@@ -676,6 +724,9 @@ static void analyze_function_def(struct Sema *sema, struct ASTNode *ext) {
   
   /* Analyze function body */
   analyze_compound(sema, body);
+
+  /* While the function scope is active, annotate expression nodes with inferred types */
+  annotate_expr_types(sema, body);
   
   /* Store stack size in the external node for code generation */
   ext->u.ext.stack_size = sema->current_scope->stack_size;
@@ -695,7 +746,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
   char msg[256];
   
   if (!expr || expr->kind_tag != 0) {
-    return type_new_basic(TYPE_INT);
+    {
+      struct Type *rtmp = type_new_basic(TYPE_INT);
+      if (expr && expr->kind_tag == 0) set_expr_type(expr, type_copy(rtmp));
+      return rtmp;
+    }
   }
   
   switch (expr->u.expr.kind) {
@@ -703,7 +758,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       /* Handle function calls first, so we can support implicit declarations in C90 */
       
       /* Check if calling an identifier that may need implicit declaration */
-      if (expr->u.expr.e1 && expr->u.expr.e1->kind_tag == 0 &&
+    if (expr->u.expr.e1 && expr->u.expr.e1->kind_tag == 0 &&
           expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
         sym = scope_lookup(sema->current_scope, expr->u.expr.e1->u.expr.ident);
         
@@ -724,7 +779,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
             type_free(t2);
           }
           
-          return type_new_basic(TYPE_INT);
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
         } else {
           /* Symbol exists, analyze normally */
           t1 = type_copy(sym->type);
@@ -797,6 +856,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
         /* Return function's return type */
         if (t1->return_type) {
           struct Type *ret = type_copy(t1->return_type);
+          set_expr_type(expr, type_copy(ret));
           type_free(t1);
           return ret;
         }
@@ -815,6 +875,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
         
         if (func_type->return_type) {
           struct Type *ret = type_copy(func_type->return_type);
+          set_expr_type(expr, type_copy(ret));
           type_free(t1);
           return ret;
         }
@@ -831,7 +892,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       }
       
       type_free(t1);
-      return type_new_basic(TYPE_INT);
+      {
+        struct Type *ret = type_new_basic(TYPE_INT);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
     
     case EXPR_IDENT:
       /* Look up identifier */
@@ -839,30 +904,60 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       if (!sym) {
         sprintf(msg, "use of undeclared identifier '%s'", expr->u.expr.ident);
         sema_error(sema, expr->line, expr->column, msg);
-        return type_new_basic(TYPE_INT);
+        {
+          struct Type *ret = type_new_basic(TYPE_INT);
+          set_expr_type(expr, type_copy(ret));
+          return ret;
+        }
       }
-      return type_copy(sym->type);
+      {
+        struct Type *ret = type_copy(sym->type);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
       
     case EXPR_CONST:
       /* Determine type from constant kind */
       switch (expr->u.expr.const_kind) {
         case AST_C_INT:
-          return type_new_basic(TYPE_INT);
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
         case AST_C_UINT: {
           struct Type *ti = type_new_basic(TYPE_INT);
           ti->is_signed = 0;
+          set_expr_type(expr, type_copy(ti));
           return ti;
         }
         case AST_C_CHAR:
-          return type_new_basic(TYPE_CHAR);
+          /* In C90, character constants have type int (not char). */
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
         case AST_C_FLOAT:
-          return type_new_basic(TYPE_FLOAT);
+          {
+            struct Type *ret = type_new_basic(TYPE_FLOAT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
         case AST_C_DOUBLE:
           sema_error(sema, expr->line, expr->column,
                      "double constant is not supported on this target (>32-bit)");
-          return type_new_basic(TYPE_DOUBLE);
+          {
+            struct Type *ret = type_new_basic(TYPE_DOUBLE);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
         default:
-          return type_new_basic(TYPE_INT);
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
       }
       
     case EXPR_STRING: {
@@ -870,7 +965,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       if (expr->u.expr.str) {
         n = (int)strlen(expr->u.expr.str) + 1;
       }
-      return type_new_array(type_new_basic(TYPE_CHAR), n);
+      {
+        struct Type *ret = type_new_array(type_new_basic(TYPE_CHAR), n);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
     }
       
     case EXPR_UNARY:
@@ -880,19 +979,28 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       switch (expr->u.expr.op) {
         case '&': /* address-of */
           /* Result is pointer to operand type */
-          return type_new_pointer(t1);
+          {
+            struct Type *ret = type_new_pointer(t1);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
           
         case '*': /* dereference */
           /* Operand must be pointer */
           if (t1 && type_is_pointer(t1) && t1->base_type) {
             struct Type *base = type_copy(t1->base_type);
             type_free(t1);
+            set_expr_type(expr, type_copy(base));
             return base;
           }
           sema_error(sema, expr->line, expr->column,
                      "indirection requires pointer operand");
           type_free(t1);
-          return type_new_basic(TYPE_INT);
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
           
         case '+':
         case '-':
@@ -906,8 +1014,10 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
           if (t1 && type_is_integer(t1)) {
             struct Type *promoted = integer_promotion(t1);
             type_free(t1);
+            set_expr_type(expr, type_copy(promoted));
             return promoted;
           }
+          set_expr_type(expr, type_copy(t1));
           return t1;
           
         case '!':
@@ -917,7 +1027,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
                        "logical not requires scalar operand");
           }
           type_free(t1);
-          return type_new_basic(TYPE_INT);
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
           
         case OP_INC:
         case OP_DEC:
@@ -926,15 +1040,21 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
             sema_error(sema, expr->line, expr->column,
                        "increment/decrement requires arithmetic or pointer operand");
           }
+          set_expr_type(expr, type_copy(t1));
           return t1;
           
         case OP_SIZEOF:
           /* sizeof always returns size_t (we use int for simplicity) */
           type_free(t1);
-          return type_new_basic(TYPE_INT);
+          {
+            struct Type *ret = type_new_basic(TYPE_INT);
+            set_expr_type(expr, type_copy(ret));
+            return ret;
+          }
           
         default:
           /* Unknown unary operator */
+          set_expr_type(expr, type_copy(t1));
           return t1;
       }
       
@@ -973,6 +1093,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
           }
         }
         type_free(t2);
+        set_expr_type(expr, type_copy(t1));
         return t1;
       }
       
@@ -988,6 +1109,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
                      "compound assignment requires arithmetic operands");
         }
         type_free(t2);
+        set_expr_type(expr, type_copy(t1));
         return t1;
       }
       
@@ -995,10 +1117,12 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       if (expr->u.expr.op == '+' || expr->u.expr.op == '-') {
         if (type_is_pointer(t1) && type_is_integer(t2)) {
           type_free(t2);
+          set_expr_type(expr, type_copy(t1));
           return t1;
         }
         if (type_is_pointer(t2) && type_is_integer(t1) && expr->u.expr.op == '+') {
           type_free(t1);
+          set_expr_type(expr, type_copy(t2));
           return t2;
         }
       }
@@ -1030,7 +1154,11 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
         }
         type_free(t1);
         type_free(t2);
-        return type_new_basic(TYPE_INT); /* comparison result is int */
+        {
+          struct Type *ret = type_new_basic(TYPE_INT); /* comparison result is int */
+          set_expr_type(expr, type_copy(ret));
+          return ret;
+        }
       }
       
       /* Bitwise operators */
@@ -1047,11 +1175,16 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
         /* Accept any scalar type */
         type_free(t1);
         type_free(t2);
-        return type_new_basic(TYPE_INT);
+        {
+          struct Type *ret = type_new_basic(TYPE_INT);
+          set_expr_type(expr, type_copy(ret));
+          return ret;
+        }
       }
       
       if (type_is_arithmetic(t1) && type_is_arithmetic(t2)) {
         struct Type *rt = usual_arith_conv(sema, t1, t2, expr->line, expr->column);
+        set_expr_type(expr, type_copy(rt));
         type_free(t1);
         type_free(t2);
         return rt;
@@ -1061,6 +1194,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       sema_error(sema, expr->line, expr->column,
                  "invalid operands to binary operator");
       type_free(t2);
+      set_expr_type(expr, type_copy(t1));
       return t1;
       
     case EXPR_COND:
@@ -1069,6 +1203,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       t3 = analyze_expr(sema, expr->u.expr.e3);
       type_free(t1);
       type_free(t3);
+      set_expr_type(expr, type_copy(t2));
       return t2;
       
     case EXPR_INDEX:
@@ -1080,22 +1215,32 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       if (t1 && t1->kind == TYPE_ARRAY && t1->base_type) {
         struct Type *base = type_copy(t1->base_type);
         type_free(t1);
+        set_expr_type(expr, type_copy(base));
         return base;
       }
       if (t1 && t1->kind == TYPE_POINTER && t1->base_type) {
         struct Type *base = type_copy(t1->base_type);
         type_free(t1);
+        set_expr_type(expr, type_copy(base));
         return base;
       }
       
       type_free(t1);
-      return type_new_basic(TYPE_INT);
+      {
+        struct Type *ret = type_new_basic(TYPE_INT);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
       
     case EXPR_MEMBER:
     case EXPR_ARROW:
       /* TODO: struct/union member access */
       analyze_expr(sema, expr->u.expr.e1);
-      return type_new_basic(TYPE_INT);
+      {
+        struct Type *ret = type_new_basic(TYPE_INT);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
       
     case EXPR_CAST: {
       int spec_flags = expr->u.expr.op;
@@ -1105,14 +1250,21 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       
       /* Analyze the operand */
       operand_type = analyze_expr(sema, expr->u.expr.e1);
-      if (!operand_type)
-        return type_new_basic(TYPE_INT);
+      if (!operand_type) {
+        struct Type *ret = type_new_basic(TYPE_INT);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
       
       /* Build the target type from spec_flags */
       if (spec_flags & SPF_DOUBLE) {
         sema_error(sema, expr->line, expr->column,
                   "double is not supported on this target (>32-bit)");
-        return type_new_basic(TYPE_INT);
+        {
+          struct Type *ret = type_new_basic(TYPE_INT);
+          set_expr_type(expr, type_copy(ret));
+          return ret;
+        }
       }
       
       /* Determine base type */
@@ -1136,11 +1288,16 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
       }
       
       /* Explicit casts are always allowed in C90, but warn about dangerous ones */
-      return target_type;
+  set_expr_type(expr, type_copy(target_type));
+  return target_type;
     }
       
     default:
-      return type_new_basic(TYPE_INT);
+      {
+        struct Type *ret = type_new_basic(TYPE_INT);
+        set_expr_type(expr, type_copy(ret));
+        return ret;
+      }
   }
 }
 
@@ -1306,6 +1463,5 @@ int sema_analyze(struct Sema *sema, struct ASTNode *tree) {
       analyze_function_def(sema, node);
     }
   }
-  
   return sema->error_count == 0;
 }

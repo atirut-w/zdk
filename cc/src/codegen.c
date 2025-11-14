@@ -1,4 +1,5 @@
 #include "target.h"
+#include "sema.h" /* for TypeKind on expr->type */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,6 +15,8 @@ struct CGLocal {
   int offset; /* negative offset from IX */
   int size;   /* bytes */
   int is_char; /* 1 if char, else treat as int */
+  int pointer_level; /* >0 for pointer */
+  int base_is_char;  /* base type is char (for pointers) */
   struct CGLocal *next;
 };
 
@@ -120,10 +123,14 @@ static struct CGLocal *build_locals(struct ASTNode *body) {
     if (!n->u.decl.decltor || !n->u.decl.decltor->name) continue;
     {
       struct CGLocal *loc = (struct CGLocal *)malloc(sizeof(struct CGLocal));
-      int sz = type_size_from_spec(n->u.decl.spec_flags);
+      int ptr = n->u.decl.decltor ? n->u.decl.decltor->pointer_level : 0;
+      int base_char = is_char_from_spec(n->u.decl.spec_flags);
+      int sz = (ptr > 0) ? 2 : type_size_from_spec(n->u.decl.spec_flags);
       loc->size = sz;
       loc->offset = -(accumulated + sz);
-      loc->is_char = is_char_from_spec(n->u.decl.spec_flags);
+      loc->pointer_level = ptr;
+      loc->base_is_char = base_char;
+      loc->is_char = (ptr == 0) && base_char;
       loc->name = (char *)malloc(strlen(n->u.decl.decltor->name) + 1);
       if (loc->name) strcpy(loc->name, n->u.decl.decltor->name);
       loc->next = head; head = loc; accumulated += sz;
@@ -136,24 +143,52 @@ static struct CGLocal *find_local(struct CGLocal *head, const char *name) {
   for (; head; head = head->next) if (head->name && strcmp(head->name, name) == 0) return head; return NULL;
 }
 
+/* Compute size in bytes for a semantic type (minimal mapping for this target). */
+static int type_size_from_type(struct Type *t) {
+  if (!t) return 2;
+  switch (t->kind) {
+    case TYPE_CHAR: return 1;
+    case TYPE_SHORT: return 2;
+    case TYPE_INT: return 2;
+    case TYPE_LONG: return 4;
+    case TYPE_FLOAT: return 4;
+    case TYPE_POINTER: return 2;
+    case TYPE_ARRAY: return type_size_from_type(t->base_type);
+    default: return 2;
+  }
+}
+
+static int kind_is_integer(enum TypeKind k) {
+  return (k == TYPE_CHAR || k == TYPE_SHORT || k == TYPE_INT || k == TYPE_LONG);
+}
+
 /* Expression generation producing result in value register (HL for Z80 backend). */
 static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *locals);
 
-static void gen_load_ident(struct Codegen *cg, const char *name, struct CGLocal *locals) {
+static void gen_load_ident(struct Codegen *cg, struct ASTNode *ident_expr, struct CGLocal *locals) {
   struct CGLocal *loc;
   if (!cg) return;
-  loc = find_local(locals, name);
+  if (!ident_expr || ident_expr->kind_tag != 0) return;
+  loc = find_local(locals, ident_expr->u.expr.ident);
   if (loc) {
     if (cg->addr_local) cg->addr_local(cg, loc->offset);
+    if (cg->addr_from_value) cg->addr_from_value(cg);
     if (loc->is_char) {
       if (cg->load_char) cg->load_char(cg);
+      if (cg->char_to_value) cg->char_to_value(cg);
     } else {
       if (cg->load_int) cg->load_int(cg);
     }
   } else {
     /* Treat as global symbol */
-    if (cg->addr_symbol) cg->addr_symbol(cg, name);
-    if (cg->load_int) cg->load_int(cg);
+    if (cg->addr_symbol) cg->addr_symbol(cg, ident_expr->u.expr.ident);
+    if (cg->addr_from_value) cg->addr_from_value(cg);
+    if (ident_expr->type && ident_expr->type->kind == TYPE_CHAR) {
+      if (cg->load_char) cg->load_char(cg);
+      if (cg->char_to_value) cg->char_to_value(cg);
+    } else {
+      if (cg->load_int) cg->load_int(cg);
+    }
   }
 }
 
@@ -163,6 +198,7 @@ static void gen_store_ident(struct Codegen *cg, const char *name, struct CGLocal
   loc = find_local(locals, name);
   if (loc) {
     if (cg->addr_local) cg->addr_local(cg, loc->offset);
+    if (cg->addr_from_value) cg->addr_from_value(cg);
     if (loc->is_char || is_char) {
       if (cg->store_char) cg->store_char(cg);
     } else {
@@ -171,6 +207,7 @@ static void gen_store_ident(struct Codegen *cg, const char *name, struct CGLocal
   } else {
     /* Global variable store (assume int) */
     if (cg->addr_symbol) cg->addr_symbol(cg, name);
+    if (cg->addr_from_value) cg->addr_from_value(cg);
     if (cg->store_int) cg->store_int(cg);
   }
 }
@@ -179,24 +216,75 @@ static void gen_binary(struct Codegen *cg, struct ASTNode *expr, struct CGLocal 
   int op;
   if (!cg || !expr) return;
   op = expr->u.expr.op;
-  /* Left-associative: evaluate left first into HL. Preserve HL while computing RHS. */
-  gen_expr(cg, expr->u.expr.e1, locals); /* HL = left */
-  /* Save left on stack (always for simplicity). */
-  fprintf(cg->output, "\tpush hl\n");
-  /* Evaluate right into HL, move to DE, restore left back to HL. */
-  gen_expr(cg, expr->u.expr.e2, locals); /* HL = right */
-  if (cg->value_to_rhs) cg->value_to_rhs(cg); /* DE = right */
-  fprintf(cg->output, "\tpop hl\n"); /* HL = left */
-  switch (op) {
-    case '+': if (cg->op_add) cg->op_add(cg); break;
-    case '-': if (cg->op_sub) cg->op_sub(cg); break;
-    case '*': if (cg->op_mul) cg->op_mul(cg); break;
-    case '/': if (cg->op_div) cg->op_div(cg); break;
-    case '%': if (cg->op_mod) cg->op_mod(cg); break;
-    case OP_SHL: if (cg->op_shl) cg->op_shl(cg); break;
-    case OP_SHR: if (cg->op_shr) cg->op_shr(cg); break;
-    case '=': /* handled elsewhere */ break;
-    default: fprintf(cg->output, "\t; TODO unsupported binary op %d\n", op); break;
+  {
+    struct Type *t1 = (expr->u.expr.e1 && expr->u.expr.e1->type) ? expr->u.expr.e1->type : NULL;
+    struct Type *t2 = (expr->u.expr.e2 && expr->u.expr.e2->type) ? expr->u.expr.e2->type : NULL;
+    int left_is_ptr = (t1 && t1->kind == TYPE_POINTER);
+    int right_is_ptr = (t2 && t2->kind == TYPE_POINTER);
+    int left_is_int = (t1 && kind_is_integer(t1->kind));
+    int right_is_int = (t2 && kind_is_integer(t2->kind));
+    int elem_size;
+    /* Default evaluation: left then right */
+    gen_expr(cg, expr->u.expr.e1, locals); /* HL = left */
+    fprintf(cg->output, "\tpush hl\n");
+    gen_expr(cg, expr->u.expr.e2, locals); /* HL = right */
+    if (cg->value_to_rhs) cg->value_to_rhs(cg); /* DE = right */
+    fprintf(cg->output, "\tpop hl\n"); /* HL = left */
+
+    /* Pointer arithmetic */
+    if (op == '+') {
+      if (left_is_ptr && right_is_int) {
+        elem_size = type_size_from_type(t1 ? t1->base_type : NULL);
+        if (cg->scale_rhs_by) cg->scale_rhs_by(cg, elem_size);
+      } else if (left_is_int && right_is_ptr) {
+        /* Swap to get HL=ptr, DE=int */
+        if (cg->rhs_to_lhs) cg->rhs_to_lhs(cg);
+        elem_size = type_size_from_type(t2 ? t2->base_type : NULL);
+        if (cg->scale_rhs_by) cg->scale_rhs_by(cg, elem_size);
+      }
+    } else if (op == '-') {
+      if (left_is_ptr && right_is_int) {
+        elem_size = type_size_from_type(t1 ? t1->base_type : NULL);
+        if (cg->scale_rhs_by) cg->scale_rhs_by(cg, elem_size);
+      } else if (left_is_ptr && right_is_ptr) {
+        /* Raw pointer difference, then divide by element size */
+        if (cg->op_sub_int) cg->op_sub_int(cg);
+        elem_size = type_size_from_type(t1 ? t1->base_type : NULL);
+        if (elem_size > 1 && cg->divide_value_by) cg->divide_value_by(cg, elem_size);
+        return; /* Done */
+      }
+    }
+  }
+  {
+    int both_char = (expr->u.expr.e1 && expr->u.expr.e2 &&
+                     expr->u.expr.e1->type && expr->u.expr.e2->type &&
+                     expr->u.expr.e1->type->kind == TYPE_CHAR &&
+                     expr->u.expr.e2->type->kind == TYPE_CHAR);
+    if (both_char) {
+      if (cg->value_to_char) cg->value_to_char(cg); /* HL.low -> A */
+      switch (op) {
+        case '+': if (cg->op_add_char) cg->op_add_char(cg); break;
+        case '-': if (cg->op_sub_char) cg->op_sub_char(cg); break;
+        case '*': if (cg->op_mul_char) cg->op_mul_char(cg); break;
+        case '/': if (cg->op_div_char) cg->op_div_char(cg); break;
+        case '%': if (cg->op_mod_char) cg->op_mod_char(cg); break;
+        case OP_SHL: if (cg->op_shl_char) cg->op_shl_char(cg); break;
+        case OP_SHR: if (cg->op_shr_char) cg->op_shr_char(cg); break;
+        default: fprintf(cg->output, "\t; TODO unsupported binary op %d\n", op); break;
+      }
+    } else {
+      switch (op) {
+        case '+': if (cg->op_add_int) cg->op_add_int(cg); break;
+        case '-': if (cg->op_sub_int) cg->op_sub_int(cg); break;
+        case '*': if (cg->op_mul_int) cg->op_mul_int(cg); break;
+        case '/': if (cg->op_div_int) cg->op_div_int(cg); break;
+        case '%': if (cg->op_mod_int) cg->op_mod_int(cg); break;
+        case OP_SHL: if (cg->op_shl_int) cg->op_shl_int(cg); break;
+        case OP_SHR: if (cg->op_shr_int) cg->op_shr_int(cg); break;
+        case '=': /* handled elsewhere */ break;
+        default: fprintf(cg->output, "\t; TODO unsupported binary op %d\n", op); break;
+      }
+    }
   }
 }
 
@@ -216,8 +304,24 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
       }
       break;
     case EXPR_IDENT:
-      gen_load_ident(cg, expr->u.expr.ident, locals);
+      gen_load_ident(cg, expr, locals);
       break;
+    case EXPR_CAST: {
+      /* Evaluate operand then apply simple width conversion for char/int/pointer.
+         Only integral and pointer casts implemented; floats/long not yet handled. */
+      struct Type *target = expr->type;
+      gen_expr(cg, expr->u.expr.e1, locals);
+      if (target) {
+        if (target->kind == TYPE_CHAR) {
+          /* Truncate to 8 bits and zero-extend */
+          if (cg->value_to_char) cg->value_to_char(cg);
+          if (cg->char_to_value) cg->char_to_value(cg);
+        } else {
+          /* For other supported target kinds (int, pointer) no action needed. */
+        }
+      }
+      break;
+    }
     case EXPR_CALL: {
       /* Function call: push args right-to-left, direct call only (identifier). */
       struct ASTList *arg; int count = 0, i; struct ASTNode **arr; int total_bytes = 0;
@@ -261,7 +365,23 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
     case EXPR_UNARY:
       if (expr->u.expr.op == '-') {
         gen_expr(cg, expr->u.expr.e1, locals);
-        if (cg->op_neg) cg->op_neg(cg);
+        if (expr->u.expr.e1 && expr->u.expr.e1->type && expr->u.expr.e1->type->kind == TYPE_CHAR) {
+          if (cg->value_to_char) cg->value_to_char(cg);
+          if (cg->op_neg_char) cg->op_neg_char(cg);
+        } else {
+          if (cg->op_neg_int) cg->op_neg_int(cg);
+        }
+      } else if (expr->u.expr.op == '*') {
+        /* rvalue dereference: compute address into IY, then load */
+        struct ASTNode *addr = expr->u.expr.e1;
+        int is_char_deref = (expr->type && expr->type->kind == TYPE_CHAR);
+        /* Compute address value into HL */
+        gen_expr(cg, addr, locals);
+        /* Move HL -> IY */
+        if (cg->addr_from_value) cg->addr_from_value(cg);
+        /* Load */
+        if (is_char_deref) { if (cg->load_char) cg->load_char(cg); if (cg->char_to_value) cg->char_to_value(cg); }
+        else { if (cg->load_int) cg->load_int(cg); }
       } else {
         gen_expr(cg, expr->u.expr.e1, locals);
         fprintf(cg->output, "\t; TODO unary op %d\n", expr->u.expr.op);
@@ -270,23 +390,40 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
     case EXPR_BINARY:
       if (expr->u.expr.op == '=') {
         /* Assignment: left ident only for now. Compute LHS address first (may clobber HL), then evaluate RHS into HL, then store. */
-        if (expr->u.expr.e1 && expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
-          const char *name = expr->u.expr.e1->u.expr.ident;
-          struct CGLocal *loc = find_local(locals, name);
-          int is_char = (loc && loc->is_char) ? 1 : 0;
-          /* Compute address of LHS first */
-          if (loc) {
-            if (cg->addr_local) cg->addr_local(cg, loc->offset);
+        if (expr->u.expr.e1) {
+          int is_char = 0;
+          if (expr->u.expr.e1->kind_tag == 0 && expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
+            const char *name = expr->u.expr.e1->u.expr.ident;
+            struct CGLocal *loc = find_local(locals, name);
+            if (loc) {
+              is_char = loc->is_char;
+              if (cg->addr_local) cg->addr_local(cg, loc->offset);
+            } else {
+              if (cg->addr_symbol) cg->addr_symbol(cg, name);
+              /* Use semantic type of LHS identifier for globals */
+              if (expr->u.expr.e1->type && expr->u.expr.e1->type->kind == TYPE_CHAR) is_char = 1;
+            }
+            if (cg->addr_from_value) cg->addr_from_value(cg);
+          } else if (expr->u.expr.e1->kind_tag == 0 && expr->u.expr.e1->u.expr.kind == EXPR_UNARY && expr->u.expr.e1->u.expr.op == '*') {
+            /* Complex lvalue: *(...): compute address into IY */
+            struct ASTNode *addr = expr->u.expr.e1->u.expr.e1;
+            /* Decide store width from the lvalue's type */
+            if (expr->u.expr.e1->type && expr->u.expr.e1->type->kind == TYPE_CHAR) is_char = 1;
+            gen_expr(cg, addr, locals); /* HL = computed address value */
+            if (cg->addr_from_value) cg->addr_from_value(cg); /* IY = HL */
           } else {
-            if (cg->addr_symbol) cg->addr_symbol(cg, name);
+            fprintf(cg->output, "\t; TODO complex lvalue\n");
           }
-          /* Now compute RHS value into HL */
-          gen_expr(cg, expr->u.expr.e2, locals);
-          /* And store */
-          if (is_char) { if (cg->store_char) cg->store_char(cg); }
-          else { if (cg->store_int) cg->store_int(cg); }
-        } else {
-          fprintf(cg->output, "\t; TODO complex lvalue\n");
+          /* RHS */
+          if (is_char) {
+            struct ASTNode *rhs = expr->u.expr.e2;
+            gen_expr(cg, rhs, locals);
+            if (cg->value_to_char) cg->value_to_char(cg);
+            if (cg->store_char) cg->store_char(cg);
+          } else {
+            gen_expr(cg, expr->u.expr.e2, locals);
+            if (cg->store_int) cg->store_int(cg);
+          }
         }
       } else {
         gen_binary(cg, expr, locals);
@@ -323,10 +460,11 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
             } else {
               if (cg->addr_symbol) cg->addr_symbol(cg, dn->u.decl.decltor->name);
             }
+            if (cg->addr_from_value) cg->addr_from_value(cg);
             /* Evaluate RHS */
             gen_expr(cg, dn->u.decl.init, locals);
-            /* Store */
-            if (is_char_init) { if (cg->store_char) cg->store_char(cg); }
+            /* Store (apply conversion as if by assignment) */
+            if (is_char_init) { if (cg->value_to_char) cg->value_to_char(cg); if (cg->store_char) cg->store_char(cg); }
             else { if (cg->store_int) cg->store_int(cg); }
           }
           continue;

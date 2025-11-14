@@ -4,6 +4,7 @@
 /* Simple AST for a C90-like grammar. Keep structures minimal and C90-friendly. */
 
 struct ASTNode;
+struct Type; /* forward decl for semantic types */
 struct ASTList {
   struct ASTNode *node;
   struct ASTList *next;
@@ -161,6 +162,8 @@ struct ASTNode {
       int stack_size;       /* total stack space for local variables */
     } ext;
   } u;
+  /* Inferred type for expressions (set by semantic analysis); NULL if unknown */
+  struct Type *type;
 };
 
 /* Constructors and utilities */

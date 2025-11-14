@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "sema.h" /* for type_free */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -441,6 +442,10 @@ void ast_free(struct ASTNode *node) {
     return;
   switch (node->kind_tag) {
   case 0: /* expr */
+    if (node->type) {
+      type_free(node->type);
+      node->type = 0;
+    }
     ast_free(node->u.expr.e1);
     ast_free(node->u.expr.e2);
     ast_free(node->u.expr.e3);

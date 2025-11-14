@@ -20,21 +20,39 @@ struct Codegen {
   void (*addr_symbol)(struct Codegen *cg, const char *name);
   void (*addr_local)(struct Codegen *cg, int offset);
   void (*addr_param)(struct Codegen *cg, int offset);
+  /* Move computed address in value register (HL) into address register context (IY) */
+  void (*addr_from_value)(struct Codegen *cg);
   void (*load_int)(struct Codegen *cg);
   void (*load_char)(struct Codegen *cg);
   void (*store_int)(struct Codegen *cg);
   void (*store_char)(struct Codegen *cg);
   void (*emit_const_int)(struct Codegen *cg, const char *lexeme);
+  void (*emit_const_char)(struct Codegen *cg, const char *lexeme);
   void (*value_to_rhs)(struct Codegen *cg);
   void (*rhs_to_lhs)(struct Codegen *cg);
-  void (*op_add)(struct Codegen *cg);
-  void (*op_sub)(struct Codegen *cg);
-  void (*op_neg)(struct Codegen *cg);
-  void (*op_mul)(struct Codegen *cg);
-  void (*op_div)(struct Codegen *cg);
-  void (*op_mod)(struct Codegen *cg);
-  void (*op_shl)(struct Codegen *cg);
-  void (*op_shr)(struct Codegen *cg);
+  void (*value_to_char)(struct Codegen *cg);
+  void (*char_to_value)(struct Codegen *cg); /* zero-extend A into HL */
+  /* untyped variants removed; use typed below */
+  /* Typed variants for 8-bit vs 16-bit arithmetic */
+  void (*op_add_char)(struct Codegen *cg);
+  void (*op_sub_char)(struct Codegen *cg);
+  void (*op_mul_char)(struct Codegen *cg);
+  void (*op_div_char)(struct Codegen *cg);
+  void (*op_mod_char)(struct Codegen *cg);
+  void (*op_neg_char)(struct Codegen *cg);
+  void (*op_shl_char)(struct Codegen *cg);
+  void (*op_shr_char)(struct Codegen *cg);
+  void (*op_add_int)(struct Codegen *cg);
+  void (*op_sub_int)(struct Codegen *cg);
+  void (*op_mul_int)(struct Codegen *cg);
+  void (*op_div_int)(struct Codegen *cg);
+  void (*op_mod_int)(struct Codegen *cg);
+  void (*op_neg_int)(struct Codegen *cg);
+  void (*op_shl_int)(struct Codegen *cg);
+  void (*op_shr_int)(struct Codegen *cg);
+  /* Helpers for typed arithmetic */
+  void (*scale_rhs_by)(struct Codegen *cg, int factor);   /* DE = DE * factor */
+  void (*divide_value_by)(struct Codegen *cg, int divisor); /* HL = HL / divisor */
   void (*push_arg)(struct Codegen *cg);
   void (*call_direct)(struct Codegen *cg, const char *name);
   void (*cleanup_args)(struct Codegen *cg, int num_bytes);

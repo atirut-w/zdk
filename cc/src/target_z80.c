@@ -158,24 +158,30 @@ static void z80_act_alloc_stack(struct Codegen *cg, int bytes) {
 }
 
 static void z80_act_addr_symbol(struct Codegen *cg, const char *name) {
-  /* Address of global symbol -> IY */
-  fprintf(cg->output, "\tld iy, %s\n", name);
+  /* Address of global symbol -> HL */
+  fprintf(cg->output, "\tld hl, %s\n", name);
 }
 
 static void z80_act_addr_local(struct Codegen *cg, int offset) {
   /* locals at negative offsets from IX; compute address in IY */
   fprintf(cg->output, "\tpush ix\n");
-  fprintf(cg->output, "\tpop iy\n");
+  fprintf(cg->output, "\tpop hl\n");
   fprintf(cg->output, "\tld de, %d\n", offset);
-  fprintf(cg->output, "\tadd iy, de\n");
+  fprintf(cg->output, "\tadd hl, de\n");
 }
 
 static void z80_act_addr_param(struct Codegen *cg, int offset) {
   /* params at positive offsets from IX; compute address in IY */
   fprintf(cg->output, "\tpush ix\n");
-  fprintf(cg->output, "\tpop iy\n");
+  fprintf(cg->output, "\tpop hl\n");
   fprintf(cg->output, "\tld de, %d\n", offset);
-  fprintf(cg->output, "\tadd iy, de\n");
+  fprintf(cg->output, "\tadd hl, de\n");
+}
+
+static void z80_act_addr_from_value(struct Codegen *cg) {
+  /* Move address in HL into IY */
+  fprintf(cg->output, "\tpush hl\n");
+  fprintf(cg->output, "\tpop iy\n");
 }
 
 static void z80_act_load_int(struct Codegen *cg) {
@@ -202,6 +208,10 @@ static void z80_act_emit_const_int(struct Codegen *cg, const char *lexeme) {
   fprintf(cg->output, "\tld hl, %s\n", lexeme);
 }
 
+static void z80_act_emit_const_char(struct Codegen *cg, const char *lexeme) {
+  fprintf(cg->output, "\tld a, %s\n", lexeme);
+}
+
 static void z80_act_value_to_rhs(struct Codegen *cg) { /* HL -> DE */
   /* Swap is cheaper here; caller restores HL soon after */
   fprintf(cg->output, "\tex de, hl\n");
@@ -209,6 +219,18 @@ static void z80_act_value_to_rhs(struct Codegen *cg) { /* HL -> DE */
 
 static void z80_act_rhs_to_lhs(struct Codegen *cg) { /* DE -> HL */
   fprintf(cg->output, "\tex de, hl\n");
+}
+
+static void z80_act_value_to_char(struct Codegen *cg) {
+  /* Move low byte of HL into A */
+  fprintf(cg->output, "\tld a, l\n");
+}
+
+static void z80_act_char_to_value(struct Codegen *cg) {
+  /* Zero-extend A into HL */
+  fprintf(cg->output, "\tld l, a\n");
+  fprintf(cg->output, "\txor a\n");
+  fprintf(cg->output, "\tld h, a\n");
 }
 
 static void z80_act_op_add(struct Codegen *cg) { fprintf(cg->output, "\tadd hl, de\n"); }
@@ -219,6 +241,63 @@ static void z80_act_op_div(struct Codegen *cg) { fprintf(cg->output, "\tpush de\
 static void z80_act_op_mod(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __modhi3\n\tpop bc\n\tpop bc\n"); }
 static void z80_act_op_shl(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __ashlhi3\n\tpop bc\n\tpop bc\n"); }
 static void z80_act_op_shr(struct Codegen *cg) { fprintf(cg->output, "\tpush de\n\tpush hl\n\tcall __ashrhi3\n\tpop bc\n\tpop bc\n"); }
+
+static void z80_act_scale_rhs_by(struct Codegen *cg, int factor) {
+  /* Reuse op_mul: starting HL=left (ptr), DE=right (int)
+     We want DE = right*factor, HL = left preserved. */
+  fprintf(cg->output, "\tex de, hl\n"); /* HL = right, DE = left */
+  fprintf(cg->output, "\tpush hl\n"); /* save right */
+  fprintf(cg->output, "\tld hl, %d\n", factor); /* HL = factor */
+  fprintf(cg->output, "\tex de, hl\n"); /* DE = factor, HL = left */
+  fprintf(cg->output, "\tpop hl\n"); /* HL = right */
+  /* HL=right, DE=factor -> HL = right*factor */
+  z80_act_op_mul(cg);
+  fprintf(cg->output, "\tex de, hl\n"); /* DE = scaled, HL = left */
+}
+
+static void z80_act_divide_value_by(struct Codegen *cg, int divisor) {
+  /* Reuse op_div: expect HL = value, DE = divisor */
+  fprintf(cg->output, "\tpush hl\n"); /* save value */
+  fprintf(cg->output, "\tld hl, %d\n", divisor); /* HL = divisor */
+  fprintf(cg->output, "\tex de, hl\n"); /* DE = divisor */
+  fprintf(cg->output, "\tpop hl\n"); /* HL = value */
+  z80_act_op_div(cg); /* HL = value / divisor */
+}
+
+/* 8-bit (char) arithmetic variants */
+static void z80_op_add_char(struct Codegen *cg) {
+  fprintf(cg->output, "\tld a, l\n");
+  fprintf(cg->output, "\tadd a, e\n");
+  fprintf(cg->output, "\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_sub_char(struct Codegen *cg) {
+  fprintf(cg->output, "\tld a, l\n");
+  fprintf(cg->output, "\tsub e\n");
+  fprintf(cg->output, "\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_neg_char(struct Codegen *cg) {
+  fprintf(cg->output, "\tld a, l\n\txor a\n\tsub l\n\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_mul_char(struct Codegen *cg) {
+  z80_act_op_mul(cg);
+  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_div_char(struct Codegen *cg) {
+  z80_act_op_div(cg);
+  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_mod_char(struct Codegen *cg) {
+  z80_act_op_mod(cg);
+  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_shl_char(struct Codegen *cg) {
+  z80_act_op_shl(cg);
+  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
+}
+static void z80_op_shr_char(struct Codegen *cg) {
+  z80_act_op_shr(cg);
+  fprintf(cg->output, "\tld a, l\n\tld l, a\n\txor a\n\tld h, a\n");
+}
 
 static void z80_act_push_arg(struct Codegen *cg) { fprintf(cg->output, "\tpush hl\n"); }
 static void z80_act_call_direct(struct Codegen *cg, const char *name) { fprintf(cg->output, "\tcall %s\n", name); }
@@ -240,21 +319,37 @@ static void z80_init_codegen(struct Codegen *cg) {
   cg->addr_symbol = z80_act_addr_symbol;
   cg->addr_local = z80_act_addr_local;
   cg->addr_param = z80_act_addr_param;
+  cg->addr_from_value = z80_act_addr_from_value;
   cg->load_int = z80_act_load_int;
   cg->load_char = z80_act_load_char;
   cg->store_int = z80_act_store_int;
   cg->store_char = z80_act_store_char;
   cg->emit_const_int = z80_act_emit_const_int;
+  cg->emit_const_char = z80_act_emit_const_char;
   cg->value_to_rhs = z80_act_value_to_rhs;
   cg->rhs_to_lhs = z80_act_rhs_to_lhs;
-  cg->op_add = z80_act_op_add;
-  cg->op_sub = z80_act_op_sub;
-  cg->op_neg = z80_act_op_neg;
-  cg->op_mul = z80_act_op_mul;
-  cg->op_div = z80_act_op_div;
-  cg->op_mod = z80_act_op_mod;
-  cg->op_shl = z80_act_op_shl;
-  cg->op_shr = z80_act_op_shr;
+  cg->value_to_char = z80_act_value_to_char;
+  cg->char_to_value = z80_act_char_to_value;
+  /* 16-bit (int) arithmetic */
+  cg->op_add_int = z80_act_op_add;
+  cg->op_sub_int = z80_act_op_sub;
+  cg->op_neg_int = z80_act_op_neg;
+  cg->op_mul_int = z80_act_op_mul;
+  cg->op_div_int = z80_act_op_div;
+  cg->op_mod_int = z80_act_op_mod;
+  cg->op_shl_int = z80_act_op_shl;
+  cg->op_shr_int = z80_act_op_shr;
+  /* 8-bit (char) arithmetic */
+  cg->op_add_char = z80_op_add_char;
+  cg->op_sub_char = z80_op_sub_char;
+  cg->op_neg_char = z80_op_neg_char;
+  cg->op_mul_char = z80_op_mul_char;
+  cg->op_div_char = z80_op_div_char;
+  cg->op_mod_char = z80_op_mod_char;
+  cg->op_shl_char = z80_op_shl_char;
+  cg->op_shr_char = z80_op_shr_char;
+  cg->scale_rhs_by = z80_act_scale_rhs_by;
+  cg->divide_value_by = z80_act_divide_value_by;
   cg->push_arg = z80_act_push_arg;
   cg->call_direct = z80_act_call_direct;
   cg->cleanup_args = z80_act_cleanup_args;
