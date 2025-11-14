@@ -21,6 +21,86 @@ static void cg_locals_free(struct CGLocal *l) {
   struct CGLocal *n; while (l) { n = l->next; if (l->name) free(l->name); free(l); l = n; }
 }
 
+/* ==========================
+   String literal collection
+   ========================== */
+
+struct CGString {
+  int id;
+  char *content;
+  struct CGString *next;
+};
+
+static struct CGString *g_string_list = NULL;
+static int g_string_count = 0;
+
+static char *cg_strdup(const char *s) {
+  char *r; size_t n;
+  if (!s) return NULL;
+  n = strlen(s) + 1;
+  r = (char *)malloc(n);
+  if (r) memcpy(r, s, n);
+  return r;
+}
+
+static int cg_add_string(struct Codegen *cg, const char *content) {
+  struct CGString *node;
+  int id;
+  (void)cg;
+  id = g_string_count++;
+  node = (struct CGString *)malloc(sizeof(struct CGString));
+  if (!node) return id;
+  node->id = id;
+  node->content = cg_strdup(content ? content : "");
+  node->next = g_string_list;
+  g_string_list = node;
+  return id;
+}
+
+static void cg_free_strings(struct Codegen *cg) {
+  struct CGString *s = g_string_list; struct CGString *n;
+  (void)cg;
+  while (s) { n = s->next; if (s->content) free(s->content); free(s); s = n; }
+  g_string_list = NULL; g_string_count = 0;
+}
+
+static void cg_emit_escaped_string(FILE *out, const char *p) {
+  const char *s = p;
+  size_t len;
+  size_t i;
+  unsigned char c;
+  if (!s) return;
+  len = strlen(s);
+  if (len >= 2 && s[0] == '"' && s[len - 1] == '"') {
+    s = s + 1;
+    len -= 2;
+  }
+  for (i = 0; i < len; i++) {
+    c = (unsigned char)s[i];
+    if (c == '\n') fprintf(out, "\\n");
+    else if (c == '\t') fprintf(out, "\\t");
+    else if (c == '\r') fprintf(out, "\\r");
+    else if (c == '\\') fprintf(out, "\\\\");
+    else if (c == '"') fprintf(out, "\\\"");
+    else if (c >= 32 && c < 127) fprintf(out, "%c", c);
+    else fprintf(out, "\\%03o", c);
+  }
+}
+
+static void cg_emit_string_data(struct Codegen *cg) {
+  struct CGString *s;
+  if (!cg || !cg->output) return;
+  if (!g_string_list) return;
+  fprintf(cg->output, "\n\t.data\n");
+  /* Emit in reverse of collection order doesn't matter for labels */
+  for (s = g_string_list; s; s = s->next) {
+    fprintf(cg->output, ".LC%d:\n", s->id);
+    fprintf(cg->output, "\t.asciz \"");
+    cg_emit_escaped_string(cg->output, s->content);
+    fprintf(cg->output, "\"\n");
+  }
+}
+
 static int type_size_from_spec(int spec_flags) {
   if (spec_flags & SPF_CHAR) return 1;
   if (spec_flags & SPF_LONG) return 4; /* placeholder */
@@ -128,7 +208,12 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
       if (cg->emit_const_int) cg->emit_const_int(cg, expr->u.expr.const_lexeme ? expr->u.expr.const_lexeme : "0");
       break;
     case EXPR_STRING:
-      if (cg->emit_string_literal) cg->emit_string_literal(cg, expr->u.expr.str ? expr->u.expr.str : "");
+      {
+        int sid; char label[32];
+        sid = cg_add_string(cg, expr->u.expr.str ? expr->u.expr.str : "");
+        sprintf(label, ".LC%d", sid);
+        if (cg->emit_const_int) cg->emit_const_int(cg, label);
+      }
       break;
     case EXPR_IDENT:
       gen_load_ident(cg, expr->u.expr.ident, locals);
@@ -184,25 +269,22 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
       break;
     case EXPR_BINARY:
       if (expr->u.expr.op == '=') {
-        /* Assignment: left ident only for now. Compute address first to avoid clobbering HL value. */
+        /* Assignment: left ident only for now. Compute LHS address first (may clobber HL), then evaluate RHS into HL, then store. */
         if (expr->u.expr.e1 && expr->u.expr.e1->u.expr.kind == EXPR_IDENT) {
           const char *name = expr->u.expr.e1->u.expr.ident;
           struct CGLocal *loc = find_local(locals, name);
-          int is_char = 0;
+          int is_char = (loc && loc->is_char) ? 1 : 0;
+          /* Compute address of LHS first */
           if (loc) {
             if (cg->addr_local) cg->addr_local(cg, loc->offset);
-            is_char = loc->is_char;
           } else {
             if (cg->addr_symbol) cg->addr_symbol(cg, name);
           }
           /* Now compute RHS value into HL */
           gen_expr(cg, expr->u.expr.e2, locals);
           /* And store */
-          if (is_char) {
-            if (cg->store_char) cg->store_char(cg);
-          } else {
-            if (cg->store_int) cg->store_int(cg);
-          }
+          if (is_char) { if (cg->store_char) cg->store_char(cg); }
+          else { if (cg->store_int) cg->store_int(cg); }
         } else {
           fprintf(cg->output, "\t; TODO complex lvalue\n");
         }
@@ -224,7 +306,31 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
     case STMT_COMPOUND:
       for (list = stmt->u.stmt.stmts; list; list = list->next) {
         if (!list->node) continue;
-        if (list->node->kind_tag == 2) continue; /* declaration handled already */
+        if (list->node->kind_tag == 2) {
+          /* Local declaration with optional initializer */
+          struct ASTNode *dn = list->node;
+          if (dn->u.decl.decltor && dn->u.decl.decltor->name && dn->u.decl.init) {
+            struct CGLocal *loc = find_local(locals, dn->u.decl.decltor->name);
+            int is_char_init = 0;
+            if (dn->u.decl.decltor->pointer_level > 0) {
+              is_char_init = 0; /* pointers are 16-bit */
+            } else {
+              is_char_init = (dn->u.decl.spec_flags & SPF_CHAR) != 0;
+            }
+            /* Compute LHS address first (may clobber HL) */
+            if (loc) {
+              if (cg->addr_local) cg->addr_local(cg, loc->offset);
+            } else {
+              if (cg->addr_symbol) cg->addr_symbol(cg, dn->u.decl.decltor->name);
+            }
+            /* Evaluate RHS */
+            gen_expr(cg, dn->u.decl.init, locals);
+            /* Store */
+            if (is_char_init) { if (cg->store_char) cg->store_char(cg); }
+            else { if (cg->store_int) cg->store_int(cg); }
+          }
+          continue;
+        }
         if (list->node->kind_tag == 1) gen_statement(cg, list->node, locals, end_label);
       }
       break;
@@ -268,6 +374,12 @@ void codegen_generate(struct Codegen *cg, struct ASTNode *tree) {
   struct ASTList *list; struct ASTNode *node;
   if (!cg || !tree) return;
   if (tree->kind_tag != 1 || tree->u.stmt.kind != STMT_COMPOUND) return;
+  /* Reset string collection per translation unit */
+  g_string_list = NULL; g_string_count = 0;
+  if (cg->output) {
+    /* Generic section prologue */
+    fprintf(cg->output, "\t.text\n\n");
+  }
   for (list = tree->u.stmt.stmts; list; list = list->next) {
     node = list->node; if (!node || node->kind_tag != 3) continue;
     if (node->u.ext.is_function && node->u.ext.body) {
@@ -282,4 +394,7 @@ void codegen_generate(struct Codegen *cg, struct ASTNode *tree) {
       }
     }
   }
+  /* Emit collected global data (e.g., string literals) */
+  cg_emit_string_data(cg);
+  cg_free_strings(cg);
 }

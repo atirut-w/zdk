@@ -25,7 +25,6 @@ struct Codegen {
   void (*store_int)(struct Codegen *cg);
   void (*store_char)(struct Codegen *cg);
   void (*emit_const_int)(struct Codegen *cg, const char *lexeme);
-  void (*emit_string_literal)(struct Codegen *cg, const char *content);
   void (*value_to_rhs)(struct Codegen *cg);
   void (*rhs_to_lhs)(struct Codegen *cg);
   void (*op_add)(struct Codegen *cg);
@@ -39,7 +38,6 @@ struct Codegen {
   void (*push_arg)(struct Codegen *cg);
   void (*call_direct)(struct Codegen *cg, const char *name);
   void (*cleanup_args)(struct Codegen *cg, int num_bytes);
-  
 };
 
 /* Target interface - holds target-specific information */
