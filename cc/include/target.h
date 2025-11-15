@@ -55,6 +55,8 @@ struct Codegen {
   void (*save_value)(struct Codegen *cg);
   void (*restore_value)(struct Codegen *cg);
   void (*jump_label)(struct Codegen *cg, const char *label);
+  /* Bulk initialization helpers */
+  void (*init_local_from_symbol)(struct Codegen *cg, int local_offset, const char *symbol, int size);
 };
 
 /* Target interface - holds target-specific information */

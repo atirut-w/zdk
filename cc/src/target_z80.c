@@ -312,6 +312,17 @@ static void z80_save_value(struct Codegen *cg) { fprintf(cg->output, "\tpush hl\
 static void z80_restore_value(struct Codegen *cg) { fprintf(cg->output, "\tpop hl\n"); }
 static void z80_jump_label(struct Codegen *cg, const char *label) { fprintf(cg->output, "\tjp %s\n", label); }
 
+static void z80_init_local_from_symbol(struct Codegen *cg, int local_offset, const char *symbol, int size) {
+  /* HL = IX + local_offset (dest), DE = symbol (src), BC = size; LDIR */
+  fprintf(cg->output, "\tpush ix\n");
+  fprintf(cg->output, "\tpop hl\n");
+  fprintf(cg->output, "\tld de, %d\n", local_offset);
+  fprintf(cg->output, "\tadd hl, de\n");
+  fprintf(cg->output, "\tld de, %s\n", symbol);
+  fprintf(cg->output, "\tld bc, %d\n", size);
+  fprintf(cg->output, "\tldir\n");
+}
+
 static void z80_init_codegen(struct Codegen *cg) {
   cg->fn_prologue = z80_act_fn_prologue;
   cg->fn_epilogue = z80_act_fn_epilogue;
@@ -348,6 +359,7 @@ static void z80_init_codegen(struct Codegen *cg) {
   cg->save_value = z80_save_value;
   cg->restore_value = z80_restore_value;
   cg->jump_label = z80_jump_label;
+  cg->init_local_from_symbol = z80_init_local_from_symbol;
 }
 
 /* Public target descriptor */

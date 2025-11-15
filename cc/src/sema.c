@@ -580,6 +580,54 @@ static void analyze_decl(struct Sema *sema, struct ASTNode *decl) {
   
   name = decl->u.decl.decltor->name;
   type = sema_type_from_decl(sema, decl);
+
+  /* If this is an incomplete array with a string literal initializer,
+     infer the array size from the literal length (including NUL). */
+  if (type && type->kind == TYPE_ARRAY && type->array_size < 0) {
+    if (decl->u.decl.init && decl->u.decl.init->kind_tag == 0 &&
+        decl->u.decl.init->u.expr.kind == EXPR_STRING) {
+      const char *s = decl->u.decl.init->u.expr.str;
+      int len = 0;
+      /* Compute byte length of C string literal (without surrounding quotes),
+         interpreting simple escapes (\n, \r, \t, \\, \", octal, hex). */
+      if (s) {
+        const char *p = s;
+        /* Skip surrounding quotes if present */
+        if (*p == '"') {
+          p++;
+          while (*p) {
+            int c;
+            if (*p == '"') { p++; break; }
+            if (*p == '\\') {
+              p++;
+              if (*p == 'x' || *p == 'X') {
+                /* hex escape */
+                p++;
+                while ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F')) {
+                  p++;
+                }
+                len++;
+              } else if (*p >= '0' && *p <= '7') {
+                /* octal up to 3 digits */
+                int i = 0;
+                while (i < 3 && *p >= '0' && *p <= '7') { p++; i++; }
+                len++;
+              } else if (*p) {
+                /* simple one-char escape */
+                p++;
+                len++;
+              }
+            } else {
+              /* regular character */
+              p++;
+              len++;
+            }
+          }
+        }
+      }
+      type->array_size = len + 1; /* include terminating NUL */
+    }
+  }
   
   is_extern = (decl->u.decl.spec_flags & SPF_EXTERN) != 0;
   is_static = (decl->u.decl.spec_flags & SPF_STATIC) != 0;
@@ -604,7 +652,7 @@ static void analyze_decl(struct Sema *sema, struct ASTNode *decl) {
     sym->is_extern = is_extern;
     sym->is_static = is_static;
     
-    /* Calculate stack offset for local variables using target sizes */
+  /* Calculate stack offset for local variables using target sizes */
     if (sema->in_function && !is_extern && !is_static) {
       /* Size computation (Z80 16-bit pointers/ints):
          char=1, short=2, int=2, long=4, float=4, pointer=2.

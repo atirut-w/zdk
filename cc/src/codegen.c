@@ -104,6 +104,34 @@ static void cg_emit_string_data(struct Codegen *cg) {
   }
 }
 
+/* Compute byte length of C string literal content (handles basic escapes). */
+static int cg_string_length_bytes(const char *s) {
+  int len = 0;
+  const char *p;
+  if (!s) return 0;
+  p = s;
+  if (*p == '"') {
+    p++;
+    while (*p) {
+      if (*p == '"') { p++; break; }
+      if (*p == '\\') {
+        p++;
+        if (*p == 'x' || *p == 'X') {
+          p++;
+          while ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F')) p++;
+          len++;
+        } else if (*p >= '0' && *p <= '7') {
+          int i = 0; while (i < 3 && *p >= '0' && *p <= '7') { p++; i++; }
+          len++;
+        } else if (*p) {
+          p++; len++;
+        }
+      } else { p++; len++; }
+    }
+  }
+  return len;
+}
+
 static int type_size_from_spec(int spec_flags) {
   if (spec_flags & SPF_CHAR) return 1;
   if (spec_flags & SPF_LONG) return 4; /* placeholder */
@@ -125,12 +153,33 @@ static struct CGLocal *build_locals(struct ASTNode *body) {
       struct CGLocal *loc = (struct CGLocal *)malloc(sizeof(struct CGLocal));
       int ptr = n->u.decl.decltor ? n->u.decl.decltor->pointer_level : 0;
       int base_char = is_char_from_spec(n->u.decl.spec_flags);
-      int sz = (ptr > 0) ? 2 : type_size_from_spec(n->u.decl.spec_flags);
+      int sz;
+      /* Handle arrays: element size * count; incomplete arrays default to 0 unless string init */
+      if (n->u.decl.decltor->is_array) {
+        int elem_size = (ptr > 0) ? 2 : type_size_from_spec(n->u.decl.spec_flags);
+        int count = 0;
+        /* Try to get explicit constant size */
+        if (n->u.decl.decltor->array_size &&
+            n->u.decl.decltor->array_size->kind_tag == 0 &&
+            n->u.decl.decltor->array_size->u.expr.kind == EXPR_CONST &&
+            n->u.decl.decltor->array_size->u.expr.const_lexeme) {
+          count = atoi(n->u.decl.decltor->array_size->u.expr.const_lexeme);
+        } else if (base_char && ptr == 0 && n->u.decl.init &&
+                   n->u.decl.init->kind_tag == 0 && n->u.decl.init->u.expr.kind == EXPR_STRING) {
+          /* Infer from string literal */
+          int l = cg_string_length_bytes(n->u.decl.init->u.expr.str);
+          count = l + 1; /* include NUL */
+        }
+        sz = (count > 0) ? elem_size * count : 0;
+        /* For arrays, treat is_char for element type only when elem_size==1 */
+      } else {
+        sz = (ptr > 0) ? 2 : type_size_from_spec(n->u.decl.spec_flags);
+      }
       loc->size = sz;
       loc->offset = -(accumulated + sz);
       loc->pointer_level = ptr;
       loc->base_is_char = base_char;
-      loc->is_char = (ptr == 0) && base_char;
+      loc->is_char = (ptr == 0) && base_char && !n->u.decl.decltor->is_array;
       loc->name = (char *)malloc(strlen(n->u.decl.decltor->name) + 1);
       if (loc->name) strcpy(loc->name, n->u.decl.decltor->name);
       loc->next = head; head = loc; accumulated += sz;
@@ -424,24 +473,51 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
           struct ASTNode *dn = list->node;
           if (dn->u.decl.decltor && dn->u.decl.decltor->name && dn->u.decl.init) {
             struct CGLocal *loc = find_local(locals, dn->u.decl.decltor->name);
-            int is_char_init = 0;
-            if (dn->u.decl.decltor->pointer_level > 0) {
-              is_char_init = 0; /* pointers are 16-bit */
+            int is_array = dn->u.decl.decltor->is_array;
+            int is_char_base = (dn->u.decl.spec_flags & SPF_CHAR) != 0 && dn->u.decl.decltor->pointer_level == 0;
+            if (is_array && is_char_base && dn->u.decl.init->kind_tag == 0 && dn->u.decl.init->u.expr.kind == EXPR_STRING) {
+              /* Initialize char array from string literal using target bulk copy if available. */
+              int sid; char base_label[32]; int nbytes;
+              if (!loc) { continue; }
+              sid = cg_add_string(cg, dn->u.decl.init->u.expr.str ? dn->u.decl.init->u.expr.str : "");
+              sprintf(base_label, ".LC%d", sid);
+              nbytes = cg_string_length_bytes(dn->u.decl.init->u.expr.str) + 1; /* include NUL */
+              if (cg->init_local_from_symbol) {
+                cg->init_local_from_symbol(cg, loc->offset, base_label, nbytes);
+              } else {
+                /* Fallback to byte-wise copy if target lacks bulk helper */
+                int i;
+                for (i = 0; i < nbytes; i++) {
+                  char src_label[48];
+                  sprintf(src_label, "%s+%d", base_label, i);
+                  if (cg->emit_const_int) cg->emit_const_int(cg, src_label);
+                  if (cg->addr_from_value) cg->addr_from_value(cg);
+                  if (cg->load_char) cg->load_char(cg);
+                  if (cg->addr_local) cg->addr_local(cg, loc->offset + i);
+                  if (cg->addr_from_value) cg->addr_from_value(cg);
+                  if (cg->store_char) cg->store_char(cg);
+                }
+              }
             } else {
-              is_char_init = (dn->u.decl.spec_flags & SPF_CHAR) != 0;
+              int is_char_init = 0;
+              if (dn->u.decl.decltor->pointer_level > 0) {
+                is_char_init = 0; /* pointers are 16-bit */
+              } else {
+                is_char_init = (dn->u.decl.spec_flags & SPF_CHAR) != 0;
+              }
+              /* Compute LHS address first (may clobber HL) */
+              if (loc) {
+                if (cg->addr_local) cg->addr_local(cg, loc->offset);
+              } else {
+                if (cg->addr_symbol) cg->addr_symbol(cg, dn->u.decl.decltor->name);
+              }
+              if (cg->addr_from_value) cg->addr_from_value(cg);
+              /* Evaluate RHS */
+              gen_expr(cg, dn->u.decl.init, locals);
+              /* Store (apply conversion as if by assignment) */
+              if (is_char_init) { if (cg->truncate_to_char) cg->truncate_to_char(cg); if (cg->store_char) cg->store_char(cg); }
+              else { if (cg->store_int) cg->store_int(cg); }
             }
-            /* Compute LHS address first (may clobber HL) */
-            if (loc) {
-              if (cg->addr_local) cg->addr_local(cg, loc->offset);
-            } else {
-              if (cg->addr_symbol) cg->addr_symbol(cg, dn->u.decl.decltor->name);
-            }
-            if (cg->addr_from_value) cg->addr_from_value(cg);
-            /* Evaluate RHS */
-            gen_expr(cg, dn->u.decl.init, locals);
-            /* Store (apply conversion as if by assignment) */
-            if (is_char_init) { if (cg->truncate_to_char) cg->truncate_to_char(cg); if (cg->store_char) cg->store_char(cg); }
-            else { if (cg->store_int) cg->store_int(cg); }
           }
           continue;
         }
