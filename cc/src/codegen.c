@@ -17,6 +17,7 @@ struct CGLocal {
   int is_char; /* 1 if char, else treat as int */
   int pointer_level; /* >0 for pointer */
   int base_is_char;  /* base type is char (for pointers) */
+  int is_array; /* declarator is array */
   struct CGLocal *next;
 };
 
@@ -180,6 +181,7 @@ static struct CGLocal *build_locals(struct ASTNode *body) {
       loc->pointer_level = ptr;
       loc->base_is_char = base_char;
       loc->is_char = (ptr == 0) && base_char && !n->u.decl.decltor->is_array;
+      loc->is_array = n->u.decl.decltor->is_array;
       loc->name = (char *)malloc(strlen(n->u.decl.decltor->name) + 1);
       if (loc->name) strcpy(loc->name, n->u.decl.decltor->name);
       loc->next = head; head = loc; accumulated += sz;
@@ -220,6 +222,11 @@ static void gen_load_ident(struct Codegen *cg, struct ASTNode *ident_expr, struc
   if (!ident_expr || ident_expr->kind_tag != 0) return;
   loc = find_local(locals, ident_expr->u.expr.ident);
   if (loc) {
+    /* For arrays used as rvalues, yield their address (HL), not the contents. */
+    if (loc->is_array) {
+      if (cg->addr_local) cg->addr_local(cg, loc->offset); /* HL = &array */
+      return;
+    }
     if (cg->addr_local) cg->addr_local(cg, loc->offset);
     if (cg->addr_from_value) cg->addr_from_value(cg);
     if (loc->is_char) {
@@ -229,12 +236,19 @@ static void gen_load_ident(struct Codegen *cg, struct ASTNode *ident_expr, struc
     }
   } else {
     /* Treat as global symbol */
+    /* If this identifier refers to an object with addressable storage and is used as rvalue,
+       prefer emitting its address for arrays/labels; for other objects, load value. */
     if (cg->addr_symbol) cg->addr_symbol(cg, ident_expr->u.expr.ident);
-    if (cg->addr_from_value) cg->addr_from_value(cg);
-    if (ident_expr->type && ident_expr->type->kind == TYPE_CHAR) {
-      if (cg->load_char) cg->load_char(cg);
+    if (ident_expr->type && ident_expr->type->kind == TYPE_POINTER) {
+      /* Assume decayed array -> want address in HL. Do not dereference/load. */
+      return;
     } else {
-      if (cg->load_int) cg->load_int(cg);
+      if (cg->addr_from_value) cg->addr_from_value(cg);
+      if (ident_expr->type && ident_expr->type->kind == TYPE_CHAR) {
+        if (cg->load_char) cg->load_char(cg);
+      } else {
+        if (cg->load_int) cg->load_int(cg);
+      }
     }
   }
 }
@@ -440,13 +454,16 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
             fprintf(cg->output, "\t; TODO complex lvalue\n");
           }
           /* RHS */
+          if (cg->save_addr) cg->save_addr(cg);
           if (is_char) {
             struct ASTNode *rhs = expr->u.expr.e2;
             gen_expr(cg, rhs, locals);
             if (cg->truncate_to_char) cg->truncate_to_char(cg);
+            if (cg->restore_addr) cg->restore_addr(cg);
             if (cg->store_char) cg->store_char(cg);
           } else {
             gen_expr(cg, expr->u.expr.e2, locals);
+            if (cg->restore_addr) cg->restore_addr(cg);
             if (cg->store_int) cg->store_int(cg);
           }
         }
@@ -513,10 +530,11 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
               }
               if (cg->addr_from_value) cg->addr_from_value(cg);
               /* Evaluate RHS */
+              if (cg->save_addr) cg->save_addr(cg);
               gen_expr(cg, dn->u.decl.init, locals);
               /* Store (apply conversion as if by assignment) */
-              if (is_char_init) { if (cg->truncate_to_char) cg->truncate_to_char(cg); if (cg->store_char) cg->store_char(cg); }
-              else { if (cg->store_int) cg->store_int(cg); }
+              if (is_char_init) { if (cg->truncate_to_char) cg->truncate_to_char(cg); if (cg->restore_addr) cg->restore_addr(cg); if (cg->store_char) cg->store_char(cg); }
+              else { if (cg->restore_addr) cg->restore_addr(cg); if (cg->store_int) cg->store_int(cg); }
             }
           }
           continue;

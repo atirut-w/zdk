@@ -311,6 +311,8 @@ static void z80_act_cleanup_args(struct Codegen *cg, int num_bytes) {
 static void z80_save_value(struct Codegen *cg) { fprintf(cg->output, "\tpush hl\n"); }
 static void z80_restore_value(struct Codegen *cg) { fprintf(cg->output, "\tpop hl\n"); }
 static void z80_jump_label(struct Codegen *cg, const char *label) { fprintf(cg->output, "\tjp %s\n", label); }
+static void z80_save_addr(struct Codegen *cg) { fprintf(cg->output, "\tpush iy\n"); }
+static void z80_restore_addr(struct Codegen *cg) { fprintf(cg->output, "\tpop iy\n"); }
 
 static void z80_init_local_from_symbol(struct Codegen *cg, int local_offset, const char *symbol, int size) {
   /* HL = IX + local_offset (dest), DE = symbol (src), BC = size; LDIR */
@@ -359,6 +361,8 @@ static void z80_init_codegen(struct Codegen *cg) {
   cg->save_value = z80_save_value;
   cg->restore_value = z80_restore_value;
   cg->jump_label = z80_jump_label;
+  cg->save_addr = z80_save_addr;
+  cg->restore_addr = z80_restore_addr;
   cg->init_local_from_symbol = z80_init_local_from_symbol;
 }
 
