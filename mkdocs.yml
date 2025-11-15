@@ -6,6 +6,12 @@ repo_url: https://github.com/atirut-w/zdk
 repo_name: atirut-w/zdk
 edit_uri: edit/main/docs/
 
+nav:
+  - ZDK: index.md
+  - ABI Specification: abi.md
+  - Compiler Reference:
+    - C90 Grammar: compiler/c90.md
+
 # Theme configuration
 theme:
   name: material
