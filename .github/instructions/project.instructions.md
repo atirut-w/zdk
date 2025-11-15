@@ -6,6 +6,7 @@ applyTo: "**"
 - Keep codes simple and readable.
 - Avoid unnecessary complexity.
 - Comment your code where necessary to explain non-obvious logic.
+- Prefer `typedef`ing structs and enums for better readability.
 
 # Language, Libraries, and Standards
 - Target C90 and avoid using GNU or Clang extensions unless explicitly requested.

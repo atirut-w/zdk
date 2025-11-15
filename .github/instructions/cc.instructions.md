@@ -4,7 +4,7 @@ applyTo: "cc/**"
 
 # General Guidelines
 - The main compiler codes and the codegen driver must be target-agnostic.
-- Target-specific implementations should be placed in their own codegen files.
+- Target-specific implementations must be put in target implementations, and not the main codegen driver.
 
 # Code Generation
 - Each codegen action must map to a C construct or a subset of C constructs.
