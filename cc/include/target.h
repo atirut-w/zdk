@@ -60,6 +60,9 @@ struct Codegen {
   void (*restore_addr)(struct Codegen *cg);
   /* Bulk initialization helpers */
   void (*init_local_from_symbol)(struct Codegen *cg, int local_offset, const char *symbol, int size);
+  /* Generic value helpers (target-specific implementations) */
+  void (*add_const_to_value)(struct Codegen *cg, int amount); /* HL += amount */
+  void (*jump_if_zero)(struct Codegen *cg, const char *label); /* jump if current value == 0 */
 };
 
 /* Target interface - holds target-specific information */

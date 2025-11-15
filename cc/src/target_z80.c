@@ -315,14 +315,33 @@ static void z80_save_addr(struct Codegen *cg) { fprintf(cg->output, "\tpush iy\n
 static void z80_restore_addr(struct Codegen *cg) { fprintf(cg->output, "\tpop iy\n"); }
 
 static void z80_init_local_from_symbol(struct Codegen *cg, int local_offset, const char *symbol, int size) {
-  /* HL = IX + local_offset (dest), DE = symbol (src), BC = size; LDIR */
+  /* Copy from symbol (source) to local (destination) using LDIR.
+     LDIR performs: (DE) <- (HL); inc DE; inc HL; dec BC; repeat while BC!=0.
+     Therefore set HL = source address (.LCx), DE = destination (IX + offset). */
+  /* DE = IX + local_offset (destination) */
   fprintf(cg->output, "\tpush ix\n");
-  fprintf(cg->output, "\tpop hl\n");
-  fprintf(cg->output, "\tld de, %d\n", local_offset);
+  fprintf(cg->output, "\tpop de\n");
+  fprintf(cg->output, "\tld hl, %d\n", local_offset);
   fprintf(cg->output, "\tadd hl, de\n");
-  fprintf(cg->output, "\tld de, %s\n", symbol);
+  fprintf(cg->output, "\tex de, hl\n"); /* now DE = IX+offset, HL free */
+  /* HL = symbol (source) */
+  fprintf(cg->output, "\tld hl, %s\n", symbol);
+  /* BC = size; LDIR copies from (HL) to (DE) */
   fprintf(cg->output, "\tld bc, %d\n", size);
   fprintf(cg->output, "\tldir\n");
+}
+
+static void z80_add_const_to_value(struct Codegen *cg, int amount) {
+  /* HL += amount */
+  fprintf(cg->output, "\tld de, %d\n", amount);
+  fprintf(cg->output, "\tadd hl, de\n");
+}
+
+static void z80_jump_if_zero(struct Codegen *cg, const char *label) {
+  /* Test low byte in L (or A if desired) and jump if zero */
+  fprintf(cg->output, "\tld a, l\n");
+  fprintf(cg->output, "\tor a\n");
+  fprintf(cg->output, "\tjp z, %s\n", label);
 }
 
 static void z80_init_codegen(struct Codegen *cg) {
@@ -364,6 +383,8 @@ static void z80_init_codegen(struct Codegen *cg) {
   cg->save_addr = z80_save_addr;
   cg->restore_addr = z80_restore_addr;
   cg->init_local_from_symbol = z80_init_local_from_symbol;
+  cg->add_const_to_value = z80_add_const_to_value;
+  cg->jump_if_zero = z80_jump_if_zero;
 }
 
 /* Public target descriptor */

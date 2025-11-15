@@ -68,11 +68,12 @@ static void cg_free_strings(struct Codegen *cg) {
   g_string_list = NULL; g_string_count = 0;
 }
 
-static void cg_emit_escaped_string(FILE *out, const char *p) {
+/* Emit the string literal content between quotes as-is for the assembler,
+   escaping only embedded double-quotes. This preserves backslash escapes like \r, \n. */
+static void cg_emit_string_for_asm(FILE *out, const char *p) {
   const char *s = p;
   size_t len;
   size_t i;
-  unsigned char c;
   if (!s) return;
   len = strlen(s);
   if (len >= 2 && s[0] == '"' && s[len - 1] == '"') {
@@ -80,14 +81,12 @@ static void cg_emit_escaped_string(FILE *out, const char *p) {
     len -= 2;
   }
   for (i = 0; i < len; i++) {
-    c = (unsigned char)s[i];
-    if (c == '\n') fprintf(out, "\\n");
-    else if (c == '\t') fprintf(out, "\\t");
-    else if (c == '\r') fprintf(out, "\\r");
-    else if (c == '\\') fprintf(out, "\\\\");
-    else if (c == '"') fprintf(out, "\\\"");
-    else if (c >= 32 && c < 127) fprintf(out, "%c", c);
-    else fprintf(out, "\\%03o", c);
+    unsigned char c = (unsigned char)s[i];
+    if (c == '"') {
+      fprintf(out, "\\\"");
+    } else {
+      fputc(c, out);
+    }
   }
 }
 
@@ -99,8 +98,9 @@ static void cg_emit_string_data(struct Codegen *cg) {
   /* Emit in reverse of collection order doesn't matter for labels */
   for (s = g_string_list; s; s = s->next) {
     fprintf(cg->output, ".LC%d:\n", s->id);
+    /* Emit as asciz, preserving single backslash escapes (\r, \n, etc.). */
     fprintf(cg->output, "\t.asciz \"");
-    cg_emit_escaped_string(cg->output, s->content);
+    cg_emit_string_for_asm(cg->output, s->content);
     fprintf(cg->output, "\"\n");
   }
 }
@@ -410,6 +410,56 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
         /* Operand already evaluated and (if char) promoted via zero_extend.
            Use generic neg. */
         if (cg->op_neg) cg->op_neg(cg);
+      } else if (expr->u.expr.op == OP_POST_INC) {
+        /* Postfix increment for identifiers: pointer (scaled), int/short, char. */
+        struct ASTNode *operand = expr->u.expr.e1;
+        if (operand && operand->kind_tag == 0 && operand->u.expr.kind == EXPR_IDENT) {
+          const char *name = operand->u.expr.ident;
+          struct CGLocal *loc = find_local(locals, name);
+          enum TypeKind tk = operand->type ? operand->type->kind : TYPE_INT;
+          int is_ptr = (tk == TYPE_POINTER);
+          int is_char = (tk == TYPE_CHAR);
+          int inc_amount = 1;
+          if (is_ptr) {
+            if (operand->type && operand->type->base_type) {
+              inc_amount = type_size_from_type(operand->type->base_type);
+              if (inc_amount <= 0) inc_amount = 1;
+            }
+          }
+          /* Compute address of variable into HL */
+          if (loc) {
+            if (cg->addr_local) cg->addr_local(cg, loc->offset);
+          } else {
+            if (cg->addr_symbol) cg->addr_symbol(cg, name);
+          }
+          if (cg->addr_from_value) cg->addr_from_value(cg); /* IY = address */
+          /* Load current value */
+          if (is_char) {
+            if (cg->load_char) cg->load_char(cg); /* A,L = old byte */
+          } else {
+            if (cg->load_int) cg->load_int(cg); /* HL = old value */
+          }
+          if (cg->save_value) cg->save_value(cg); /* save original (result of expression) */
+          /* Increment */
+          if (cg->add_const_to_value) {
+            cg->add_const_to_value(cg, inc_amount);
+          } else {
+            /* Target must supply add_const_to_value; generic codegen stays target-agnostic. */
+            fprintf(cg->output, "\t; TODO add_const_to_value not implemented for target\n");
+          }
+          /* For char, sync A from L for store */
+          if (is_char) {
+            if (cg->truncate_to_char) cg->truncate_to_char(cg);
+            if (cg->store_char) cg->store_char(cg);
+          } else {
+            if (cg->store_int) cg->store_int(cg);
+          }
+          /* Restore original value */
+          if (cg->restore_value) cg->restore_value(cg);
+        } else {
+          gen_expr(cg, operand, locals);
+          if (cg && cg->output) fprintf(cg->output, "\t; TODO postfix inc (non-ident)\n");
+        }
       } else if (expr->u.expr.op == '*') {
         /* rvalue dereference: compute address into IY, then load */
         struct ASTNode *addr = expr->u.expr.e1;
@@ -545,6 +595,21 @@ static void gen_statement(struct Codegen *cg, struct ASTNode *stmt, struct CGLoc
     case STMT_EXPR:
       gen_expr(cg, stmt->u.stmt.expr, locals);
       break;
+    case STMT_WHILE: {
+      static int wl_counter = 0; char lbl_start[32]; char lbl_end[32];
+      sprintf(lbl_start, ".LwS%d", wl_counter); sprintf(lbl_end, ".LwE%d", wl_counter); wl_counter++;
+      fprintf(cg->output, "%s:\n", lbl_start);
+      /* Evaluate condition */
+      gen_expr(cg, stmt->u.stmt.s1, locals);
+      /* Jump if zero -> end */
+      if (cg->jump_if_zero) cg->jump_if_zero(cg, lbl_end);
+      /* Body */
+      if (stmt->u.stmt.s2) gen_statement(cg, stmt->u.stmt.s2, locals, end_label);
+      /* Loop back */
+      if (cg->jump_label) cg->jump_label(cg, lbl_start);
+      fprintf(cg->output, "%s:\n", lbl_end);
+      break;
+    }
     case STMT_RETURN:
       gen_expr(cg, stmt->u.stmt.expr, locals);
   /* Early return: use target jump helper */
