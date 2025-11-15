@@ -11,3 +11,6 @@ applyTo: "**"
 # Language, Libraries, and Standards
 - Target C90 and avoid using GNU or Clang extensions unless explicitly requested.
 - Use only standard libraries available in C90.
+
+# Documentation
+- If something can't be documented in code, document it in the project's documentation files.
