@@ -338,6 +338,34 @@ static void gen_expr(struct Codegen *cg, struct ASTNode *expr, struct CGLocal *l
     case EXPR_CONST:
       if (cg->emit_const_int) cg->emit_const_int(cg, expr->u.expr.const_lexeme ? expr->u.expr.const_lexeme : "0");
       break;
+    case EXPR_INDEX: {
+      /* a[b] -> *(a + b) with scaling by element size */
+      int elem_size = 1; int is_char_elem = 0;
+      if (expr->type) {
+        is_char_elem = (expr->type->kind == TYPE_CHAR);
+        elem_size = type_size_from_type(expr->type);
+        if (elem_size <= 0) elem_size = 1;
+      }
+      /* Evaluate base address into HL (arrays decay to pointer in gen_load_ident) */
+      gen_expr(cg, expr->u.expr.e1, locals); /* HL = base address */
+      if (cg->save_value) cg->save_value(cg); /* save base */
+      /* Evaluate index into HL */
+      gen_expr(cg, expr->u.expr.e2, locals);
+      if (cg->value_to_rhs) cg->value_to_rhs(cg); /* DE = index */
+      if (cg->restore_value) cg->restore_value(cg); /* HL = base */
+      /* Scale index by element size if needed: HL=base, DE=index */
+      if (elem_size > 1 && cg->scale_rhs_by) cg->scale_rhs_by(cg, elem_size);
+      /* HL += DE -> effective address */
+      if (cg->op_add) cg->op_add(cg);
+      /* Dereference: move address HL -> IY and load */
+      if (cg->addr_from_value) cg->addr_from_value(cg);
+      if (is_char_elem) {
+        if (cg->load_char) cg->load_char(cg);
+      } else {
+        if (cg->load_int) cg->load_int(cg);
+      }
+      break;
+    }
     case EXPR_STRING:
       {
         int sid; char label[32];
