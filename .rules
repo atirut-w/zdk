@@ -1,0 +1,14 @@
+# Project Rules
+
+## General Guidelines
+- Keep codes simple and readable.
+- Avoid unnecessary complexity.
+- Comment your code where necessary to explain non-obvious logic.
+- Prefer `typedef`ing structs and enums for better readability.
+
+## Language, Libraries, and Standards
+- Target C90 without any extensions.
+
+## C Compiler
+- The C compiler under `cc/` must be compliant with C90 standard. The original Yacc and Lex grammars are provided in `docs/compiler/c90.md`.
+- Target-specific code generation must be cleanly separated from the front-end logic.
