@@ -100,16 +100,19 @@ static int er_fetch_line_from_file(const char *filename, int line_no, char **buf
 void error_report(const char *filename,
                   int line,
                   int column,
+                  enum DiagnosticSeverity severity,
                   const char *msg,
                   const char *line_text,
                   int line_len)
 {
     const char *fname;
+    const char *severity_str;
     const char *shown_text;
     int shown_len;
     char *loaded;
     fname = filename ? filename : "<stdin>";
-    fprintf(stderr, "%s:%d:%d: error: %s\n", fname, line, column, msg);
+    severity_str = (severity == DIAG_WARNING) ? "warning" : "error";
+    fprintf(stderr, "%s:%d:%d: %s: %s\n", fname, line, column, severity_str, msg);
 
     shown_text = line_text;
     shown_len = line_len;

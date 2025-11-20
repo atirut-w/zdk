@@ -462,7 +462,7 @@ extern int current_line_len;
 /* compute digit width for gutter */
 int yyerror(char *s)
 {
-	error_report(yyfilename, line, column, s, current_line, current_line_len);
+	error_report(yyfilename, line, column, DIAG_ERROR, s, current_line, current_line_len);
 	return 0;
 }
 

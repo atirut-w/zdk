@@ -76,6 +76,7 @@ static void annotate_expr_types(struct Sema *sema, struct ASTNode *n) {
 static void analyze_stmt(struct Sema *sema, struct ASTNode *stmt);
 static void analyze_compound(struct Sema *sema, struct ASTNode *compound);
 static void sema_error(struct Sema *sema, int line, int col, const char *msg);
+static void sema_warning(struct Sema *sema, int line, int col, const char *msg);
 
 /* ===== Helpers for conversions/promotions (C90-subset) ===== */
 static int type_rank(const struct Type *t) {
@@ -429,8 +430,15 @@ void sema_destroy(struct Sema *sema) {
 static void sema_error(struct Sema *sema, int err_line, int err_col, const char *msg)
 {
   /* Delegate to shared reporter */
-  error_report(yyfilename, err_line, err_col, msg, current_line, current_line_len);
+  error_report(yyfilename, err_line, err_col, DIAG_ERROR, msg, current_line, current_line_len);
   sema->error_count++;
+}
+
+static void sema_warning(struct Sema *sema, int warn_line, int warn_col, const char *msg)
+{
+  /* Delegate to shared reporter for warnings */
+  error_report(yyfilename, warn_line, warn_col, DIAG_WARNING, msg, current_line, current_line_len);
+  /* Warnings don't increment error count */
 }
 
 static void sema_enter_scope(struct Sema *sema, int is_function_scope) {
@@ -814,7 +822,7 @@ static struct Type *analyze_expr(struct Sema *sema, struct ASTNode *expr) {
           /* C90 allows implicit function declarations */
           sprintf(msg, "implicit declaration of function '%s'", 
                   expr->u.expr.e1->u.expr.ident);
-          fprintf(stderr, "Warning at %d:%d: %s\n", expr->line, expr->column, msg);
+          sema_warning(sema, expr->line, expr->column, msg);
           
           /* Add implicit int() function declaration */
           t1 = type_new_function(type_new_basic(TYPE_INT), NULL, 0);
