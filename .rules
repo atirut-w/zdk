@@ -1,0 +1,7 @@
+# Project Rules
+- Do not write summary files or documentations unless explicitly requested.
+- KISS, and avoid unnecessary complexity.
+- CMake build directory should always be at project root level, named `build`.
+
+## Coding Style
+This project uses C90, and only C90, so that it may be self-hosted in the future. This is enforced by a global compiler flag.
