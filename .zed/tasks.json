@@ -1,0 +1,19 @@
+// Project tasks configuration. See https://zed.dev/docs/tasks for documentation.
+[
+  {
+    "label": "Configure",
+    "command": "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug"
+  },
+  {
+    "label": "Build",
+    "command": "cmake --build build --parallel"
+  },
+  {
+    "label": "Clean",
+    "command": "cmake --build build --target clean"
+  },
+  {
+    "label": "Clean Rebuild",
+    "command": "cmake --build build --target clean && cmake --build build --parallel"
+  }
+]
