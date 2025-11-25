@@ -9,6 +9,9 @@ IS			(u|U|l|L)*
 #include <stdio.h>
 #include "parser.h"
 
+int line = 1;
+int column = 1;
+
 int yylex();
 void comment();
 void count();
@@ -138,18 +141,27 @@ loop:
 		putchar(c1);
 }
 
-int column = 0;
-
 void count() {
 	int i;
 
-	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n')
-			column = 0;
-		else if (yytext[i] == '\t')
-			column += 8 - (column % 8);
-		else
-			column++;
+	for (i = 0; yytext[i] != '\0'; i++) {
+    switch (yytext[i]) {
+      case '\r':
+        if (yytext[i + 1] == '\n') {
+          i++; /* skip the next character */
+        }
+      case '\n':
+        line++;
+        column = 1;
+        break;
+      case '\t':
+        column += 8 - ((column - 1) % 8);
+        break;
+      default:
+        column++;
+        break;
+    }
+  }
 
 	ECHO;
 }
