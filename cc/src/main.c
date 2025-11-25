@@ -1,3 +1,8 @@
+#include <lexer.h>
+#include <parser.h>
+
 int main(int argc, char *argv[]) {
-  return 0;
+  yyin = stdin;
+  yyout = stdout;
+  return yyparse();
 }
