@@ -11,6 +11,12 @@
 %token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
 %start translation_unit
+
+%{
+int yylex();
+void yyerror(char *s);
+%}
+
 %%
 
 primary_expression
@@ -420,9 +426,7 @@ function_definition
 extern char yytext[];
 extern int column;
 
-int yyerror(s)
-char *s;
-{
+void yyerror(char *s) {
 	fflush(stdout);
 	printf("\n%*s\n%*s\n", column, "^", column, s);
 }

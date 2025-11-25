@@ -9,7 +9,10 @@ IS			(u|U|l|L)*
 #include <stdio.h>
 #include "parser.h"
 
+int yylex();
+void comment();
 void count();
+int check_type();
 %}
 
 %%
@@ -113,14 +116,12 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 
 %%
 
-int yywrap()
-{
-	return(1);
+int yywrap() {
+	return 1;
 }
 
 
-int comment()
-{
+void comment() {
 	char c, c1;
 
 loop:
@@ -137,11 +138,9 @@ loop:
 		putchar(c1);
 }
 
-
 int column = 0;
 
-void count()
-{
+void count() {
 	int i;
 
 	for (i = 0; yytext[i] != '\0'; i++)
@@ -156,8 +155,7 @@ void count()
 }
 
 
-int check_type()
-{
+int check_type() {
 /*
 * pseudo code --- this is what it should check
 *

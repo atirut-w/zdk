@@ -466,7 +466,7 @@ extern int yylex (void);
 #undef yyTABLES_NAME
 #endif
 
-#line 114 "/home/atirut/Projects/zdk/cc/src/lexer.l"
+#line 117 "/home/atirut/Projects/zdk/cc/src/lexer.l"
 
 
 #line 472 "/home/atirut/Projects/zdk/cc/include/lexer.h"

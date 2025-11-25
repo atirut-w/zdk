@@ -17,5 +17,5 @@ add_executable(cc
     ${FLEX_lexer_OUTPUTS}
     ${BISON_parser_OUTPUTS}
 )
-target_compile_options(cc PRIVATE -std=c90)
+target_compile_options(cc PRIVATE -std=gnu90)
 target_include_directories(cc PRIVATE include)
