@@ -1,2 +1,5 @@
 # Project Rules
 - KISS, and avoid unnecessary complexity.
+
+## `cc/`
+This is (supposed to be) a retargetable, self-compiling C90 compiler written in C90. The parser and lexer are generated from the ANSI C grammar and lex specification.
