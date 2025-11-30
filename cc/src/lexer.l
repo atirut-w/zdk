@@ -9,6 +9,8 @@ IS			(u|U|l|L)*
 #include <stdio.h>
 #include "parser.h"
 
+int start_line = 1;
+int start_column = 1;
 int line = 1;
 int column = 1;
 
@@ -123,7 +125,6 @@ int yywrap() {
 	return 1;
 }
 
-
 void comment() {
 	char c, c1;
 
@@ -143,6 +144,9 @@ loop:
 
 void count() {
 	int i;
+
+	start_line = line;
+    start_column = column;
 
 	for (i = 0; yytext[i] != '\0'; i++) {
     switch (yytext[i]) {
@@ -165,7 +169,6 @@ void count() {
 
 	ECHO;
 }
-
 
 int check_type() {
 /*

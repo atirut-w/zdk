@@ -424,9 +424,9 @@ function_definition
 #include <stdio.h>
 
 extern char yytext[];
-extern int column;
+extern int start_column;
 
 void yyerror(char *s) {
 	fflush(stdout);
-	printf("\n%*s\n%*s\n", column, "^", column, s);
+	printf("\n%*s\n%*s\n", start_column, "^", start_column, s);
 }
