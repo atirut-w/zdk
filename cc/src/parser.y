@@ -421,12 +421,13 @@ function_definition
 	;
 
 %%
+#include <diagnostics.h>
 #include <stdio.h>
 
 extern char yytext[];
+extern int start_line;
 extern int start_column;
 
 void yyerror(char *s) {
-	fflush(stdout);
-	printf("\n%*s\n%*s\n", start_column, "^", start_column, s);
+	diagnostics_add((const char *)s, start_line, start_column, DIAG_LEVEL_ERROR);
 }

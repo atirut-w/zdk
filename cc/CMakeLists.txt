@@ -13,6 +13,7 @@ if(BISON_FOUND)
 endif()
 
 add_executable(cc
+    src/diagnostics.c
     src/main.c
     ${FLEX_lexer_OUTPUTS}
     ${BISON_parser_OUTPUTS}

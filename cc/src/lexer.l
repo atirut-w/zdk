@@ -7,6 +7,7 @@ IS			(u|U|l|L)*
 
 %{
 #include <stdio.h>
+#include <diagnostics.h>
 #include "parser.h"
 
 int start_line = 1;
@@ -18,6 +19,7 @@ int yylex();
 void comment();
 void count();
 int check_type();
+void stray(char ch);
 %}
 
 %%
@@ -117,9 +119,15 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 "?"			{ count(); return('?'); }
 
 [ \t\v\n\f]		{ count(); }
-.			{ /* ignore bad characters */ }
+.			{ stray(yytext[0]); count(); }
 
 %%
+
+void stray(char ch) {
+    char msg[64];
+    snprintf(msg, sizeof(msg), "stray '%c' in program", ch);
+    diagnostics_add(msg, line, column, DIAG_LEVEL_ERROR);
+}
 
 int yywrap() {
 	return 1;
@@ -148,26 +156,24 @@ void count() {
 	start_line = line;
     start_column = column;
 
-	for (i = 0; yytext[i] != '\0'; i++) {
-    switch (yytext[i]) {
-      case '\r':
-        if (yytext[i + 1] == '\n') {
-          i++; /* skip the next character */
+    for (i = 0; yytext[i] != '\0'; i++) {
+        switch (yytext[i]) {
+        case '\r':
+            if (yytext[i + 1] == '\n') {
+                i++; /* skip the next character */
+            }
+        case '\n':
+            line++;
+            column = 1;
+        break;
+            case '\t':
+            column += 8 - ((column - 1) % 8);
+            break;
+        default:
+            column++;
+            break;
         }
-      case '\n':
-        line++;
-        column = 1;
-        break;
-      case '\t':
-        column += 8 - ((column - 1) % 8);
-        break;
-      default:
-        column++;
-        break;
     }
-  }
-
-	ECHO;
 }
 
 int check_type() {
