@@ -13,6 +13,8 @@
 %start translation_unit
 
 %{
+#include <ast.h>
+
 int yylex();
 void yyerror(char *s);
 %}
