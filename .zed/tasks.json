@@ -18,6 +18,6 @@
     },
     {
         "label": "Run Tests",
-        "command": "ctest --test-dir build --output-on-failure"
+        "command": "cmake --build build --parallel && ctest --test-dir build --output-on-failure"
     }
 ]
