@@ -54,13 +54,19 @@ static char *create_temp_file(const char *suffix) {
 }
 
 static file_type_t detect_file_type(const char *filename) {
-    size_t len = strlen(filename);
+    const char *ext;
     
-    if (len >= 2 && strcmp(filename + len - 2, ".c") == 0) {
+    /* Find the last dot in the filename */
+    ext = strrchr(filename, '.');
+    if (!ext || ext == filename) {
+        return FILE_TYPE_UNKNOWN;
+    }
+    
+    if (strcmp(ext, ".c") == 0) {
         return FILE_TYPE_C;
-    } else if (len >= 2 && strcmp(filename + len - 2, ".s") == 0) {
+    } else if (strcmp(ext, ".s") == 0) {
         return FILE_TYPE_ASM;
-    } else if (len >= 2 && strcmp(filename + len - 2, ".o") == 0) {
+    } else if (strcmp(ext, ".o") == 0) {
         return FILE_TYPE_OBJ;
     }
     
@@ -68,20 +74,27 @@ static file_type_t detect_file_type(const char *filename) {
 }
 
 static char *replace_extension(const char *filename, const char *new_ext) {
-    size_t len = strlen(filename);
+    const char *ext;
+    size_t base_len;
     size_t new_ext_len = strlen(new_ext);
     char *result;
     
-    /* We know the file has a valid extension (.c, .s, or .o) from detect_file_type */
-    /* Allocate: original length - 2 (old ext) + new_ext_len + 1 (null terminator) */
-    result = malloc(len - 2 + new_ext_len + 1);
+    /* Find the last dot to determine extension position */
+    ext = strrchr(filename, '.');
+    if (!ext) {
+        /* No extension found, shouldn't happen with validated input */
+        return NULL;
+    }
+    
+    base_len = ext - filename;  /* Length of filename before extension */
+    result = malloc(base_len + new_ext_len + 1);
     if (!result) {
         return NULL;
     }
     
-    strcpy(result, filename);
-    /* Replace the last 2 characters (.c, .s, .o) with new extension */
-    strcpy(result + len - 2, new_ext);
+    /* Copy base filename and append new extension */
+    memcpy(result, filename, base_len);
+    strcpy(result + base_len, new_ext);
     
     return result;
 }
@@ -317,8 +330,7 @@ int main(int argc, char **argv) {
                 
                 /* For -S, assembly files don't need processing */
                 if (compile_only) {
-                    fprintf(stderr, "Warning: -S specified but '%s' is already an assembly file, skipping\n", 
-                            input_files[i].path);
+                    fprintf(stderr, "Warning: -S specified but '%s' is already an assembly file, skipping\n", input_files[i].path);
                     continue;
                 }
                 
@@ -371,8 +383,7 @@ int main(int argc, char **argv) {
             case FILE_TYPE_OBJ:
                 /* Object files are used directly */
                 if (compile_only || assemble_only) {
-                    fprintf(stderr, "Warning: -S or -c specified but '%s' is already an object file\n", 
-                            input_files[i].path);
+                    fprintf(stderr, "Warning: -S or -c specified but '%s' is already an object file\n", input_files[i].path);
                     continue;
                 }
                 input_files[i].obj_file = input_files[i].path;
