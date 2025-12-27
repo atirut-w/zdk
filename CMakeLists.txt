@@ -9,3 +9,4 @@ set_property(CACHE ZDK_TARGET PROPERTY STRINGS amd64 z80)
 
 add_subdirectory(cc)
 add_subdirectory(cc1)
+add_subdirectory(tests)
