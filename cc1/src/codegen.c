@@ -21,10 +21,12 @@ static void add_symbol(const char *name, int is_defined) {
     /* Check if symbol already exists */
     while (entry) {
         if (strcmp(entry->name, name) == 0) {
-            /* If this is a definition, update the entry */
+            /* Update only if this is a definition (not a prototype) */
+            /* This ensures that once a function is defined, it stays defined */
             if (is_defined) {
                 entry->is_defined = 1;
             }
+            /* If is_defined is 0 (prototype), preserve existing value */
             return;
         }
         entry = entry->next;
