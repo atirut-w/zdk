@@ -25,6 +25,7 @@ static void print_usage(const char *program_name) {
     fprintf(stderr, "  -o <file>  Place the output into <file>\n");
     fprintf(stderr, "  -c         Compile and assemble, but do not link\n");
     fprintf(stderr, "  -S         Compile only; do not assemble or link\n");
+    fprintf(stderr, "  -T <file>  Use <file> as the linker script\n");
     fprintf(stderr, "  -h, --help Display this information\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Supported input file types:\n");
@@ -134,6 +135,7 @@ int main(int argc, char **argv) {
     int num_inputs = 0;
     int input_capacity = 0;
     char *output_file = NULL;
+    char *linker_script = NULL;
     int compile_only = 0;
     int assemble_only = 0;
     int i, j;
@@ -148,6 +150,14 @@ int main(int argc, char **argv) {
                 output_file = argv[++i];
             } else {
                 fprintf(stderr, "Error: -o requires an argument\n");
+                print_usage(argv[0]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "-T") == 0) {
+            if (i + 1 < argc) {
+                linker_script = argv[++i];
+            } else {
+                fprintf(stderr, "Error: -T requires an argument\n");
                 print_usage(argv[0]);
                 return 1;
             }
@@ -437,8 +447,11 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
     
-    /* Build linker command: ld -o <output> <obj1> <obj2> ... NULL */
+    /* Build linker command: ld [-T script] -o <output> <obj1> <obj2> ... NULL */
     ld_argc = 3 + j;  /* "ld", "-o", output_file, obj1, obj2, ..., NULL */
+    if (linker_script) {
+        ld_argc += 2;  /* Add "-T" and script path */
+    }
     ld_argv = malloc((ld_argc + 1) * sizeof(char *));
     if (!ld_argv) {
         perror("Failed to allocate memory for linker arguments");
@@ -446,11 +459,18 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
     
-    ld_argv[0] = "z80-unknown-none-elf-ld";
-    ld_argv[1] = "-o";
-    ld_argv[2] = output_file;
+    j = 0;
+    ld_argv[j++] = "z80-unknown-none-elf-ld";
     
-    for (i = 0, j = 3; i < num_inputs; i++) {
+    if (linker_script) {
+        ld_argv[j++] = "-T";
+        ld_argv[j++] = linker_script;
+    }
+    
+    ld_argv[j++] = "-o";
+    ld_argv[j++] = output_file;
+    
+    for (i = 0; i < num_inputs; i++) {
         if (input_files[i].obj_file) {
             ld_argv[j++] = input_files[i].obj_file;
         }

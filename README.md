@@ -18,6 +18,7 @@ Options:
 - `-o <file>` - Place output into `<file>`
 - `-S` - Compile only; output assembly
 - `-c` - Compile and assemble; output object file
+- `-T <file>` - Use custom linker script
 - `-h, --help` - Display help information
 
 **Supported Input File Types:**
@@ -39,6 +40,11 @@ Mixed input file types:
 cc main.c helper.s -o output          # Compile C, assemble .s, link together
 cc test.c bdos.s startup.o -o prog    # Mix .c, .s, and .o files
 cc module1.o module2.o -o program     # Link multiple object files
+```
+
+Custom linker scripts:
+```bash
+cc main.c -T custom.ld -o firmware    # Use custom linker script for memory layout
 ```
 
 ### cc1 - C90 Compiler
