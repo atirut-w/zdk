@@ -158,11 +158,9 @@ int main(int argc, char* argv[]) {
         return result;
     }
     
-    /* Clean up temporary assembly file (not needed beyond this point) */
-    /* Don't clean if -S was used (compileOnly) or if we're stopping at -c */
-    if (!assembleOnly) {
-        unlink(asmFile.c_str());
-    }
+    /* Clean up assembly file (intermediate, not final output) */
+    /* Note: We've moved past the assembly stage, so .s is no longer needed */
+    unlink(asmFile.c_str());
     
     if (assembleOnly) {
         return 0;
@@ -177,7 +175,8 @@ int main(int argc, char* argv[]) {
         return result;
     }
     
-    /* Clean up temporary object file (not needed after linking) */
+    /* Clean up object file (intermediate, not final output) */
+    /* Note: We've moved past the linking stage, so .o is no longer needed */
     unlink(objFile.c_str());
     
     return 0;

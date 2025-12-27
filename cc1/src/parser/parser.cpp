@@ -12,7 +12,7 @@ Token& Parser::current() {
     if (position < tokens.size()) {
         return tokens[position];
     }
-    /* Return EOF token if available, otherwise throw */
+    /* Return EOF token (lexer guarantees last token is EOF) */
     if (tokens.size() > 0) {
         return tokens[tokens.size() - 1];
     }
@@ -23,7 +23,7 @@ Token& Parser::peek() {
     if (position + 1 < tokens.size()) {
         return tokens[position + 1];
     }
-    /* Return EOF token if available, otherwise throw */
+    /* Return EOF token (lexer guarantees last token is EOF) */
     if (tokens.size() > 0) {
         return tokens[tokens.size() - 1];
     }
