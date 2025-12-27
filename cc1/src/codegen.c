@@ -1,8 +1,68 @@
 #include "codegen.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 static FILE *output_file;
+
+/* Symbol table entry for tracking function declarations */
+typedef struct SymbolEntry {
+    char *name;
+    int is_defined; /* 1 if function has a definition, 0 if only prototype */
+    struct SymbolEntry *next;
+} SymbolEntry;
+
+static SymbolEntry *symbol_table = NULL;
+
+/* Add or update a symbol in the symbol table */
+static void add_symbol(const char *name, int is_defined) {
+    SymbolEntry *entry = symbol_table;
+    
+    /* Check if symbol already exists */
+    while (entry) {
+        if (strcmp(entry->name, name) == 0) {
+            /* Update only if this is a definition (not a prototype) */
+            /* This ensures that once a function is defined, it stays defined */
+            if (is_defined) {
+                entry->is_defined = 1;
+            }
+            /* If is_defined is 0 (prototype), preserve existing value */
+            return;
+        }
+        entry = entry->next;
+    }
+    
+    /* Symbol doesn't exist, create a new entry */
+    entry = malloc(sizeof(SymbolEntry));
+    if (!entry) {
+        fprintf(stderr, "Codegen error: out of memory\n");
+        exit(1);
+    }
+    
+    entry->name = malloc(strlen(name) + 1);
+    if (!entry->name) {
+        fprintf(stderr, "Codegen error: out of memory\n");
+        free(entry);
+        exit(1);
+    }
+    
+    strcpy(entry->name, name);
+    entry->is_defined = is_defined;
+    entry->next = symbol_table;
+    symbol_table = entry;
+}
+
+/* Free the symbol table */
+static void free_symbol_table(void) {
+    SymbolEntry *entry = symbol_table;
+    while (entry) {
+        SymbolEntry *next = entry->next;
+        free(entry->name);
+        free(entry);
+        entry = next;
+    }
+    symbol_table = NULL;
+}
 
 /* Generate code for an expression, result in HL */
 static void codegen_expression(ASTNode *node) {
@@ -105,12 +165,38 @@ static void codegen_function(ASTNode *node) {
 
 void codegen_generate(TranslationUnit *unit, FILE *output) {
     ASTNode *node;
+    SymbolEntry *entry;
     
     output_file = output;
     
+    /* First pass: build symbol table */
+    node = unit->declarations;
+    while (node) {
+        switch (node->type) {
+            case AST_FUNCTION:
+                add_symbol(node->data.function.name, 1);
+                break;
+            case AST_PROTOTYPE:
+                add_symbol(node->data.prototype.name, 0);
+                break;
+            default:
+                break;
+        }
+        node = node->next;
+    }
+    
     fprintf(output_file, "\t.section .text\n");
     
-    /* Iterate through all declarations */
+    /* Emit .extern directives for prototypes without definitions */
+    entry = symbol_table;
+    while (entry) {
+        if (!entry->is_defined) {
+            fprintf(output_file, "\t.extern %s\n", entry->name);
+        }
+        entry = entry->next;
+    }
+    
+    /* Second pass: generate code for function definitions */
     node = unit->declarations;
     while (node) {
         switch (node->type) {
@@ -118,7 +204,7 @@ void codegen_generate(TranslationUnit *unit, FILE *output) {
                 codegen_function(node);
                 break;
             case AST_PROTOTYPE:
-                /* Prototypes don't generate code */
+                /* Prototypes don't generate code, only .extern directives */
                 break;
             default:
                 fprintf(stderr, "Codegen error: unexpected top-level declaration\n");
@@ -126,4 +212,7 @@ void codegen_generate(TranslationUnit *unit, FILE *output) {
         }
         node = node->next;
     }
+    
+    /* Clean up symbol table */
+    free_symbol_table();
 }
