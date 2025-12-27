@@ -1,5 +1,5 @@
 add_executable(cc1
-    src/main.cpp
+    src/main.c
 )
 target_include_directories(cc PRIVATE include)
-target_compile_features(cc PRIVATE cxx_std_23)
+target_compile_options(cc PRIVATE -std=c90)
