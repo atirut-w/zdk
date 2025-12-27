@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     char *input_filename = NULL;
     char *output_filename = NULL;
     int i;
-    ASTNode *ast;
+    TranslationUnit *unit;
     
     /* Parse command-line arguments */
     for (i = 1; i < argc; i++) {
@@ -67,13 +67,13 @@ int main(int argc, char **argv) {
     lexer_init(input);
     
     /* Parse the input */
-    ast = parser_parse();
+    unit = parser_parse();
     
     /* Generate code */
-    codegen_generate(ast, output);
+    codegen_generate(unit, output);
     
     /* Cleanup */
-    parser_free(ast);
+    parser_free_translation_unit(unit);
     lexer_free();
     
     if (input_filename) fclose(input);

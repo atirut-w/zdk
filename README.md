@@ -28,10 +28,32 @@ cc input.c -c -o output.o    # Compile and assemble only
 ```
 
 ### cc1 - C90 Compiler
-The main compiler that translates C source code to Z80 assembly. Currently supports minimal C90:
-- `int main() { return <number>; }`
+The main compiler that translates C source code to Z80 assembly. Supports:
+
+**Implemented Features:**
+- Function definitions with parameters (`int`, `void` types)
+- Function prototypes (forward declarations)
+- Function calls with multiple arguments
+- Character literals (e.g., `'A'`, `'\n'`) evaluated as `int` type
+- Multiple statements in function bodies
+- Return statements (including empty returns for `void` functions)
+- Stack frames using IX register as frame pointer
+- Standard Z80 calling convention:
+  - Arguments pushed right-to-left
+  - Return values in HL register (16-bit)
+  - Caller cleans up stack
+
+**Type System:**
 - `int` type is 16-bit, returned in HL register pair
+- `void` return type for functions
+- Character literals are `int` type
+
+**Limitations:**
 - Input is assumed to be preprocessed (no `#include`, `#define`, etc.)
+- No local variables yet
+- No complex expressions (only literals and function calls)
+- No control flow (if, while, for, etc.)
+- No operators (arithmetic, logical, etc.)
 
 Usage:
 ```bash
@@ -44,6 +66,23 @@ cc1 input.c -o output.s      # Compile to assembly
 echo "int main() { return 42; }" | cc1 -o output.s  # From stdin
 ```
 
+Example program:
+```c
+int bdos(int func, int arg);
+
+int main() {
+  bdos(2, 'H');
+  bdos(2, 'i');
+  bdos(2, '\n');
+  return 0;
+}
+
+void _start() {
+  main();
+  bdos(0, 0);
+}
+```
+
 ## Building
 
 ```bash
@@ -52,8 +91,8 @@ cmake --build build --parallel
 ```
 
 The built executables will be in:
-- `build/cc/cc` - Compiler driver
-- `build/cc1/cc1` - Compiler
+- `build/bin/cc` - Compiler driver
+- `build/bin/cc1` - Compiler
 
 ## Testing
 
@@ -64,19 +103,11 @@ int main() { return 0; }
 
 Compile it:
 ```bash
-./build/cc/cc test.c -o test
+./build/bin/cc test.c -o test
 ```
 
 Verify the output:
 ```bash
 z80-unknown-none-elf-objdump -d test
 ```
-
-## Current Limitations
-
-- Only supports `int main() { return <number>; }` programs
-- No preprocessor support yet (TODO)
-- No function parameters or local variables
-- No expressions beyond integer literals
-- No control flow (if, while, for, etc.)
 

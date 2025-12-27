@@ -4,6 +4,6 @@
 #include "parser.h"
 #include <stdio.h>
 
-void codegen_generate(ASTNode *ast, FILE *output);
+void codegen_generate(TranslationUnit *unit, FILE *output);
 
 #endif

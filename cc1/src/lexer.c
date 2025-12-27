@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -56,6 +57,48 @@ static char *read_number(void) {
     return result;
 }
 
+static char *read_char_literal(void) {
+    char buffer[16];
+    int char_value;
+    char *result;
+    
+    advance(); /* Skip opening ' */
+    
+    if (current_char == '\\') {
+        /* Escape sequence */
+        advance();
+        switch (current_char) {
+            case 'n': char_value = '\n'; break;
+            case 't': char_value = '\t'; break;
+            case 'r': char_value = '\r'; break;
+            case '0': char_value = '\0'; break;
+            case '\\': char_value = '\\'; break;
+            case '\'': char_value = '\''; break;
+            default:
+                fprintf(stderr, "Unknown escape sequence: '\\%c' at line %d, column %d\n",
+                        current_char, line, column);
+                exit(1);
+        }
+        advance();
+    } else {
+        char_value = current_char;
+        advance();
+    }
+    
+    if (current_char != '\'') {
+        fprintf(stderr, "Unterminated character literal at line %d, column %d\n",
+                line, column);
+        exit(1);
+    }
+    advance(); /* Skip closing ' */
+    
+    /* Convert to string representation of the integer value */
+    snprintf(buffer, sizeof(buffer), "%d", char_value);
+    result = malloc(strlen(buffer) + 1);
+    strcpy(result, buffer);
+    return result;
+}
+
 void lexer_init(FILE *input) {
     input_file = input;
     line = 1;
@@ -84,6 +127,9 @@ Token lexer_next_token(void) {
         if (strcmp(identifier, "int") == 0) {
             token.type = TOK_INT;
             free(identifier);
+        } else if (strcmp(identifier, "void") == 0) {
+            token.type = TOK_VOID;
+            free(identifier);
         } else if (strcmp(identifier, "return") == 0) {
             token.type = TOK_RETURN;
             free(identifier);
@@ -98,6 +144,12 @@ Token lexer_next_token(void) {
     if (isdigit(current_char)) {
         token.type = TOK_NUMBER;
         token.value = read_number();
+        return token;
+    }
+    
+    if (current_char == '\'') {
+        token.type = TOK_CHAR;
+        token.value = read_char_literal();
         return token;
     }
     
@@ -120,6 +172,10 @@ Token lexer_next_token(void) {
             break;
         case ';':
             token.type = TOK_SEMICOLON;
+            advance();
+            break;
+        case ',':
+            token.type = TOK_COMMA;
             advance();
             break;
         default:
