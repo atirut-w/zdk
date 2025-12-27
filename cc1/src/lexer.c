@@ -29,7 +29,7 @@ static char *read_identifier(void) {
     int i = 0;
     char *result;
     
-    while (isalnum(current_char) || current_char == '_') {
+    while ((isalnum(current_char) || current_char == '_') && i < 255) {
         buffer[i++] = current_char;
         advance();
     }
@@ -45,7 +45,7 @@ static char *read_number(void) {
     int i = 0;
     char *result;
     
-    while (isdigit(current_char)) {
+    while (isdigit(current_char) && i < 255) {
         buffer[i++] = current_char;
         advance();
     }
