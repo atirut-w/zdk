@@ -38,8 +38,9 @@ config:
         # Create build directory
         mkdir build
         cd build
-        # Create gas/doc directory to prevent documentation build errors
-        # This is a known workaround for binutils builds in minimal environments
+        # Create gas/doc directory to prevent missing directory errors during documentation generation
+        # Binutils expects this directory to exist when building gas (GNU assembler) documentation
+        # In minimal build environments without full documentation tools, this prevents build failures
         mkdir -p gas/doc
         
         # Configure for Z80 target
@@ -50,8 +51,8 @@ config:
           --disable-werror \
           --with-system-zlib
         
-        # Build and install
-        make -j$(nproc)
+        # Build and install (limit parallelism to avoid resource exhaustion)
+        make -j4
         make install
         
         # Verify installation
