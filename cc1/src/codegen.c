@@ -32,7 +32,18 @@ static void add_symbol(const char *name, int is_defined) {
     
     /* Symbol doesn't exist, create a new entry */
     entry = malloc(sizeof(SymbolEntry));
+    if (!entry) {
+        fprintf(stderr, "Codegen error: out of memory\n");
+        exit(1);
+    }
+    
     entry->name = malloc(strlen(name) + 1);
+    if (!entry->name) {
+        fprintf(stderr, "Codegen error: out of memory\n");
+        free(entry);
+        exit(1);
+    }
+    
     strcpy(entry->name, name);
     entry->is_defined = is_defined;
     entry->next = symbol_table;
