@@ -6,11 +6,20 @@
 typedef struct ASTNode ASTNode;
 typedef struct Parameter Parameter;
 typedef struct TranslationUnit TranslationUnit;
+typedef struct TypeInfo TypeInfo;
 
-typedef enum {
-    TYPE_INT,
-    TYPE_VOID
-} Type;
+struct TypeInfo {
+    enum {
+        TYPE_INT,
+        TYPE_VOID,
+        TYPE_CHAR,
+        TYPE_POINTER
+    } kind;
+    int is_const;
+    TypeInfo *pointer_to; /* For pointer types */
+};
+
+typedef struct TypeInfo Type;
 
 typedef enum {
     AST_TRANSLATION_UNIT,
@@ -23,11 +32,14 @@ typedef enum {
     AST_VARIABLE,
     AST_ASSIGNMENT,
     AST_CALL,
-    AST_NUMBER
+    AST_NUMBER,
+    AST_STRING_LITERAL,
+    AST_DEREFERENCE,
+    AST_POSTFIX_INC
 } ASTNodeType;
 
 struct Parameter {
-    Type type;
+    Type *type;
     char *name;
     Parameter *next;
 };
@@ -36,13 +48,13 @@ struct ASTNode {
     ASTNodeType type;
     union {
         struct {
-            Type return_type;
+            Type *return_type;
             char *name;
             Parameter *params;
             ASTNode *body;
         } function;
         struct {
-            Type return_type;
+            Type *return_type;
             char *name;
             Parameter *params;
         } prototype;
@@ -57,7 +69,7 @@ struct ASTNode {
             ASTNode *expr;
         } expression_stmt;
         struct {
-            Type type;
+            Type *type;
             char *name;
             ASTNode *initializer; /* Can be NULL */
         } declaration;
@@ -76,6 +88,17 @@ struct ASTNode {
         struct {
             int value;
         } number;
+        struct {
+            char *value;
+            int label_id; /* Unique ID for string literal label */
+        } string_literal;
+        struct {
+            ASTNode *operand;
+        } dereference;
+        struct {
+            char *name; /* Variable name */
+            int label_id; /* For unique labels */
+        } postfix_inc;
     } data;
     ASTNode *next; /* For linking declarations in translation unit */
 };

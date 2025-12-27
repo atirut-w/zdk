@@ -22,20 +22,51 @@ static void expect(TokenType type) {
     advance_token();
 }
 
-static Type parse_type(void) {
-    Type type;
+static Type *parse_base_type(void) {
+    Type *type = malloc(sizeof(Type));
+    type->is_const = 0;
+    type->pointer_to = NULL;
+    
+    /* Check for const qualifier */
+    if (current_token.type == TOK_CONST) {
+        type->is_const = 1;
+        advance_token();
+    }
+    
     if (current_token.type == TOK_INT) {
-        type = TYPE_INT;
+        type->kind = TYPE_INT;
         advance_token();
     } else if (current_token.type == TOK_VOID) {
-        type = TYPE_VOID;
+        type->kind = TYPE_VOID;
+        advance_token();
+    } else if (current_token.type == TOK_IDENTIFIER && strcmp(current_token.value, "char") == 0) {
+        type->kind = TYPE_CHAR;
         advance_token();
     } else {
         fprintf(stderr, "Parse error: expected type at line %d, column %d\n",
                 current_token.line, current_token.column);
         exit(1);
     }
+    
     return type;
+}
+
+static Type *parse_type(void) {
+    Type *base_type = parse_base_type();
+    Type *current = base_type;
+    Type *ptr_type;
+    
+    /* Handle pointer declarators */
+    while (current_token.type == TOK_STAR) {
+        advance_token();
+        ptr_type = malloc(sizeof(Type));
+        ptr_type->kind = TYPE_POINTER;
+        ptr_type->is_const = 0;
+        ptr_type->pointer_to = current;
+        current = ptr_type;
+    }
+    
+    return current;
 }
 
 static Parameter *parse_parameter(void) {
@@ -89,7 +120,11 @@ static Parameter *parse_parameter_list(void) {
 
 static ASTNode *parse_primary_expression(void);
 static ASTNode *parse_postfix_expression(void);
+static ASTNode *parse_unary_expression(void);
 static ASTNode *parse_expression(void);
+
+static int string_literal_counter = 0;
+static int label_counter = 0;
 
 static ASTNode *parse_primary_expression(void) {
     ASTNode *node;
@@ -98,6 +133,15 @@ static ASTNode *parse_primary_expression(void) {
         node = malloc(sizeof(ASTNode));
         node->type = AST_NUMBER;
         node->data.number.value = atoi(current_token.value);
+        node->next = NULL;
+        advance_token();
+        return node;
+    } else if (current_token.type == TOK_STRING) {
+        node = malloc(sizeof(ASTNode));
+        node->type = AST_STRING_LITERAL;
+        node->data.string_literal.value = malloc(strlen(current_token.value) + 1);
+        strcpy(node->data.string_literal.value, current_token.value);
+        node->data.string_literal.label_id = string_literal_counter++;
         node->next = NULL;
         advance_token();
         return node;
@@ -124,7 +168,7 @@ static ASTNode *parse_postfix_expression(void) {
     ASTNode **args;
     
     if (current_token.type != TOK_IDENTIFIER) {
-        return parse_primary_expression();
+        return parse_unary_expression();
     }
     
     name = malloc(strlen(current_token.value) + 1);
@@ -151,7 +195,7 @@ static ASTNode *parse_postfix_expression(void) {
                     capacity *= 2;
                     args = realloc(args, sizeof(ASTNode*) * capacity);
                 }
-                args[count++] = parse_primary_expression();
+                args[count++] = parse_expression();
                 
                 if (current_token.type == TOK_COMMA) {
                     advance_token();
@@ -178,6 +222,17 @@ static ASTNode *parse_postfix_expression(void) {
         node->next = NULL;
         
         return node;
+    } else if (current_token.type == TOK_PLUSPLUS) {
+        /* Post-increment */
+        advance_token();
+        
+        node = malloc(sizeof(ASTNode));
+        node->type = AST_POSTFIX_INC;
+        node->data.postfix_inc.name = name;
+        node->data.postfix_inc.label_id = label_counter++;
+        node->next = NULL;
+        
+        return node;
     } else {
         /* Variable reference */
         node = malloc(sizeof(ASTNode));
@@ -186,6 +241,24 @@ static ASTNode *parse_postfix_expression(void) {
         node->next = NULL;
         return node;
     }
+}
+
+static ASTNode *parse_unary_expression(void) {
+    ASTNode *node;
+    
+    if (current_token.type == TOK_STAR) {
+        /* Dereference operator */
+        advance_token();
+        
+        node = malloc(sizeof(ASTNode));
+        node->type = AST_DEREFERENCE;
+        node->data.dereference.operand = parse_postfix_expression();
+        node->next = NULL;
+        
+        return node;
+    }
+    
+    return parse_primary_expression();
 }
 
 static ASTNode *parse_expression(void) {
@@ -258,7 +331,8 @@ static ASTNode *parse_declaration(void) {
 static ASTNode *parse_statement(void) {
     if (current_token.type == TOK_RETURN) {
         return parse_return_statement();
-    } else if (current_token.type == TOK_INT || current_token.type == TOK_VOID) {
+    } else if (current_token.type == TOK_INT || current_token.type == TOK_VOID || 
+               current_token.type == TOK_CONST) {
         /* Variable declaration */
         return parse_declaration();
     } else {
@@ -300,7 +374,7 @@ static ASTNode *parse_compound_statement(void) {
 
 static ASTNode *parse_function_or_prototype(void) {
     ASTNode *node;
-    Type return_type;
+    Type *return_type;
     char *name;
     Parameter *params;
     
@@ -423,6 +497,15 @@ void parser_free(ASTNode *node) {
             free(node->data.call.args);
             break;
         case AST_NUMBER:
+            break;
+        case AST_STRING_LITERAL:
+            free(node->data.string_literal.value);
+            break;
+        case AST_DEREFERENCE:
+            parser_free(node->data.dereference.operand);
+            break;
+        case AST_POSTFIX_INC:
+            free(node->data.postfix_inc.name);
             break;
         case AST_TRANSLATION_UNIT:
             /* Should not reach here */

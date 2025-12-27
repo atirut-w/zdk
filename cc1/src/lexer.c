@@ -99,6 +99,49 @@ static char *read_char_literal(void) {
     return result;
 }
 
+static char *read_string_literal(void) {
+    char buffer[1024];
+    int i = 0;
+    char *result;
+    
+    advance(); /* Skip opening " */
+    
+    while (current_char != '"' && current_char != EOF && i < 1023) {
+        if (current_char == '\\') {
+            /* Escape sequence */
+            advance();
+            switch (current_char) {
+                case 'n': buffer[i++] = '\n'; break;
+                case 't': buffer[i++] = '\t'; break;
+                case 'r': buffer[i++] = '\r'; break;
+                case '0': buffer[i++] = '\0'; break;
+                case '\\': buffer[i++] = '\\'; break;
+                case '"': buffer[i++] = '"'; break;
+                default:
+                    fprintf(stderr, "Unknown escape sequence: '\\%c' at line %d, column %d\n",
+                            current_char, line, column);
+                    exit(1);
+            }
+            advance();
+        } else {
+            buffer[i++] = current_char;
+            advance();
+        }
+    }
+    
+    if (current_char != '"') {
+        fprintf(stderr, "Unterminated string literal at line %d, column %d\n",
+                line, column);
+        exit(1);
+    }
+    advance(); /* Skip closing " */
+    
+    buffer[i] = '\0';
+    result = malloc(strlen(buffer) + 1);
+    strcpy(result, buffer);
+    return result;
+}
+
 void lexer_init(FILE *input) {
     input_file = input;
     line = 1;
@@ -130,6 +173,9 @@ Token lexer_next_token(void) {
         } else if (strcmp(identifier, "void") == 0) {
             token.type = TOK_VOID;
             free(identifier);
+        } else if (strcmp(identifier, "const") == 0) {
+            token.type = TOK_CONST;
+            free(identifier);
         } else if (strcmp(identifier, "return") == 0) {
             token.type = TOK_RETURN;
             free(identifier);
@@ -150,6 +196,12 @@ Token lexer_next_token(void) {
     if (current_char == '\'') {
         token.type = TOK_CHAR;
         token.value = read_char_literal();
+        return token;
+    }
+    
+    if (current_char == '"') {
+        token.type = TOK_STRING;
+        token.value = read_string_literal();
         return token;
     }
     
@@ -181,6 +233,21 @@ Token lexer_next_token(void) {
         case '=':
             token.type = TOK_ASSIGN;
             advance();
+            break;
+        case '*':
+            token.type = TOK_STAR;
+            advance();
+            break;
+        case '+':
+            advance();
+            if (current_char == '+') {
+                token.type = TOK_PLUSPLUS;
+                advance();
+            } else {
+                fprintf(stderr, "Unexpected character: '+' at line %d, column %d\n",
+                        line, column);
+                exit(1);
+            }
             break;
         default:
             fprintf(stderr, "Unexpected character: '%c' at line %d, column %d\n",

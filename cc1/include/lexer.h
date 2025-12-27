@@ -7,17 +7,21 @@ typedef enum {
     TOK_EOF,
     TOK_INT,
     TOK_VOID,
+    TOK_CONST,
     TOK_RETURN,
     TOK_IDENTIFIER,
     TOK_NUMBER,
     TOK_CHAR,
+    TOK_STRING,
     TOK_LPAREN,
     TOK_RPAREN,
     TOK_LBRACE,
     TOK_RBRACE,
     TOK_SEMICOLON,
     TOK_COMMA,
-    TOK_ASSIGN
+    TOK_ASSIGN,
+    TOK_STAR,
+    TOK_PLUSPLUS
 } TokenType;
 
 typedef struct {

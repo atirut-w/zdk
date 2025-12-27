@@ -1,18 +1,17 @@
 int bdos(int func, int arg);
 
 int main() {
-  int ch = 'H';
-  bdos(2, ch);
-  ch = 'e';
-  bdos(2, ch);
-  ch = 'l';
-  bdos(2, ch);
-  ch = 'l';
-  bdos(2, ch);
-  ch = 'o';
-  bdos(2, ch);
-  ch = '\n';
-  bdos(2, ch);
+  const char *msg = "Hello!\n";
+  const char *p = msg;
+  
+  bdos(2, *p++);
+  bdos(2, *p++);
+  bdos(2, *p++);
+  bdos(2, *p++);
+  bdos(2, *p++);
+  bdos(2, *p++);
+  bdos(2, *p++);
+
   return 0;
 }
 

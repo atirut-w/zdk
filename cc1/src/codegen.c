@@ -24,6 +24,15 @@ typedef struct LocalVar {
 static LocalVar *local_vars = NULL;
 static int stack_offset = 0; /* Current stack offset for local variables */
 
+/* String literal storage */
+typedef struct StringLiteral {
+    int label_id;
+    char *value;
+    struct StringLiteral *next;
+} StringLiteral;
+
+static StringLiteral *string_literals = NULL;
+
 /* Add or update a symbol in the symbol table */
 static void add_symbol(const char *name, int is_defined) {
     SymbolEntry *entry = symbol_table;
@@ -120,6 +129,28 @@ static void free_local_vars(void) {
     stack_offset = 0;
 }
 
+/* Add a string literal for later emission */
+static void add_string_literal(int label_id, const char *value) {
+    StringLiteral *lit = malloc(sizeof(StringLiteral));
+    lit->label_id = label_id;
+    lit->value = malloc(strlen(value) + 1);
+    strcpy(lit->value, value);
+    lit->next = string_literals;
+    string_literals = lit;
+}
+
+/* Free string literals */
+static void free_string_literals(void) {
+    StringLiteral *lit = string_literals;
+    while (lit) {
+        StringLiteral *next = lit->next;
+        free(lit->value);
+        free(lit);
+        lit = next;
+    }
+    string_literals = NULL;
+}
+
 /* Generate code for an expression, result in HL */
 static void codegen_expression(ASTNode *node) {
     int i;
@@ -134,6 +165,12 @@ static void codegen_expression(ASTNode *node) {
             fprintf(output_file, "\tld hl, %d\n", node->data.number.value);
             break;
             
+        case AST_STRING_LITERAL:
+            /* Load address of string literal into HL */
+            add_string_literal(node->data.string_literal.label_id, node->data.string_literal.value);
+            fprintf(output_file, "\tld hl, _str%d\n", node->data.string_literal.label_id);
+            break;
+            
         case AST_VARIABLE:
             /* Load variable value from stack into HL */
             var_offset = find_local_var(node->data.variable.name);
@@ -145,6 +182,35 @@ static void codegen_expression(ASTNode *node) {
             /* Load 16-bit value from (IX + offset) into HL */
             fprintf(output_file, "\tld l, (ix%+d)\n", var_offset);
             fprintf(output_file, "\tld h, (ix%+d)\n", var_offset + 1);
+            break;
+            
+        case AST_DEREFERENCE:
+            /* Evaluate operand to get address in HL */
+            codegen_expression(node->data.dereference.operand);
+            /* Load byte from address in HL */
+            fprintf(output_file, "\tld a, (hl)\n");
+            fprintf(output_file, "\tld l, a\n");
+            fprintf(output_file, "\tld h, 0\n"); /* Zero-extend byte to word */
+            break;
+            
+        case AST_POSTFIX_INC:
+            /* Load current value */
+            var_offset = find_local_var(node->data.postfix_inc.name);
+            if (var_offset == 0) {
+                fprintf(stderr, "Codegen error: undefined variable '%s'\n", 
+                        node->data.postfix_inc.name);
+                exit(1);
+            }
+            /* Load variable into HL (the current value, which is returned) */
+            fprintf(output_file, "\tld l, (ix%+d)\n", var_offset);
+            fprintf(output_file, "\tld h, (ix%+d)\n", var_offset + 1);
+            /* Increment the variable */
+            fprintf(output_file, "\tinc (ix%+d)\n", var_offset);
+            /* Check for carry to high byte */
+            fprintf(output_file, "\tjr nz, .skip%d\n", node->data.postfix_inc.label_id);
+            fprintf(output_file, "\tinc (ix%+d)\n", var_offset + 1);
+            fprintf(output_file, ".skip%d:\n", node->data.postfix_inc.label_id);
+            /* HL still contains the old value */
             break;
             
         case AST_ASSIGNMENT:
@@ -261,7 +327,7 @@ static int count_local_vars(ASTNode *node, int current_offset) {
             break;
             
         case AST_DECLARATION:
-            /* Allocate space for this variable (2 bytes for int) */
+            /* All types are 2 bytes (int or pointer) on Z80 */
             offset -= 2;
             add_local_var(node->data.declaration.name, offset);
             break;
@@ -373,6 +439,26 @@ void codegen_generate(TranslationUnit *unit, FILE *output) {
                 break;
         }
         node = node->next;
+    }
+    
+    /* Emit string literals in .rodata section */
+    if (string_literals) {
+        StringLiteral *lit;
+        
+        fprintf(output_file, "\t.section .rodata\n");
+        
+        for (lit = string_literals; lit != NULL; lit = lit->next) {
+            int i;
+            fprintf(output_file, "_str%d:\n", lit->label_id);
+            fprintf(output_file, "\t.byte ");
+            for (i = 0; lit->value[i] != '\0'; i++) {
+                if (i > 0) fprintf(output_file, ", ");
+                fprintf(output_file, "%d", (unsigned char)lit->value[i]);
+            }
+            fprintf(output_file, ", 0\n"); /* Null terminator */
+        }
+        
+        free_string_literals();
     }
     
     /* Clean up symbol table */
