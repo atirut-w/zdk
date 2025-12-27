@@ -11,7 +11,7 @@ The compiler driver orchestrates the compilation process from C source to Z80 ex
 
 Usage:
 ```bash
-cc [options] file.c
+cc [options] file...
 ```
 
 Options:
@@ -20,11 +20,25 @@ Options:
 - `-c` - Compile and assemble; output object file
 - `-h, --help` - Display help information
 
-Example:
+**Supported Input File Types:**
+- `.c` - C source files (compiled, assembled, and linked)
+- `.s` - Assembly source files (assembled and linked)
+- `.o` - Object files (linked directly)
+
+**Examples:**
+
+Single file compilation:
 ```bash
 cc input.c -o output         # Full compilation to executable
 cc input.c -S -o output.s    # Compile to assembly only
 cc input.c -c -o output.o    # Compile and assemble only
+```
+
+Mixed input file types:
+```bash
+cc main.c helper.s -o output          # Compile C, assemble .s, link together
+cc test.c bdos.s startup.o -o prog    # Mix .c, .s, and .o files
+cc module1.o module2.o -o program     # Link multiple object files
 ```
 
 ### cc1 - C90 Compiler
