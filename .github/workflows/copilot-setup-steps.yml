@@ -1,0 +1,42 @@
+name: "Copilot Setup"
+
+on:
+    workflow_dispatch:
+    push:
+        paths:
+            - .github/workflows/copilot-setup-steps.yml
+    pull_request:
+        paths:
+            - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+    copilot-setup-steps:
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+
+        steps:
+            - name: Install Dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y gcc make texinfo flex bison zlib1g-dev libgmp-dev libmpfr-dev perl gettext
+
+            - name: Download Binutils
+              run: |
+                  wget https://sourceware.org/pub/binutils/snapshots/binutils-2.44.90.tar.xz
+
+            - name: Extract Binutils
+              run: |
+                  tar -xJf binutils-2.44.90.tar.xz
+
+            - name: Build and Install Binutils
+              run: |
+                  cd binutils-2.44.90
+                  ./configure --prefix=/usr/local --target=z80-unknown-none-elf
+                  make -j$(nproc)
+                  sudo make install
+
+            - name: Verify Binutils Installation
+              run: |
+                  z80-unknown-none-elf-ld --version
