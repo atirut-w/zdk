@@ -12,7 +12,7 @@ ZDK includes a simple C90 compiler (`cc1`) and compiler driver (`cc`). The compi
 
 ### Building
 
-The compiler uses CMake as its build system. The target architecture is selected at build time.
+The compiler uses CMake as its build system. The target architecture is selected at build time. All executables are placed in `build/bin/` for convenience.
 
 #### Build for AMD64 (default)
 
@@ -30,12 +30,18 @@ cmake --build build
 
 ### Usage
 
+For convenience, add the build/bin directory to your PATH:
+
+```bash
+export PATH="$PWD/build/bin:$PATH"
+```
+
 #### Compiler Frontend (cc1)
 
 The `cc1` compiler frontend reads C source code and generates assembly:
 
 ```bash
-./build/cc1/cc1 -o output.s input.c
+cc1 -o output.s input.c
 ```
 
 Options:
@@ -44,10 +50,17 @@ Options:
 
 #### Compiler Driver (cc)
 
-The `cc` compiler driver orchestrates the compilation process:
+The `cc` compiler driver orchestrates compilation, assembly, and linking:
 
 ```bash
-./build/cc/cc -S -o output.s input.c
+# Compile to assembly only
+cc -S -o output.s input.c
+
+# Compile and assemble to object file
+cc -c -o output.o input.c
+
+# Full compilation (compile, assemble, and link)
+cc -o program input.c
 ```
 
 Options:
@@ -55,6 +68,8 @@ Options:
 - `-S`: Compile only; do not assemble
 - `-c`: Compile and assemble; do not link
 - `-h, --help`: Display help message
+
+**Note:** The driver assumes `cc1` is in your PATH. The full compilation pipeline calls the appropriate assembler (`as` for AMD64, `z80-unknown-none-elf-as` for Z80 if available) and linker (`ld` for AMD64, `z80-unknown-none-elf-ld` for Z80 if available).
 
 ### Testing
 
@@ -86,10 +101,17 @@ int main() {
 Compile it:
 
 ```bash
-./build/cc1/cc1 -o output.s input.c
+# Add build/bin to PATH
+export PATH="$PWD/build/bin:$PATH"
+
+# Compile to assembly
+cc -S -o output.s input.c
+
+# Or compile to object file
+cc -c -o output.o input.c
 ```
 
-The generated assembly will target the architecture specified during build configuration.
+The generated output will target the architecture specified during build configuration.
 
 ### Architecture Details
 

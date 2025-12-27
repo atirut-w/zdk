@@ -9,17 +9,25 @@ std::unique_ptr<TranslationUnit> Parser::parse() {
 }
 
 Token& Parser::current() {
-    if (position < tokens.size()) {
+    if (position < tokens.size() && tokens.size() > 0) {
         return tokens[position];
     }
-    return tokens[tokens.size() - 1];
+    /* Return EOF token if available, otherwise throw */
+    if (tokens.size() > 0) {
+        return tokens[tokens.size() - 1];
+    }
+    throw std::runtime_error("Parser error: no tokens available");
 }
 
 Token& Parser::peek() {
     if (position + 1 < tokens.size()) {
         return tokens[position + 1];
     }
-    return tokens[tokens.size() - 1];
+    /* Return EOF token if available, otherwise throw */
+    if (tokens.size() > 0) {
+        return tokens[tokens.size() - 1];
+    }
+    throw std::runtime_error("Parser error: no tokens available");
 }
 
 bool Parser::isAtEnd() {

@@ -126,6 +126,10 @@ void Lexer::skipComment() {
     advance();
     
     while (bufferPos < bufferEnd || !eof) {
+        if (current() == '\0' && eof) {
+            /* Unterminated comment - just return */
+            return;
+        }
         if (current() == '*' && peek() == '/') {
             advance();
             advance();

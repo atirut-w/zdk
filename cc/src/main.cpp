@@ -158,8 +158,8 @@ int main(int argc, char* argv[]) {
         return result;
     }
     
-    /* Clean up temporary assembly file unless we're keeping it */
-    if (!compileOnly && outputFile != nullptr) {
+    /* Clean up temporary assembly file if it wasn't specified as output */
+    if (!compileOnly && outputFile == nullptr) {
         unlink(asmFile.c_str());
     }
     
@@ -176,8 +176,8 @@ int main(int argc, char* argv[]) {
         return result;
     }
     
-    /* Clean up temporary object file */
-    if (outputFile != nullptr) {
+    /* Clean up temporary object file if it wasn't specified as output */
+    if (outputFile == nullptr) {
         unlink(objFile.c_str());
     }
     
