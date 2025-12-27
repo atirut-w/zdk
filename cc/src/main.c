@@ -203,7 +203,11 @@ int main(int argc, char **argv) {
     
     /* Check if multiple inputs with -S or -c without output specified */
     if (num_inputs > 1 && (compile_only || assemble_only) && !output_file) {
-        fprintf(stderr, "Error: cannot specify multiple input files with -S or -c without -o\n");
+        if (compile_only) {
+            fprintf(stderr, "Error: cannot specify multiple input files with -S without -o\n");
+        } else {
+            fprintf(stderr, "Error: cannot specify multiple input files with -c without -o\n");
+        }
         free(input_files);
         return 1;
     }
@@ -382,8 +386,11 @@ int main(int argc, char **argv) {
             
             case FILE_TYPE_OBJ:
                 /* Object files are used directly */
-                if (compile_only || assemble_only) {
-                    fprintf(stderr, "Warning: -S or -c specified but '%s' is already an object file\n", input_files[i].path);
+                if (compile_only) {
+                    fprintf(stderr, "Warning: -S specified but '%s' is already an object file\n", input_files[i].path);
+                    continue;
+                } else if (assemble_only) {
+                    fprintf(stderr, "Warning: -c specified but '%s' is already an object file\n", input_files[i].path);
                     continue;
                 }
                 input_files[i].obj_file = input_files[i].path;
