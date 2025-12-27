@@ -66,6 +66,24 @@ static file_type_t detect_file_type(const char *filename) {
     return FILE_TYPE_UNKNOWN;
 }
 
+static char *replace_extension(const char *filename, const char *new_ext) {
+    size_t len = strlen(filename);
+    size_t new_ext_len = strlen(new_ext);
+    char *result;
+    
+    /* We know the file has a valid extension (.c, .s, or .o) from detect_file_type */
+    result = malloc(len + new_ext_len);
+    if (!result) {
+        return NULL;
+    }
+    
+    strcpy(result, filename);
+    /* Replace the last 2 characters (.c, .s, .o) with new extension */
+    strcpy(result + len - 2, new_ext);
+    
+    return result;
+}
+
 static int run_command(char **argv) {
     pid_t pid;
     int status;
@@ -191,9 +209,12 @@ int main(int argc, char **argv) {
                     if (output_file) {
                         asm_file = output_file;
                     } else {
-                        asm_file = malloc(strlen(input_files[i].path) + 3);
-                        strcpy(asm_file, input_files[i].path);
-                        strcpy(asm_file + strlen(asm_file) - 2, ".s");
+                        asm_file = replace_extension(input_files[i].path, ".s");
+                        if (!asm_file) {
+                            perror("Failed to allocate memory");
+                            ret = 1;
+                            goto cleanup;
+                        }
                     }
                 } else {
                     asm_file = create_temp_file(".s");
@@ -230,9 +251,16 @@ int main(int argc, char **argv) {
                     if (output_file) {
                         obj_file = output_file;
                     } else {
-                        obj_file = malloc(strlen(input_files[i].path) + 3);
-                        strcpy(obj_file, input_files[i].path);
-                        strcpy(obj_file + strlen(obj_file) - 2, ".o");
+                        obj_file = replace_extension(input_files[i].path, ".o");
+                        if (!obj_file) {
+                            perror("Failed to allocate memory");
+                            if (need_free_asm) {
+                                unlink(asm_file);
+                                free(asm_file);
+                            }
+                            ret = 1;
+                            goto cleanup;
+                        }
                     }
                 } else {
                     obj_file = create_temp_file(".o");
@@ -269,9 +297,6 @@ int main(int argc, char **argv) {
                 }
                 
                 input_files[i].obj_file = obj_file;
-                if (need_free_obj) {
-                    /* Mark for cleanup later */
-                }
                 
                 if (assemble_only) {
                     continue;
@@ -295,9 +320,12 @@ int main(int argc, char **argv) {
                     if (output_file) {
                         obj_file = output_file;
                     } else {
-                        obj_file = malloc(strlen(input_files[i].path) + 3);
-                        strcpy(obj_file, input_files[i].path);
-                        strcpy(obj_file + strlen(obj_file) - 2, ".o");
+                        obj_file = replace_extension(input_files[i].path, ".o");
+                        if (!obj_file) {
+                            perror("Failed to allocate memory");
+                            ret = 1;
+                            goto cleanup;
+                        }
                     }
                 } else {
                     obj_file = create_temp_file(".o");
@@ -360,8 +388,21 @@ int main(int argc, char **argv) {
         output_file = "a.out";
     }
     
-    /* Build linker command: ld -o <output> <obj1> <obj2> ... */
-    ld_argc = 3 + num_inputs;  /* "ld", "-o", output_file, obj1, obj2, ..., NULL */
+    /* Count object files to link */
+    for (i = 0, j = 0; i < num_inputs; i++) {
+        if (input_files[i].obj_file) {
+            j++;
+        }
+    }
+    
+    if (j == 0) {
+        fprintf(stderr, "Error: no object files to link\n");
+        ret = 1;
+        goto cleanup;
+    }
+    
+    /* Build linker command: ld -o <output> <obj1> <obj2> ... NULL */
+    ld_argc = 3 + j;  /* "ld", "-o", output_file, obj1, obj2, ..., NULL */
     ld_argv = malloc((ld_argc + 1) * sizeof(char *));
     if (!ld_argv) {
         perror("Failed to allocate memory for linker arguments");
