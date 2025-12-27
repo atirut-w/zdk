@@ -178,6 +178,10 @@ Token lexer_next_token(void) {
             token.type = TOK_COMMA;
             advance();
             break;
+        case '=':
+            token.type = TOK_ASSIGN;
+            advance();
+            break;
         default:
             fprintf(stderr, "Unexpected character: '%c' at line %d, column %d\n",
                     current_char, line, column);

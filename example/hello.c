@@ -1,13 +1,18 @@
 int bdos(int func, int arg);
 
 int main() {
-  bdos(2, 'H');
-  bdos(2, 'e');
-  bdos(2, 'l');
-  bdos(2, 'l');
-  bdos(2, 'o');
-  bdos(2, '!');
-  bdos(2, '\n');
+  int ch = 'H';
+  bdos(2, ch);
+  ch = 'e';
+  bdos(2, ch);
+  ch = 'l';
+  bdos(2, ch);
+  ch = 'l';
+  bdos(2, ch);
+  ch = 'o';
+  bdos(2, ch);
+  ch = '\n';
+  bdos(2, ch);
   return 0;
 }
 

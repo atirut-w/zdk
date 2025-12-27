@@ -16,7 +16,8 @@ typedef enum {
     TOK_LBRACE,
     TOK_RBRACE,
     TOK_SEMICOLON,
-    TOK_COMMA
+    TOK_COMMA,
+    TOK_ASSIGN
 } TokenType;
 
 typedef struct {

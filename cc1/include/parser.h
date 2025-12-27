@@ -19,6 +19,9 @@ typedef enum {
     AST_COMPOUND,
     AST_RETURN,
     AST_EXPRESSION_STMT,
+    AST_DECLARATION,
+    AST_VARIABLE,
+    AST_ASSIGNMENT,
     AST_CALL,
     AST_NUMBER
 } ASTNodeType;
@@ -53,6 +56,18 @@ struct ASTNode {
         struct {
             ASTNode *expr;
         } expression_stmt;
+        struct {
+            Type type;
+            char *name;
+            ASTNode *initializer; /* Can be NULL */
+        } declaration;
+        struct {
+            char *name;
+        } variable;
+        struct {
+            char *name;
+            ASTNode *value;
+        } assignment;
         struct {
             char *name;
             ASTNode **args;

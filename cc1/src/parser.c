@@ -89,6 +89,7 @@ static Parameter *parse_parameter_list(void) {
 
 static ASTNode *parse_primary_expression(void);
 static ASTNode *parse_postfix_expression(void);
+static ASTNode *parse_expression(void);
 
 static ASTNode *parse_primary_expression(void) {
     ASTNode *node;
@@ -166,11 +167,24 @@ static ASTNode *parse_postfix_expression(void) {
         node->data.call.arg_count = count;
         
         return node;
+    } else if (current_token.type == TOK_ASSIGN) {
+        /* Assignment expression */
+        advance_token(); /* consume '=' */
+        
+        node = malloc(sizeof(ASTNode));
+        node->type = AST_ASSIGNMENT;
+        node->data.assignment.name = name;
+        node->data.assignment.value = parse_expression();
+        node->next = NULL;
+        
+        return node;
     } else {
-        /* Not a function call - error for now (no variables yet) */
-        fprintf(stderr, "Parse error: unexpected identifier '%s' (variables not supported yet)\n", name);
-        free(name);
-        exit(1);
+        /* Variable reference */
+        node = malloc(sizeof(ASTNode));
+        node->type = AST_VARIABLE;
+        node->data.variable.name = name;
+        node->next = NULL;
+        return node;
     }
 }
 
@@ -210,9 +224,43 @@ static ASTNode *parse_expression_statement(void) {
     return node;
 }
 
+static ASTNode *parse_declaration(void) {
+    ASTNode *node = malloc(sizeof(ASTNode));
+    node->type = AST_DECLARATION;
+    node->next = NULL;
+    
+    /* Parse type */
+    node->data.declaration.type = parse_type();
+    
+    /* Parse variable name */
+    if (current_token.type != TOK_IDENTIFIER) {
+        fprintf(stderr, "Parse error: expected variable name in declaration\n");
+        exit(1);
+    }
+    
+    node->data.declaration.name = malloc(strlen(current_token.value) + 1);
+    strcpy(node->data.declaration.name, current_token.value);
+    advance_token();
+    
+    /* Check for initialization */
+    if (current_token.type == TOK_ASSIGN) {
+        advance_token();
+        node->data.declaration.initializer = parse_expression();
+    } else {
+        node->data.declaration.initializer = NULL;
+    }
+    
+    expect(TOK_SEMICOLON);
+    
+    return node;
+}
+
 static ASTNode *parse_statement(void) {
     if (current_token.type == TOK_RETURN) {
         return parse_return_statement();
+    } else if (current_token.type == TOK_INT || current_token.type == TOK_VOID) {
+        /* Variable declaration */
+        return parse_declaration();
     } else {
         return parse_expression_statement();
     }
@@ -355,6 +403,17 @@ void parser_free(ASTNode *node) {
             break;
         case AST_EXPRESSION_STMT:
             parser_free(node->data.expression_stmt.expr);
+            break;
+        case AST_DECLARATION:
+            free(node->data.declaration.name);
+            parser_free(node->data.declaration.initializer);
+            break;
+        case AST_VARIABLE:
+            free(node->data.variable.name);
+            break;
+        case AST_ASSIGNMENT:
+            free(node->data.assignment.name);
+            parser_free(node->data.assignment.value);
             break;
         case AST_CALL:
             free(node->data.call.name);
