@@ -1,0 +1,1 @@
+/home/runner/work/zdk/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/cc.dir/link.d CMakeFiles/cc.dir/src/main.c.o -o cc
