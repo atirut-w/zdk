@@ -56,10 +56,10 @@ The `cc` compiler driver orchestrates compilation, assembly, and linking:
 # Compile to assembly only
 cc -S -o output.s input.c
 
-# Compile and assemble to object file
+# Compile and assemble to object file (cleans up .s file)
 cc -c -o output.o input.c
 
-# Full compilation (compile, assemble, and link)
+# Full compilation (compile, assemble, and link; cleans up .s and .o files)
 cc -o program input.c
 ```
 
@@ -69,7 +69,7 @@ Options:
 - `-c`: Compile and assemble; do not link
 - `-h, --help`: Display help message
 
-**Note:** The driver assumes `cc1` is in your PATH. The full compilation pipeline calls the appropriate assembler (`as` for AMD64, `z80-unknown-none-elf-as` for Z80 if available) and linker (`ld` for AMD64, `z80-unknown-none-elf-ld` for Z80 if available).
+**Note:** The driver assumes `cc1` is in your PATH. The full compilation pipeline calls the appropriate assembler (`as` for AMD64, `z80-unknown-none-elf-as` for Z80 if available) and linker (`ld` for AMD64, `z80-unknown-none-elf-ld` for Z80 if available). Intermediate files (.s and .o) are automatically cleaned up unless they are the final output.
 
 ### Testing
 
