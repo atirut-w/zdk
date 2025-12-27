@@ -158,8 +158,9 @@ int main(int argc, char* argv[]) {
         return result;
     }
     
-    /* Clean up temporary assembly file if it wasn't specified as output */
-    if (!compileOnly && outputFile == nullptr) {
+    /* Clean up temporary assembly file (not needed beyond this point) */
+    /* Don't clean if -S was used (compileOnly) or if we're stopping at -c */
+    if (!assembleOnly) {
         unlink(asmFile.c_str());
     }
     
@@ -176,10 +177,8 @@ int main(int argc, char* argv[]) {
         return result;
     }
     
-    /* Clean up temporary object file if it wasn't specified as output */
-    if (outputFile == nullptr) {
-        unlink(objFile.c_str());
-    }
+    /* Clean up temporary object file (not needed after linking) */
+    unlink(objFile.c_str());
     
     return 0;
 }

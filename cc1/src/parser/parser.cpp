@@ -9,7 +9,7 @@ std::unique_ptr<TranslationUnit> Parser::parse() {
 }
 
 Token& Parser::current() {
-    if (position < tokens.size() && tokens.size() > 0) {
+    if (position < tokens.size()) {
         return tokens[position];
     }
     /* Return EOF token if available, otherwise throw */
