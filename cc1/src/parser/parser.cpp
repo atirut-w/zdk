@@ -9,7 +9,10 @@ std::unique_ptr<TranslationUnit> Parser::parse() {
 }
 
 Token& Parser::current() {
-    return tokens[position];
+    if (position < tokens.size()) {
+        return tokens[position];
+    }
+    return tokens[tokens.size() - 1];
 }
 
 Token& Parser::peek() {

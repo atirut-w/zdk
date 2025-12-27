@@ -41,6 +41,7 @@ void Z80CodeGenerator::visit(FunctionDeclaration& node) {
     
     /* Function prologue - IX as frame pointer */
     *output << "    push ix\n";
+    /* Note: Z80 has no direct ld ix, sp - use ld ix, 0; add ix, sp instead */
     *output << "    ld ix, 0\n";
     *output << "    add ix, sp\n";
     

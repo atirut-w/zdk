@@ -5,7 +5,7 @@ set -e
 
 TEST_DIR="$(dirname "$0")"
 BUILD_DIR="${BUILD_DIR:-$TEST_DIR/../build}"
-CC1="$BUILD_DIR/cc1/cc1"
+CC1="$BUILD_DIR/bin/cc1"
 
 if [ ! -x "$CC1" ]; then
     echo "Error: cc1 not found at $CC1"

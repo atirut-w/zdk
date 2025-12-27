@@ -43,6 +43,36 @@ int runCommand(const std::vector<std::string>& args) {
     }
 }
 
+std::string getAssembler() {
+    /* Determine assembler based on target */
+#ifdef ENABLE_AMD64_BACKEND
+    return "as";
+#elif defined(ENABLE_Z80_BACKEND)
+    /* Try Z80 assembler first, fall back to generic as */
+    if (system("which z80-unknown-none-elf-as >/dev/null 2>&1") == 0) {
+        return "z80-unknown-none-elf-as";
+    }
+    return "as";
+#else
+    return "as";
+#endif
+}
+
+std::string getLinker() {
+    /* Determine linker based on target */
+#ifdef ENABLE_AMD64_BACKEND
+    return "ld";
+#elif defined(ENABLE_Z80_BACKEND)
+    /* Try Z80 linker first, fall back to generic ld */
+    if (system("which z80-unknown-none-elf-ld >/dev/null 2>&1") == 0) {
+        return "z80-unknown-none-elf-ld";
+    }
+    return "ld";
+#else
+    return "ld";
+#endif
+}
+
 int main(int argc, char* argv[]) {
     const char* inputFile = nullptr;
     const char* outputFile = nullptr;
@@ -108,7 +138,7 @@ int main(int argc, char* argv[]) {
         exeFile = "a.out";
     }
     
-    /* Run cc1 to compile to assembly */
+    /* Run cc1 to compile to assembly (assumes cc1 is in PATH) */
     std::vector<std::string> cc1Args = {"cc1", "-o", asmFile, inputFile};
     int result = runCommand(cc1Args);
     if (result != 0) {
@@ -119,8 +149,37 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     
-    /* TODO: Run assembler and linker when not in compile-only mode */
-    std::cerr << "Note: Assembly complete. Assembler and linker not yet implemented.\n";
+    /* Run assembler */
+    std::string assembler = getAssembler();
+    std::vector<std::string> asArgs = {assembler, "-o", objFile, asmFile};
+    result = runCommand(asArgs);
+    if (result != 0) {
+        std::cerr << "Error: Assembly failed\n";
+        return result;
+    }
+    
+    /* Clean up temporary assembly file unless we're keeping it */
+    if (!compileOnly && outputFile != nullptr) {
+        unlink(asmFile.c_str());
+    }
+    
+    if (assembleOnly) {
+        return 0;
+    }
+    
+    /* Run linker */
+    std::string linker = getLinker();
+    std::vector<std::string> ldArgs = {linker, "-o", exeFile, objFile};
+    result = runCommand(ldArgs);
+    if (result != 0) {
+        std::cerr << "Error: Linking failed\n";
+        return result;
+    }
+    
+    /* Clean up temporary object file */
+    if (outputFile != nullptr) {
+        unlink(objFile.c_str());
+    }
     
     return 0;
 }
