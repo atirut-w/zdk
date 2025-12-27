@@ -38,6 +38,8 @@ config:
         # Create build directory
         mkdir build
         cd build
+        # Create gas/doc directory to prevent documentation build errors
+        # This is a known workaround for binutils builds in minimal environments
         mkdir -p gas/doc
         
         # Configure for Z80 target
