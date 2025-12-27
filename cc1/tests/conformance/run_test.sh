@@ -32,6 +32,8 @@ gcc -fsyntax-only -std=c90 -pedantic -pedantic-errors "$TEST_FILE" 2>/dev/null |
 
 # Preprocess the file for cc1 (cc1 expects preprocessed input)
 # Use -P to suppress line markers which cc1 doesn't handle
+# Note: Preprocessing may fail for invalid input files, but we still want to
+# continue and let cc1 try to parse the output, hence || true
 gcc -E -P -std=c90 -pedantic -pedantic-errors "$TEST_FILE" -o "$PREPROCESSED" 2>/dev/null || true
 
 # Test with cc1 on preprocessed input
