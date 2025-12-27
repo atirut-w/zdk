@@ -1,1 +1,0 @@
-/home/runner/work/zdk/.codeql-scratch/dbs/cpp/working/autobuild/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/cc1.dir/link.d CMakeFiles/cc1.dir/src/main.cpp.o CMakeFiles/cc1.dir/src/lexer/lexer.cpp.o CMakeFiles/cc1.dir/src/parser/parser.cpp.o CMakeFiles/cc1.dir/src/ast/ast.cpp.o CMakeFiles/cc1.dir/src/codegen/amd64.cpp.o -o ../bin/cc1
