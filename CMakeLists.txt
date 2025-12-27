@@ -4,3 +4,4 @@ add_compile_options(-pedantic -pedantic-errors -Wall -Wextra)
 include(CTest)
 
 add_subdirectory(cc)
+add_subdirectory(cc1)
