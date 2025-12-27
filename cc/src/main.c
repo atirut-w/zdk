@@ -16,6 +16,7 @@ typedef struct {
     char *path;
     file_type_t type;
     char *obj_file;  /* Path to object file (temp or final) */
+    char *asm_file;  /* Path to assembly file (for -S) */
 } input_file_t;
 
 static void print_usage(const char *program_name) {
@@ -72,7 +73,8 @@ static char *replace_extension(const char *filename, const char *new_ext) {
     char *result;
     
     /* We know the file has a valid extension (.c, .s, or .o) from detect_file_type */
-    result = malloc(len + new_ext_len);
+    /* Allocate: original length - 2 (old ext) + new_ext_len + 1 (null terminator) */
+    result = malloc(len - 2 + new_ext_len + 1);
     if (!result) {
         return NULL;
     }
@@ -160,6 +162,7 @@ int main(int argc, char **argv) {
             input_files[num_inputs].path = argv[i];
             input_files[num_inputs].type = detect_file_type(argv[i]);
             input_files[num_inputs].obj_file = NULL;
+            input_files[num_inputs].asm_file = NULL;
             
             if (input_files[num_inputs].type == FILE_TYPE_UNKNOWN) {
                 fprintf(stderr, "Error: unknown file type for '%s'\n", argv[i]);
@@ -243,6 +246,10 @@ int main(int argc, char **argv) {
                 }
                 
                 if (compile_only) {
+                    /* Store asm_file for cleanup if allocated */
+                    if (asm_file != output_file) {
+                        input_files[i].asm_file = asm_file;
+                    }
                     continue;
                 }
                 
@@ -379,6 +386,17 @@ int main(int argc, char **argv) {
     
     /* If -S or -c, we're done */
     if (compile_only || assemble_only) {
+        /* Clean up any allocated output filenames */
+        for (i = 0; i < num_inputs; i++) {
+            if (input_files[i].asm_file && input_files[i].asm_file != output_file) {
+                free(input_files[i].asm_file);
+            }
+            if (input_files[i].obj_file && 
+                input_files[i].obj_file != input_files[i].path &&
+                input_files[i].obj_file != output_file) {
+                free(input_files[i].obj_file);
+            }
+        }
         free(input_files);
         return 0;
     }
