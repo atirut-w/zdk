@@ -5,6 +5,19 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+typedef enum {
+    FILE_TYPE_C,      /* .c - C source file */
+    FILE_TYPE_ASM,    /* .s - Assembly source file */
+    FILE_TYPE_OBJ,    /* .o - Object file */
+    FILE_TYPE_UNKNOWN
+} file_type_t;
+
+typedef struct {
+    char *path;
+    file_type_t type;
+    char *obj_file;  /* Path to object file (temp or final) */
+} input_file_t;
+
 static void print_usage(const char *program_name) {
     fprintf(stderr, "Usage: %s [options] file...\n", program_name);
     fprintf(stderr, "Options:\n");
@@ -12,6 +25,11 @@ static void print_usage(const char *program_name) {
     fprintf(stderr, "  -c         Compile and assemble, but do not link\n");
     fprintf(stderr, "  -S         Compile only; do not assemble or link\n");
     fprintf(stderr, "  -h, --help Display this information\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Supported input file types:\n");
+    fprintf(stderr, "  .c - C source files (compiled, assembled, and linked)\n");
+    fprintf(stderr, "  .s - Assembly source files (assembled and linked)\n");
+    fprintf(stderr, "  .o - Object files (linked directly)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "TODO: Add preprocessor (cpp) integration for handling #include, #define, etc.\n");
 }
@@ -32,6 +50,20 @@ static char *create_temp_file(const char *suffix) {
     
     close(fd);
     return template;
+}
+
+static file_type_t detect_file_type(const char *filename) {
+    size_t len = strlen(filename);
+    
+    if (len >= 2 && strcmp(filename + len - 2, ".c") == 0) {
+        return FILE_TYPE_C;
+    } else if (len >= 2 && strcmp(filename + len - 2, ".s") == 0) {
+        return FILE_TYPE_ASM;
+    } else if (len >= 2 && strcmp(filename + len - 2, ".o") == 0) {
+        return FILE_TYPE_OBJ;
+    }
+    
+    return FILE_TYPE_UNKNOWN;
 }
 
 static int run_command(char **argv) {
@@ -65,17 +97,16 @@ static int run_command(char **argv) {
 }
 
 int main(int argc, char **argv) {
-    char *input_file = NULL;
+    input_file_t *input_files = NULL;
+    int num_inputs = 0;
+    int input_capacity = 0;
     char *output_file = NULL;
-    char *asm_file = NULL;
-    char *obj_file = NULL;
     int compile_only = 0;
     int assemble_only = 0;
-    int i;
+    int i, j;
     int ret = 0;
-    char *cc1_argv[5];
-    char *as_argv[5];
-    char *ld_argv[5];
+    char **ld_argv = NULL;
+    int ld_argc;
     
     /* Parse command-line arguments */
     for (i = 1; i < argc; i++) {
@@ -99,117 +130,277 @@ int main(int argc, char **argv) {
             print_usage(argv[0]);
             return 1;
         } else {
-            input_file = argv[i];
+            /* Input file */
+            if (num_inputs >= input_capacity) {
+                input_capacity = input_capacity == 0 ? 4 : input_capacity * 2;
+                input_files = realloc(input_files, input_capacity * sizeof(input_file_t));
+                if (!input_files) {
+                    perror("Failed to allocate memory for input files");
+                    return 1;
+                }
+            }
+            input_files[num_inputs].path = argv[i];
+            input_files[num_inputs].type = detect_file_type(argv[i]);
+            input_files[num_inputs].obj_file = NULL;
+            
+            if (input_files[num_inputs].type == FILE_TYPE_UNKNOWN) {
+                fprintf(stderr, "Error: unknown file type for '%s'\n", argv[i]);
+                fprintf(stderr, "Supported extensions: .c, .s, .o\n");
+                free(input_files);
+                return 1;
+            }
+            
+            num_inputs++;
         }
     }
     
-    if (!input_file) {
-        fprintf(stderr, "Error: no input file specified\n");
+    if (num_inputs == 0) {
+        fprintf(stderr, "Error: no input files specified\n");
         print_usage(argv[0]);
         return 1;
     }
     
-    /* Determine output file names */
-    if (compile_only) {
-        if (!output_file) {
-            output_file = malloc(strlen(input_file) + 3);
-            strcpy(output_file, input_file);
-            /* Replace .c with .s */
-            if (strlen(output_file) > 2 && strcmp(output_file + strlen(output_file) - 2, ".c") == 0) {
-                strcpy(output_file + strlen(output_file) - 2, ".s");
-            } else {
-                strcat(output_file, ".s");
+    /* Check for conflicting options */
+    if (compile_only && assemble_only) {
+        fprintf(stderr, "Error: -c and -S are mutually exclusive\n");
+        free(input_files);
+        return 1;
+    }
+    
+    /* Check if multiple inputs with -S or -c without output specified */
+    if (num_inputs > 1 && (compile_only || assemble_only) && !output_file) {
+        fprintf(stderr, "Error: cannot specify multiple input files with -S or -c without -o\n");
+        free(input_files);
+        return 1;
+    }
+    
+    /* Process each input file */
+    for (i = 0; i < num_inputs; i++) {
+        char *asm_file = NULL;
+        char *obj_file = NULL;
+        int need_free_asm = 0;
+        int need_free_obj = 0;
+        
+        switch (input_files[i].type) {
+            case FILE_TYPE_C: {
+                char *cc1_argv[5];
+                char *as_argv[5];
+                
+                /* Determine assembly file name */
+                if (compile_only) {
+                    if (output_file) {
+                        asm_file = output_file;
+                    } else {
+                        asm_file = malloc(strlen(input_files[i].path) + 3);
+                        strcpy(asm_file, input_files[i].path);
+                        strcpy(asm_file + strlen(asm_file) - 2, ".s");
+                    }
+                } else {
+                    asm_file = create_temp_file(".s");
+                    if (!asm_file) {
+                        ret = 1;
+                        goto cleanup;
+                    }
+                    need_free_asm = 1;
+                }
+                
+                /* Step 1: Compile with cc1 */
+                cc1_argv[0] = "cc1";
+                cc1_argv[1] = input_files[i].path;
+                cc1_argv[2] = "-o";
+                cc1_argv[3] = asm_file;
+                cc1_argv[4] = NULL;
+                
+                ret = run_command(cc1_argv);
+                if (ret != 0) {
+                    fprintf(stderr, "Compilation failed for '%s'\n", input_files[i].path);
+                    if (need_free_asm) {
+                        unlink(asm_file);
+                        free(asm_file);
+                    }
+                    goto cleanup;
+                }
+                
+                if (compile_only) {
+                    continue;
+                }
+                
+                /* Step 2: Assemble */
+                if (assemble_only) {
+                    if (output_file) {
+                        obj_file = output_file;
+                    } else {
+                        obj_file = malloc(strlen(input_files[i].path) + 3);
+                        strcpy(obj_file, input_files[i].path);
+                        strcpy(obj_file + strlen(obj_file) - 2, ".o");
+                    }
+                } else {
+                    obj_file = create_temp_file(".o");
+                    if (!obj_file) {
+                        if (need_free_asm) {
+                            unlink(asm_file);
+                            free(asm_file);
+                        }
+                        ret = 1;
+                        goto cleanup;
+                    }
+                    need_free_obj = 1;
+                }
+                
+                as_argv[0] = "z80-unknown-none-elf-as";
+                as_argv[1] = "-o";
+                as_argv[2] = obj_file;
+                as_argv[3] = asm_file;
+                as_argv[4] = NULL;
+                
+                ret = run_command(as_argv);
+                if (need_free_asm) {
+                    unlink(asm_file);
+                    free(asm_file);
+                }
+                
+                if (ret != 0) {
+                    fprintf(stderr, "Assembly failed for '%s'\n", input_files[i].path);
+                    if (need_free_obj) {
+                        unlink(obj_file);
+                        free(obj_file);
+                    }
+                    goto cleanup;
+                }
+                
+                input_files[i].obj_file = obj_file;
+                if (need_free_obj) {
+                    /* Mark for cleanup later */
+                }
+                
+                if (assemble_only) {
+                    continue;
+                }
+                
+                break;
             }
+            
+            case FILE_TYPE_ASM: {
+                char *as_argv[5];
+                
+                /* For -S, assembly files don't need processing */
+                if (compile_only) {
+                    fprintf(stderr, "Warning: -S specified but '%s' is already an assembly file, skipping\n", 
+                            input_files[i].path);
+                    continue;
+                }
+                
+                /* Determine object file name */
+                if (assemble_only) {
+                    if (output_file) {
+                        obj_file = output_file;
+                    } else {
+                        obj_file = malloc(strlen(input_files[i].path) + 3);
+                        strcpy(obj_file, input_files[i].path);
+                        strcpy(obj_file + strlen(obj_file) - 2, ".o");
+                    }
+                } else {
+                    obj_file = create_temp_file(".o");
+                    if (!obj_file) {
+                        ret = 1;
+                        goto cleanup;
+                    }
+                    need_free_obj = 1;
+                }
+                
+                as_argv[0] = "z80-unknown-none-elf-as";
+                as_argv[1] = "-o";
+                as_argv[2] = obj_file;
+                as_argv[3] = input_files[i].path;
+                as_argv[4] = NULL;
+                
+                ret = run_command(as_argv);
+                if (ret != 0) {
+                    fprintf(stderr, "Assembly failed for '%s'\n", input_files[i].path);
+                    if (need_free_obj) {
+                        unlink(obj_file);
+                        free(obj_file);
+                    }
+                    goto cleanup;
+                }
+                
+                input_files[i].obj_file = obj_file;
+                
+                if (assemble_only) {
+                    continue;
+                }
+                
+                break;
+            }
+            
+            case FILE_TYPE_OBJ:
+                /* Object files are used directly */
+                if (compile_only || assemble_only) {
+                    fprintf(stderr, "Warning: -S or -c specified but '%s' is already an object file\n", 
+                            input_files[i].path);
+                    continue;
+                }
+                input_files[i].obj_file = input_files[i].path;
+                break;
+                
+            case FILE_TYPE_UNKNOWN:
+                /* Should not reach here */
+                break;
         }
-        asm_file = output_file;
-    } else {
-        asm_file = create_temp_file(".s");
-        if (!asm_file) return 1;
     }
     
-    /* Step 1: Compile with cc1 */
-    cc1_argv[0] = "cc1";
-    cc1_argv[1] = input_file;
-    cc1_argv[2] = "-o";
-    cc1_argv[3] = asm_file;
-    cc1_argv[4] = NULL;
-    
-    ret = run_command(cc1_argv);
-    if (ret != 0) {
-        fprintf(stderr, "Compilation failed\n");
-        if (!compile_only) unlink(asm_file);
-        if (!compile_only && !output_file) free(asm_file);
-        return ret;
-    }
-    
-    if (compile_only) {
+    /* If -S or -c, we're done */
+    if (compile_only || assemble_only) {
+        free(input_files);
         return 0;
     }
     
-    /* Step 2: Assemble with z80-unknown-none-elf-as */
-    if (assemble_only) {
-        if (!output_file) {
-            output_file = malloc(strlen(input_file) + 3);
-            strcpy(output_file, input_file);
-            /* Replace .c with .o */
-            if (strlen(output_file) > 2 && strcmp(output_file + strlen(output_file) - 2, ".c") == 0) {
-                strcpy(output_file + strlen(output_file) - 2, ".o");
-            } else {
-                strcat(output_file, ".o");
-            }
-        }
-        obj_file = output_file;
-    } else {
-        obj_file = create_temp_file(".o");
-        if (!obj_file) {
-            unlink(asm_file);
-            free(asm_file);
-            return 1;
-        }
-    }
-    
-    as_argv[0] = "z80-unknown-none-elf-as";
-    as_argv[1] = "-o";
-    as_argv[2] = obj_file;
-    as_argv[3] = asm_file;
-    as_argv[4] = NULL;
-    
-    ret = run_command(as_argv);
-    unlink(asm_file);
-    free(asm_file);
-    
-    if (ret != 0) {
-        fprintf(stderr, "Assembly failed\n");
-        if (!assemble_only) {
-            unlink(obj_file);
-            free(obj_file);
-        }
-        return ret;
-    }
-    
-    if (assemble_only) {
-        return 0;
-    }
-    
-    /* Step 3: Link with z80-unknown-none-elf-ld */
+    /* Step 3: Link all object files */
     if (!output_file) {
         output_file = "a.out";
+    }
+    
+    /* Build linker command: ld -o <output> <obj1> <obj2> ... */
+    ld_argc = 3 + num_inputs;  /* "ld", "-o", output_file, obj1, obj2, ..., NULL */
+    ld_argv = malloc((ld_argc + 1) * sizeof(char *));
+    if (!ld_argv) {
+        perror("Failed to allocate memory for linker arguments");
+        ret = 1;
+        goto cleanup;
     }
     
     ld_argv[0] = "z80-unknown-none-elf-ld";
     ld_argv[1] = "-o";
     ld_argv[2] = output_file;
-    ld_argv[3] = obj_file;
-    ld_argv[4] = NULL;
+    
+    for (i = 0, j = 3; i < num_inputs; i++) {
+        if (input_files[i].obj_file) {
+            ld_argv[j++] = input_files[i].obj_file;
+        }
+    }
+    ld_argv[j] = NULL;
     
     ret = run_command(ld_argv);
-    unlink(obj_file);
-    free(obj_file);
+    free(ld_argv);
     
     if (ret != 0) {
         fprintf(stderr, "Linking failed\n");
-        return ret;
+        goto cleanup;
     }
     
-    return 0;
+cleanup:
+    /* Clean up temporary object files */
+    if (input_files) {
+        for (i = 0; i < num_inputs; i++) {
+            if (input_files[i].obj_file && 
+                input_files[i].obj_file != input_files[i].path &&
+                input_files[i].obj_file != output_file) {
+                unlink(input_files[i].obj_file);
+                free(input_files[i].obj_file);
+            }
+        }
+        free(input_files);
+    }
+    
+    return ret;
 }
