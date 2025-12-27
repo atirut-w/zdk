@@ -40,3 +40,6 @@ jobs:
             - name: Verify Binutils Installation
               run: |
                   z80-unknown-none-elf-ld --version
+
+            - name: Checkout code
+              uses: actions/checkout@v5
