@@ -3,3 +3,5 @@ project(ZDK)
 include(CTest)
 add_compile_options(-std=c90 -pedantic -pedantic-errors -Wall -Wextra)
 set(CMAKE_INSTALL_PREFIX /)
+
+add_subdirectory(libzobj)
