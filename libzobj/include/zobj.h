@@ -46,13 +46,13 @@ typedef struct {
 } ZObjSymbol;
 
 enum {
-  ZOBJ_SYM_UNDF,
-  ZOBJ_SYM_ABS,
-  ZOBJ_SYM_TEXT,
-  ZOBJ_SYM_DATA,
-  ZOBJ_SYM_BSS,
-  ZOBJ_SYM_FN,
-  ZOBJ_SYM_EXT = 0x8
+  ZOBJ_SYM_UNDF = (1 << 0),
+  ZOBJ_SYM_ABS = (1 << 1),
+  ZOBJ_SYM_TEXT = (1 << 2),
+  ZOBJ_SYM_DATA = (1 << 3),
+  ZOBJ_SYM_BSS = (1 << 4),
+  ZOBJ_SYM_FN = (1 << 5),
+  ZOBJ_SYM_EXT = (1 << 6)
 };
 
 typedef struct {
