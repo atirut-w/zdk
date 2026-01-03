@@ -38,7 +38,10 @@ enum {
 };
 
 typedef struct {
-  uint16_t strx;
+  union {
+    const char *name;
+    uint16_t strx;
+  } un;
   uint8_t type;
   uint8_t other;
   uint16_t desc;
