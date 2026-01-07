@@ -1,3 +1,4 @@
+#include "section.h"
 #include "zobj.h"
 #include <stdio.h>
 #include <string.h>
@@ -52,6 +53,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  text.file = tmpfile();
+  data.file = tmpfile();
+  bss.file = NULL; /* BSS has no backing file */
+
   while (argi < argc) {
     FILE *file = fopen(argv[argi], "r");
     if (!file) {
@@ -73,5 +78,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  fclose(text.file);
+  fclose(data.file);
   return 0;
 }
