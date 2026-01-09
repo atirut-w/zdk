@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+FILE *symref_file = NULL;
+
 int write_object_file(const char *filename) {
   FILE *file = fopen(filename, "wb");
   ZObjExec exec;
@@ -56,6 +58,7 @@ int main(int argc, char *argv[]) {
   text.file = tmpfile();
   data.file = tmpfile();
   bss.file = NULL; /* BSS has no backing file */
+  symref_file = tmpfile();
 
   while (argi < argc) {
     FILE *file = fopen(argv[argi], "r");
@@ -80,5 +83,6 @@ int main(int argc, char *argv[]) {
 
   fclose(text.file);
   fclose(data.file);
+  fclose(symref_file);
   return 0;
 }
