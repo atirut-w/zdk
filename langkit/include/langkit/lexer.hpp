@@ -88,7 +88,7 @@ protected:
    * Attempts to accept the given string from the input. If successful, advances
    * the cursor and updates line/column information accordingly. Returns true on
    * success, false otherwise.
-   * 
+   *
    * Do note that this function will silently fail if the buffer is not large
    * enough to hold the entire string. This behavior may be changed in the
    * future.
@@ -129,8 +129,46 @@ protected:
   }
 
 public:
+  struct State {
+    std::streampos pos;
+    char *cursor;
+    char *limit;
+    unsigned int line;
+    unsigned int column;
+
+    explicit State(std::streampos p, char *c, char *l, unsigned int ln,
+                   unsigned int col)
+        : pos(p), cursor(c), limit(l), line(ln), column(col) {}
+  };
+
   explicit Lexer(std::istream &in) : input(in) {}
   virtual ~Lexer() = default;
+
+  /**
+   * Saves the current state of the lexer.
+   */
+  State save_state() const {
+    return State(input.tellg(), cursor, limit, line, column);
+  }
+
+  /**
+   * Restores the lexer to a previously saved state. Do note that there is a
+   * performance penalty if the lexer has to seek the input stream.
+   */
+  void restore_state(const State &state) {
+    if (input.tellg() != state.pos) {
+      input.clear(); // Clear any EOF flags
+      input.seekg(state.pos);
+      cursor = buffer;
+      limit = buffer;
+      fill_buffer();
+    } else {
+      cursor = state.cursor;
+      limit = state.limit;
+    }
+    line = state.line;
+    column = state.column;
+  }
 
   /**
    * Gets the next token from the input stream. Returns std::nullopt on EOF.
