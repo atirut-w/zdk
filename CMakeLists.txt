@@ -6,3 +6,4 @@ set(CMAKE_INSTALL_PREFIX /)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(cc1)
+add_subdirectory(langkit)
