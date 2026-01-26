@@ -1,4 +1,5 @@
 #include "lexer.hpp"
+#include <format>
 #include <fstream>
 #include <iostream>
 
@@ -16,7 +17,6 @@ int main(int argc, char *argv[]) {
 
   Lexer lexer(source_file);
   while (auto token = lexer.next_token()) {
-    // Process the token (for demonstration, we just print a placeholder)
-    std::cout << "Token recognized\n";
+    std::cout << std::format("Token {} @ {}:{}\n", static_cast<int>(token->kind), token->line, token->column);
   }
 }
