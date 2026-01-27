@@ -5,9 +5,17 @@
 #include "token.h"
 #include <stdio.h>
 
+#define LEXER_BUFFER_SIZE 128
+
 typedef struct {
   CompilationCtx *ctx;
   FILE *input;
+  char buffer[LEXER_BUFFER_SIZE];
+  char *start;
+  char *cursor;
+  char *limit;
+  unsigned int line;
+  unsigned int column;
 } Lexer;
 
 /**
