@@ -10,7 +10,9 @@
             "request": "launch",
             "preLaunchTask": "CMake: build",
             "program": "${workspaceFolder}/build/bin/cc1",
-            "args": [],
+            "args": [
+                "${workspaceFolder}/cc1/test/start.c"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
