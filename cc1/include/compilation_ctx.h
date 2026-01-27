@@ -1,11 +1,13 @@
 #ifndef COMPILATION_CTX_H
 #define COMPILATION_CTX_H
 
+#include "queue.h"
+
 /**
  * TODO: Document.
  */
 typedef struct {
-  char dummy; /* This shuts up errors */
+  Queue *diagnostics;
 } CompilationCtx;
 
 /**

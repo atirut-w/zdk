@@ -1,3 +1,4 @@
+#include "diagnostic.h"
 #include "lexer.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -252,6 +253,14 @@ int lexer_next_token(Lexer *lexer, Token *token) {
     map++;
   }
 
-  /* TODO: Emit diagnostic and recover */
-  return 0;
+  if (lexer_peek(lexer) == EOF) {
+    return 0;
+  }
+
+  queue_enqueue(lexer->ctx->diagnostics,
+                diagnostic_new(DIAG_ERROR, "Garbage character", token->line,
+                               token->column));
+  /* Naive recovery: skip the garbage character */
+  lexer_get(lexer);
+  return lexer_next_token(lexer, token);
 }
