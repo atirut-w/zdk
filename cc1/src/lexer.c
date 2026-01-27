@@ -18,3 +18,7 @@ void lexer_free(Lexer *lexer) {
     free(lexer);
   }
 }
+
+int lexer_next_token(Lexer *lexer, Token *token) {
+  return 0; /* EOF */
+}
