@@ -1,5 +1,6 @@
 add_executable(cc1
     src/compilation_ctx.c
+    src/diagnostic.c
     src/lexer.c
     src/main.c
 )
