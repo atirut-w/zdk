@@ -1,5 +1,6 @@
 add_executable(cc1
     src/compilation_ctx.c
+    src/lexer.c
     src/main.c
 )
 target_compile_options(cc1 PRIVATE -std=c90)
