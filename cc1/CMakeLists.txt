@@ -3,6 +3,7 @@ add_executable(cc1
     src/diagnostic.c
     src/lexer.c
     src/main.c
+    src/queue.c
 )
 target_compile_options(cc1 PRIVATE -std=c90)
 target_include_directories(cc1 PRIVATE include)
