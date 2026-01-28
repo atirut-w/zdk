@@ -99,14 +99,14 @@ KindMap puncts[] = {{"...", TOKEN_ELLIPSIS},
 /**
  * Returns the number of remaining characters in the lexer's buffer.
  */
-size_t lexer_get_remaining(Lexer *lexer) {
+static size_t lexer_get_remaining(Lexer *lexer) {
   return lexer->limit - lexer->cursor;
 }
 
 /**
  * Fills the lexer's buffer with more data from the input stream.
  */
-void lexer_fill(Lexer *lexer) {
+static void lexer_fill(Lexer *lexer) {
   size_t remaining = lexer_get_remaining(lexer);
   size_t to_read;
   size_t read;
@@ -128,7 +128,7 @@ void lexer_fill(Lexer *lexer) {
  * Peeks at the next character in the lexer's buffer without advancing the
  * cursor.
  */
-int lexer_peek(Lexer *lexer) {
+static int lexer_peek(Lexer *lexer) {
   if (lexer->cursor >= lexer->limit) {
     lexer_fill(lexer);
     if (lexer->cursor >= lexer->limit) {
@@ -141,7 +141,7 @@ int lexer_peek(Lexer *lexer) {
 /**
  * Gets the next character in the lexer's buffer and advances the cursor.
  */
-int lexer_get(Lexer *lexer) {
+static int lexer_get(Lexer *lexer) {
   int ch = lexer_peek(lexer);
   if (ch != EOF) {
     lexer->cursor++;
@@ -167,7 +167,7 @@ int lexer_get(Lexer *lexer) {
  * Accepts a given string and advances the lexer's cursor. Silently fails if
  * the string is larger than the buffer.
  */
-int lexer_accept(Lexer *lexer, const char *str) {
+static int lexer_accept(Lexer *lexer, const char *str) {
   if (lexer_get_remaining(lexer) < strlen(str)) {
     lexer_fill(lexer);
     if (lexer_get_remaining(lexer) < strlen(str)) {
