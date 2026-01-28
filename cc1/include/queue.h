@@ -6,6 +6,9 @@ typedef struct QueueNode {
   struct QueueNode *next;
 } QueueNode;
 
+/**
+ * A generic FIFO queue.
+ */
 typedef struct {
   QueueNode *front;
   QueueNode *rear;

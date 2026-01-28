@@ -11,6 +11,9 @@ typedef struct StringPoolNode {
   struct StringPoolNode *next;
 } StringPoolNode;
 
+/**
+ * A string pool for interning strings.
+ */
 typedef struct {
   StringPoolNode *slots[STRING_POOL_MAX_SIZE];
 } StringPool;
