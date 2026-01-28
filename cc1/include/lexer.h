@@ -18,7 +18,7 @@ typedef struct {
 } Lexer;
 
 typedef struct {
-  fpos_t fpos;
+  long int offset;
   unsigned int line;
   unsigned int column;
 } LexerState;
@@ -44,8 +44,8 @@ int lexer_next_token(Lexer *lexer, Token *token);
 LexerState lexer_save_state(Lexer *lexer);
 
 /**
- * Restores a lexer's state. Do note that restoring state will make the next
- * tokenization slower due to the need to reset buffer.
+ * Restores a lexer's state. If the buffer state has changed since the last
+ * save, the buffer will be reset. This makes the next tokenization slower.
  */
 void lexer_restore_state(Lexer *lexer, LexerState state);
 

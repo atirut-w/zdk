@@ -285,7 +285,7 @@ int lexer_next_token(Lexer *lexer, Token *token) {
 LexerState lexer_save_state(Lexer *lexer) {
   LexerState state;
 
-  fgetpos(lexer->input, &state.fpos);
+  state.offset = ftell(lexer->input);
   state.line = lexer->line;
   state.column = lexer->column;
 
@@ -293,13 +293,14 @@ LexerState lexer_save_state(Lexer *lexer) {
 }
 
 void lexer_restore_state(Lexer *lexer, LexerState state) {
-  /* TODO: Somehow make this faster by not seeking if the position is the same
-   */
-  fsetpos(lexer->input, &state.fpos);
-  lexer->line = state.line;
-  lexer->column = state.column;
-
-  /* Reset buffer; we don't know if the buffer has changed since last save */
-  lexer->cursor = lexer->buffer;
-  lexer->limit = lexer->buffer;
+  if (ftell(lexer->input) != state.offset) {
+    fseek(lexer->input, state.offset, SEEK_SET);
+    /* Buffer state changed; reset */
+    lexer->cursor = lexer->buffer;
+    lexer->limit = lexer->buffer;
+  } else {
+    /* Buffer state unchanged; restore cursor and limit */
+    lexer->cursor = lexer->buffer;
+    lexer->limit = lexer->buffer;
+  }
 }
