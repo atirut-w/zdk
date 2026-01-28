@@ -23,4 +23,17 @@ StringPool *string_pool_new(void);
  */
 void string_pool_free(StringPool *pool);
 
+/**
+ * Interns a string of length len into the string pool. Returns a pointer to the
+ * interned string.
+ */
+const char *string_pool_intern_len(StringPool *pool, const char *str,
+                                   size_t len);
+
+/**
+ * Interns a null-terminated string into the string pool. Returns a pointer to
+ * the interned string.
+ */
+const char *string_pool_intern(StringPool *pool, const char *str);
+
 #endif /* STRING_POOL_H */
