@@ -76,4 +76,10 @@ typedef struct {
   unsigned int column;
 } Token;
 
+/**
+ * Initializes a token.
+ */
+void token_init(Token *token, TokenKind kind, const char *lexeme,
+                unsigned int line, unsigned int column);
+
 #endif /* TOKEN_H */

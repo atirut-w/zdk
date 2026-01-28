@@ -226,15 +226,15 @@ void lexer_free(Lexer *lexer) {
 int lexer_next_token(Lexer *lexer, Token *token) {
   KindMap *map;
   char *start;
+  unsigned int line;
+  unsigned int column;
 
   while (lexer_peek(lexer) != EOF && isspace(lexer_peek(lexer))) {
     lexer_get(lexer);
   }
 
-  /* lexer->start = lexer->cursor; */
-  token->lexeme = NULL;
-  token->line = lexer->line;
-  token->column = lexer->column;
+  line = lexer->line;
+  column = lexer->column;
 
   map = keywords;
   while (map->str) {
@@ -254,16 +254,17 @@ int lexer_next_token(Lexer *lexer, Token *token) {
       lexer_get(lexer);
     }
 
-    token->kind = TOKEN_IDENT;
-    token->lexeme = string_pool_intern_len(lexer->ctx->string_pool, start,
-                                           lexer->cursor - start);
+    token_init(token, TOKEN_IDENT,
+               string_pool_intern_len(lexer->ctx->string_pool, start,
+                                      lexer->cursor - start),
+               line, column);
     return 1;
   }
 
   map = puncts;
   while (map->str) {
     if (lexer_accept(lexer, map->str)) {
-      token->kind = map->kind;
+      token_init(token, map->kind, NULL, line, column);
       return 1;
     }
     map++;
