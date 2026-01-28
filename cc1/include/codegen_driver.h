@@ -22,4 +22,10 @@ CodeGenDriver *codegen_driver_new(CompilationCtx *ctx, Lexer *lexer,
  */
 void codegen_driver_free(CodeGenDriver *driver);
 
+/**
+ * Compile the entire source code from the lexer and generate code using the
+ * code generator.
+ */
+void codegen_driver_compile(CodeGenDriver *driver);
+
 #endif /* CODEGEN_DRIVER_H */

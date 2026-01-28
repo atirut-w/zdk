@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
   codegen = codegen_new(output);
   driver = codegen_driver_new(ctx, lexer, codegen);
 
+  codegen_driver_compile(driver);
+
   while ((diag = (Diagnostic *)queue_dequeue(ctx->diagnostics)) != NULL) {
     printf("%s:%u:%u: %s: %s\n", argv[1], diag->line, diag->column,
            diagnostic_level_to_string(diag->level), diag->message);
@@ -43,7 +45,8 @@ int main(int argc, char *argv[]) {
   codegen_driver_free(driver);
   lexer_free(lexer);
   compilation_ctx_free(ctx);
-
+  codegen_free(codegen);
+  fclose(output);
   fclose(input);
   return 0;
 }

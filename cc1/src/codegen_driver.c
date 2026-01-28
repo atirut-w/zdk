@@ -20,3 +20,7 @@ void codegen_driver_free(CodeGenDriver *driver) {
     free(driver);
   }
 }
+
+void codegen_driver_compile(CodeGenDriver *driver) {
+  /* TODO: Implement */
+}
