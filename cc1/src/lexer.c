@@ -111,9 +111,9 @@ void lexer_fill(Lexer *lexer) {
   size_t read;
 
   if (lexer->cursor > lexer->buffer) {
-    size_t offset = lexer->cursor - lexer->buffer;
+    /* size_t offset = lexer->cursor - lexer->buffer; */
     memmove(lexer->buffer, lexer->cursor, remaining);
-    lexer->start -= offset;
+    /* lexer->start -= offset; */
     lexer->cursor = lexer->buffer;
     lexer->limit = lexer->buffer + remaining;
   }
@@ -207,7 +207,7 @@ Lexer *lexer_new(CompilationCtx *ctx, FILE *input) {
 
   lexer->ctx = ctx;
   lexer->input = input;
-  lexer->start = lexer->buffer;
+  /* lexer->start = lexer->buffer; */
   lexer->cursor = lexer->buffer;
   lexer->limit = lexer->buffer;
   lexer->line = 1;
@@ -224,12 +224,13 @@ void lexer_free(Lexer *lexer) {
 
 int lexer_next_token(Lexer *lexer, Token *token) {
   KindMap *map;
+  char *start;
 
   while (lexer_peek(lexer) != EOF && isspace(lexer_peek(lexer))) {
     lexer_get(lexer);
   }
 
-  lexer->start = lexer->cursor;
+  /* lexer->start = lexer->cursor; */
   token->line = lexer->line;
   token->column = lexer->column;
 
@@ -242,7 +243,19 @@ int lexer_next_token(Lexer *lexer, Token *token) {
     map++;
   }
 
-  /* TODO: Idents, typedef names, constants, and string literals */
+  /* Something of unknown length is coming, so fill the buffer just in case */
+  lexer_fill(lexer);
+  start = lexer->cursor;
+  
+  if (isalpha(lexer_peek(lexer)) || lexer_peek(lexer) == '_') {
+    while (isalnum(lexer_peek(lexer)) || lexer_peek(lexer) == '_') {
+      lexer_get(lexer);
+    }
+
+    token->kind = TOKEN_IDENT;
+    /* TODO: Intern identifier and set lexeme */
+    return 1;
+  }
 
   map = puncts;
   while (map->str) {

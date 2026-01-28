@@ -11,7 +11,6 @@ typedef struct {
   CompilationCtx *ctx;
   FILE *input;
   char buffer[LEXER_BUFFER_SIZE];
-  char *start;
   char *cursor;
   char *limit;
   unsigned int line;
