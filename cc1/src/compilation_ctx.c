@@ -1,4 +1,5 @@
 #include "compilation_ctx.h"
+#include "diagnostic.h"
 #include <stdlib.h>
 
 CompilationCtx *compilation_ctx_new(void) {
@@ -18,6 +19,11 @@ CompilationCtx *compilation_ctx_new(void) {
 
 void compilation_ctx_free(CompilationCtx *ctx) {
   if (ctx) {
+    Diagnostic *p;
+
+    while ((p = queue_dequeue(ctx->diagnostics)) != NULL) {
+      diagnostic_free((Diagnostic *)p);
+    }
     queue_free(ctx->diagnostics);
     free(ctx);
   }
