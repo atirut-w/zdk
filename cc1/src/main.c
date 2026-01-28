@@ -18,11 +18,15 @@ int main(int argc, char *argv[]) {
   FILE *out = 0;
   int i;
 
-  struct cc1_compilation cc;
+  struct cc1_compilation *cc;
 
-  memset(&cc, 0, sizeof(cc));
-  cc1_diag_init(&cc.diag);
-  cc.mangle_underscore = 1;
+  cc = (struct cc1_compilation *)calloc(1, sizeof(*cc));
+  if (!cc) {
+    fprintf(stderr, "cc1: out of memory\n");
+    return 1;
+  }
+  cc1_diag_init(&cc->diag);
+  cc->mangle_underscore = 1;
 
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-o")) {
@@ -65,39 +69,42 @@ int main(int argc, char *argv[]) {
     out = stdout;
   }
 
-  cc.sp = cc1_strpool_new();
-  cc.sym = cc1_symtab_new(cc.sp);
-  cc.types = cc1_type_ctx_new();
-  if (!cc1_emit_init(&cc.emit)) {
+  cc->sp = cc1_strpool_new();
+  cc->sym = cc1_symtab_new(cc->sp);
+  cc->types = cc1_type_ctx_new();
+  if (!cc1_emit_init(&cc->emit)) {
     fprintf(stderr, "cc1: failed to create temp outputs\n");
     fclose(in);
     if (out != stdout)
       fclose(out);
+    free(cc);
     return 1;
   }
 
-  cc1_lex_init(&cc.lex, in, in_path, &cc.diag, cc.sp, cc.sym);
+  cc1_lex_init(&cc->lex, in, in_path, &cc->diag, cc->sp, cc->sym);
 
-  if (!cc1_parse_translation_unit(&cc)) {
+  if (!cc1_parse_translation_unit(cc)) {
     /* error already reported */
-    cc1_emit_dispose(&cc.emit);
-    cc1_type_ctx_free(cc.types);
-    cc1_symtab_free(cc.sym);
-    cc1_strpool_free(cc.sp);
+    cc1_emit_dispose(&cc->emit);
+    cc1_type_ctx_free(cc->types);
+    cc1_symtab_free(cc->sym);
+    cc1_strpool_free(cc->sp);
     fclose(in);
     if (out != stdout)
       fclose(out);
+    free(cc);
     return 1;
   }
 
-  cc1_emit_concat_to(out, &cc.emit);
+  cc1_emit_concat_to(out, &cc->emit);
 
-  cc1_emit_dispose(&cc.emit);
-  cc1_type_ctx_free(cc.types);
-  cc1_symtab_free(cc.sym);
-  cc1_strpool_free(cc.sp);
+  cc1_emit_dispose(&cc->emit);
+  cc1_type_ctx_free(cc->types);
+  cc1_symtab_free(cc->sym);
+  cc1_strpool_free(cc->sp);
   fclose(in);
   if (out != stdout)
     fclose(out);
+  free(cc);
   return 0;
 }

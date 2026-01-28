@@ -11,3 +11,6 @@ add_executable(cc1
 )
 target_compile_options(cc1 PRIVATE -std=c90)
 target_include_directories(cc1 PRIVATE include)
+
+install(TARGETS cc1 RUNTIME DESTINATION libexec/${ZDK_TOOLCHAIN_NAME})
+install(TARGETS cc1 RUNTIME DESTINATION libexec/zdk)

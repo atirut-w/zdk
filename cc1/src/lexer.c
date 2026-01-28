@@ -38,11 +38,14 @@ static struct cc1_loc cc1_lex_loc(struct cc1_lexer *lx) {
 static void cc1_tokbuf_reset(struct cc1_lexer *lx) {
   lx->toklen = 0;
   lx->tokbuf[0] = 0;
+  lx->tok_overflow = 0;
 }
 
 static void cc1_tokbuf_push(struct cc1_lexer *lx, int c) {
-  if (lx->toklen + 2 >= sizeof(lx->tokbuf))
+  if (lx->toklen + 2 >= sizeof(lx->tokbuf)) {
+    lx->tok_overflow = 1;
     return;
+  }
   lx->tokbuf[lx->toklen++] = (char)c;
   lx->tokbuf[lx->toklen] = 0;
 }
@@ -244,6 +247,8 @@ struct cc1_tok cc1_lex_next(struct cc1_lexer *lx) {
         t.kind = TOK_TYPE_NAME;
       }
     }
+    if (lx->tok_overflow)
+      cc1_diag_error_at(lx->diag, t.loc, "identifier too long");
     return t;
   }
 
@@ -256,6 +261,8 @@ struct cc1_tok cc1_lex_next(struct cc1_lexer *lx) {
     }
     t.kind = TOK_INT_LIT;
     t.ival = cc1_parse_int(lx->tokbuf);
+    if (lx->tok_overflow)
+      cc1_diag_error_at(lx->diag, t.loc, "integer literal too long");
     return t;
   }
 
@@ -276,6 +283,8 @@ struct cc1_tok cc1_lex_next(struct cc1_lexer *lx) {
     t.kind = TOK_STR_LIT;
     t.str = lx->tokbuf;
     t.strlen = lx->toklen;
+    if (lx->tok_overflow)
+      cc1_diag_error_at(lx->diag, t.loc, "string literal too long");
     return t;
   }
 

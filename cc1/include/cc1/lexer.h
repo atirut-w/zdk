@@ -115,8 +115,9 @@ struct cc1_lexer {
   unsigned long line;
   unsigned long col;
 
-  char tokbuf[4096];
+  char tokbuf[1024];
   unsigned long toklen;
+  int tok_overflow;
 };
 
 void cc1_lex_init(struct cc1_lexer *lx, FILE *in, const char *path,
