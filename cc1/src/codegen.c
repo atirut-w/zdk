@@ -1,4 +1,5 @@
 #include "codegen.h"
+#include <stdlib.h>
 
 CodeGen *codegen_new(FILE *output) {
   CodeGen *codegen = malloc(sizeof(CodeGen));
