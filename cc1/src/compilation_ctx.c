@@ -14,6 +14,13 @@ CompilationCtx *compilation_ctx_new(void) {
     return NULL;
   }
 
+  ctx->string_pool = string_pool_new();
+  if (!ctx->string_pool) {
+    queue_free(ctx->diagnostics);
+    free(ctx);
+    return NULL;
+  }
+
   return ctx;
 }
 
@@ -25,6 +32,8 @@ void compilation_ctx_free(CompilationCtx *ctx) {
       diagnostic_free((Diagnostic *)p);
     }
     queue_free(ctx->diagnostics);
+
+    string_pool_free(ctx->string_pool);
     free(ctx);
   }
 }

@@ -2,12 +2,14 @@
 #define COMPILATION_CTX_H
 
 #include "queue.h"
+#include "string_pool.h"
 
 /**
  * TODO: Document.
  */
 typedef struct {
   Queue *diagnostics;
+  StringPool *string_pool;
 } CompilationCtx;
 
 /**
