@@ -1,5 +1,6 @@
-#include "diagnostic.h"
 #include "lexer.h"
+#include "diagnostic.h"
+#include "string_pool.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,6 +232,7 @@ int lexer_next_token(Lexer *lexer, Token *token) {
   }
 
   /* lexer->start = lexer->cursor; */
+  token->lexeme = NULL;
   token->line = lexer->line;
   token->column = lexer->column;
 
@@ -246,14 +248,15 @@ int lexer_next_token(Lexer *lexer, Token *token) {
   /* Something of unknown length is coming, so fill the buffer just in case */
   lexer_fill(lexer);
   start = lexer->cursor;
-  
+
   if (isalpha(lexer_peek(lexer)) || lexer_peek(lexer) == '_') {
     while (isalnum(lexer_peek(lexer)) || lexer_peek(lexer) == '_') {
       lexer_get(lexer);
     }
 
     token->kind = TOKEN_IDENT;
-    /* TODO: Intern identifier and set lexeme */
+    token->lexeme = string_pool_intern_len(lexer->ctx->string_pool, start,
+                                           lexer->cursor - start);
     return 1;
   }
 

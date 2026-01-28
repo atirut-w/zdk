@@ -1,10 +1,12 @@
 #ifndef STRING_POOL_H
 #define STRING_POOL_H
 
+#include <stddef.h>
+
 /* TODO: Reconsider size */
 #define STRING_POOL_MAX_SIZE 128
 
-typedef struct {
+typedef struct StringPoolNode {
   char *string;
   struct StringPoolNode *next;
 } StringPoolNode;
