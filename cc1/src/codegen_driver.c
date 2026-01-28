@@ -1,7 +1,8 @@
 #include "codegen_driver.h"
 #include <stdlib.h>
 
-CodeGenDriver *codegen_driver_new(CompilationCtx *ctx, Lexer *lexer) {
+CodeGenDriver *codegen_driver_new(CompilationCtx *ctx, Lexer *lexer,
+                                  CodeGen *codegen) {
   CodeGenDriver *driver = malloc(sizeof(CodeGenDriver));
   if (!driver) {
     return NULL;
@@ -9,6 +10,7 @@ CodeGenDriver *codegen_driver_new(CompilationCtx *ctx, Lexer *lexer) {
 
   driver->ctx = ctx;
   driver->lexer = lexer;
+  driver->codegen = codegen;
 
   return driver;
 }

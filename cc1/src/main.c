@@ -1,3 +1,4 @@
+#include "codegen_driver.h"
 #include "diagnostic.h"
 #include "lexer.h"
 #include <errno.h>
@@ -5,14 +6,15 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  FILE *input;
+  FILE *input, *output;
   CompilationCtx *ctx;
   Lexer *lexer;
-  Token token;
+  CodeGen *codegen;
+  CodeGenDriver *driver;
   Diagnostic *diag;
 
-  if (argc < 2) {
-    printf("Usage: cc1 <source-file>\n");
+  if (argc < 3) {
+    printf("Usage: cc1 <source-file> <output-file>\n");
     return 1;
   }
 
@@ -24,13 +26,13 @@ int main(int argc, char *argv[]) {
 
   ctx = compilation_ctx_new();
   lexer = lexer_new(ctx, input);
-
-  while (lexer_next_token(lexer, &token)) {
-    printf("Token: kind=%d, lexeme='%s', line=%u, column=%u\n", token.kind,
-           token.lexeme ? token.lexeme : "", token.line, token.column);
+  output = fopen(argv[2], "w");
+  if (!output) {
+    fprintf(stderr, "Could not open '%s': %s\n", argv[2], strerror(errno));
+    return 1;
   }
-
-  lexer_free(lexer);
+  codegen = codegen_new(output);
+  driver = codegen_driver_new(ctx, lexer, codegen);
 
   while ((diag = (Diagnostic *)queue_dequeue(ctx->diagnostics)) != NULL) {
     printf("%s:%u:%u: %s: %s\n", argv[1], diag->line, diag->column,
@@ -38,6 +40,8 @@ int main(int argc, char *argv[]) {
     diagnostic_free(diag);
   }
 
+  codegen_driver_free(driver);
+  lexer_free(lexer);
   compilation_ctx_free(ctx);
 
   fclose(input);
