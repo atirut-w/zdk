@@ -317,6 +317,24 @@ static int cc1_prec(enum cc1_tok_kind k) {
   }
 }
 
+static int cc1_is_type_start_tok(enum cc1_tok_kind k) {
+  switch (k) {
+  case TOK_KW_CONST:
+  case TOK_KW_VOLATILE:
+  case TOK_KW_VOID:
+  case TOK_KW_CHAR:
+  case TOK_KW_SHORT:
+  case TOK_KW_INT:
+  case TOK_KW_LONG:
+  case TOK_KW_SIGNED:
+  case TOK_KW_UNSIGNED:
+  case TOK_TYPE_NAME:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 static void cc1_parse_expr(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
                            int min_prec, struct cc1_expr *out);
 
@@ -457,6 +475,48 @@ static void cc1_parse_unary(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
                             struct cc1_expr *out) {
   /* TODO: support unary '!' (needed for idiomatic `while (*p)` and conditions)
    */
+  if (cc1_accept(cc, TOK_KW_SIZEOF)) {
+    int sz;
+    struct cc1_type *t;
+    int is_td = 0;
+    int is_ex = 0;
+
+    if (!cc1_accept(cc, TOK_LPAREN)) {
+      cc1_diag_error_at(&cc->diag, cc->tok.loc,
+                        "sizeof currently only supports sizeof(type)");
+      memset(out, 0, sizeof(*out));
+      out->type = cc->types->t_int;
+      out->is_const = 1;
+      out->ival = 0;
+      return;
+    }
+
+    if (!cc1_is_type_start_tok(cc->tok.kind)) {
+      cc1_diag_error_at(&cc->diag, cc->tok.loc,
+                        "sizeof currently only supports sizeof(type)");
+      cc1_expect(cc, TOK_RPAREN, "expected ')'");
+      memset(out, 0, sizeof(*out));
+      out->type = cc->types->t_int;
+      out->is_const = 1;
+      out->ival = 0;
+      return;
+    }
+
+    t = cc1_parse_declspec(cc, &is_td, &is_ex);
+    (void)is_td;
+    (void)is_ex;
+    while (cc1_accept(cc, TOK_STAR)) {
+      t = cc1_type_ptr(cc->types, t);
+    }
+    cc1_expect(cc, TOK_RPAREN, "expected ')'");
+
+    sz = (int)cc1_type_sizeof(t);
+    memset(out, 0, sizeof(*out));
+    out->type = cc->types->t_int;
+    out->is_const = 1;
+    out->ival = (long)sz;
+    return;
+  }
   if (cc->tok.kind == TOK_AMP) {
     struct cc1_expr p;
     struct cc1_loc loc = cc->tok.loc;
@@ -732,6 +792,38 @@ static void cc1_parse_expr(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
     if (op == TOK_PLUS) {
       /* TODO: pointer arithmetic scaling (add/sub by sizeof(pointee) for ptr
        * +/- int) */
+      if (lhs.type && lhs.type->kind == TY_PTR &&
+          cc1_type_is_integer(rhs.type)) {
+        unsigned long esz = cc1_type_sizeof(lhs.type->base);
+        cc1_z80_ensure_rvalue_hl(cc, fn, &lhs);
+        cc1_z80_emit_push_hl(&fn->cg);
+        cc1_z80_ensure_rvalue_hl(cc, fn, &rhs);
+        if (esz == 2) {
+          cc1_emit_text0(&cc->emit, "\tadd hl, hl\n");
+        }
+        cc1_emit_text0(&cc->emit, "\tpop de\n");
+        cc1_emit_text0(&cc->emit, "\tadd hl, de\n");
+        lhs.in_hl = 1;
+        lhs.type = lhs.type;
+        continue;
+      }
+      if (rhs.type && rhs.type->kind == TY_PTR &&
+          cc1_type_is_integer(lhs.type)) {
+        unsigned long esz = cc1_type_sizeof(rhs.type->base);
+        /* compute pointer first and save */
+        cc1_z80_ensure_rvalue_hl(cc, fn, &rhs);
+        cc1_z80_emit_push_hl(&fn->cg);
+        cc1_z80_ensure_rvalue_hl(cc, fn, &lhs);
+        if (esz == 2) {
+          cc1_emit_text0(&cc->emit, "\tadd hl, hl\n");
+        }
+        cc1_emit_text0(&cc->emit, "\tpop de\n");
+        cc1_emit_text0(&cc->emit, "\tadd hl, de\n");
+        lhs.in_hl = 1;
+        lhs.type = rhs.type;
+        continue;
+      }
+
       cc1_z80_ensure_rvalue_hl(cc, fn, &lhs);
       cc1_z80_emit_push_hl(&fn->cg);
       cc1_z80_ensure_rvalue_hl(cc, fn, &rhs);

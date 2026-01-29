@@ -21,6 +21,19 @@ void puts(const char *str) {
 unsigned char retchar(unsigned char c) { return c; }
 
 void start() {
+  if (sizeof(unsigned short) != 2) {
+    puts("sizeof(unsigned short) failed.\n");
+    exit(6);
+  }
+  if (sizeof(unsigned char) != 1) {
+    puts("sizeof(unsigned char) failed.\n");
+    exit(7);
+  }
+  if (sizeof(unsigned short *) != 2) {
+    puts("sizeof(unsigned short*) failed.\n");
+    exit(8);
+  }
+
   {
     unsigned short x;
     unsigned short *p = &x;
@@ -37,6 +50,46 @@ void start() {
       putnl();
       puts("expected = 0x1234\n");
       exit(3);
+    }
+  }
+
+  {
+    unsigned short x;
+    unsigned short *p = &x;
+    unsigned short pv = p;
+    unsigned short qv = p + 1;
+    if (qv != pv + sizeof(unsigned short)) {
+      puts("Ptr arith (u16) failed.\n");
+      puts("p = ");
+      puthex16(pv);
+      putnl();
+      puts("p+1 = ");
+      puthex16(qv);
+      putnl();
+      puts("expected delta = ");
+      puthex16(sizeof(unsigned short));
+      putnl();
+      exit(4);
+    }
+  }
+
+  {
+    unsigned short x;
+    unsigned char *p = &x;
+    unsigned short pv = p;
+    unsigned short qv = p + 1;
+    if (qv != pv + sizeof(unsigned char)) {
+      puts("Ptr arith (u8) failed.\n");
+      puts("p = ");
+      puthex16(pv);
+      putnl();
+      puts("p+1 = ");
+      puthex16(qv);
+      putnl();
+      puts("expected delta = ");
+      puthex16(sizeof(unsigned char));
+      putnl();
+      exit(5);
     }
   }
 
