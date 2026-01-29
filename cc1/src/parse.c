@@ -457,6 +457,48 @@ static void cc1_parse_unary(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
                             struct cc1_expr *out) {
   /* TODO: support unary '!' (needed for idiomatic `while (*p)` and conditions)
    */
+  if (cc->tok.kind == TOK_AMP) {
+    struct cc1_expr p;
+    struct cc1_loc loc = cc->tok.loc;
+    cc1_next(cc);
+    cc1_parse_unary(cc, fn, &p);
+
+    memset(out, 0, sizeof(*out));
+
+    /* & on function designator: treat as constant address */
+    if (p.is_const && p.label) {
+      out->type = cc1_type_ptr(cc->types, p.type ? p.type : cc->types->t_int);
+      out->is_const = 1;
+      out->label = p.label;
+      return;
+    }
+
+    if (!p.is_lvalue) {
+      cc1_diag_error_at(&cc->diag, loc, "lvalue required for '&'");
+      out->type = cc1_type_ptr(cc->types, cc->types->t_int);
+      out->is_const = 1;
+      out->ival = 0;
+      return;
+    }
+
+    out->type = cc1_type_ptr(cc->types, p.type ? p.type : cc->types->t_int);
+    out->is_lvalue = 0;
+
+    if (p.has_ix_off) {
+      cc1_z80_emit_load_local_addr_hl(&fn->cg, p.ix_off);
+      out->in_hl = 1;
+      return;
+    }
+    if (p.addr_in_hl) {
+      out->in_hl = 1;
+      return;
+    }
+
+    cc1_diag_error_at(&cc->diag, loc, "unsupported '&' operand");
+    out->is_const = 1;
+    out->ival = 0;
+    return;
+  }
   if (cc->tok.kind == TOK_STAR) {
     struct cc1_expr p;
     struct cc1_loc loc = cc->tok.loc;
@@ -615,49 +657,72 @@ static void cc1_parse_expr(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
 
     cc1_next(cc);
     if (op == TOK_ASSIGN) {
-      /* only simple lvalue = rvalue; lvalue must be local var */
-      cc1_parse_expr(cc, fn, p, &rhs);
+      int is_char = (lhs.type && cc1_type_is_char8(lhs.type));
+      int can_store_ix = 0;
+      int need_addr_on_stack = 0;
+
       if (!lhs.is_lvalue || (!lhs.has_ix_off && !lhs.addr_in_hl)) {
         cc1_diag_error_at(&cc->diag, cc->tok.loc, "lvalue required");
       }
-      if (lhs.type && cc1_type_is_char8(lhs.type)) {
+
+      if (lhs.has_ix_off) {
+        if (is_char) {
+          can_store_ix = (lhs.ix_off >= -128 && lhs.ix_off <= 127);
+        } else {
+          can_store_ix = (lhs.ix_off >= -128 && (lhs.ix_off + 1) <= 127);
+        }
+      }
+
+      /* Preserve address across RHS evaluation for *p / out-of-range locals. */
+      if (!can_store_ix) {
+        if (lhs.addr_in_hl) {
+          cc1_emit_text0(&cc->emit, "\tpush hl\n");
+          need_addr_on_stack = 1;
+        } else if (lhs.has_ix_off) {
+          cc1_z80_emit_load_local_addr_hl(&fn->cg, lhs.ix_off);
+          cc1_emit_text0(&cc->emit, "\tpush hl\n");
+          need_addr_on_stack = 1;
+        }
+      }
+
+      cc1_parse_expr(cc, fn, p, &rhs);
+
+      if (is_char) {
         cc1_z80_ensure_rvalue_a(cc, fn, &rhs);
-        if (lhs.has_ix_off && lhs.ix_off >= -128 && lhs.ix_off <= 127) {
+        if (can_store_ix) {
           char buf[64];
           sprintf(buf, "\tld (ix%+d), a\n", lhs.ix_off);
           cc1_emit_text0(&cc->emit, buf);
         } else {
-          if (lhs.has_ix_off) {
-            cc1_z80_emit_load_local_addr_hl(&fn->cg, lhs.ix_off);
-            lhs.has_ix_off = 0;
-            lhs.addr_in_hl = 1;
-          }
+          if (need_addr_on_stack)
+            cc1_emit_text0(&cc->emit, "\tpop hl\n");
           cc1_z80_emit_store_u8_to_addr_from_a(&fn->cg);
         }
         lhs.in_a = 1;
-        lhs.has_ix_off = 0;
-        lhs.addr_in_hl = 0;
       } else {
         cc1_z80_ensure_rvalue_hl(cc, fn, &rhs);
-        if (lhs.has_ix_off && lhs.ix_off >= -128 && (lhs.ix_off + 1) <= 127) {
+        if (can_store_ix) {
           char buf[64];
           sprintf(buf, "\tld (ix%+d), l\n", lhs.ix_off);
           cc1_emit_text0(&cc->emit, buf);
           sprintf(buf, "\tld (ix%+d), h\n", lhs.ix_off + 1);
           cc1_emit_text0(&cc->emit, buf);
         } else {
-          if (lhs.has_ix_off) {
-            cc1_z80_emit_load_local_addr_hl(&fn->cg, lhs.ix_off);
-            lhs.has_ix_off = 0;
-            lhs.addr_in_hl = 1;
-          }
-          cc1_z80_emit_store_u16_to_addr_from_hl(&fn->cg);
+          /* address in DE, value in HL */
+          if (need_addr_on_stack)
+            cc1_emit_text0(&cc->emit, "\tpop de\n");
+          cc1_emit_text0(&cc->emit, "\tld a, l\n");
+          cc1_emit_text0(&cc->emit, "\tld (de), a\n");
+          cc1_emit_text0(&cc->emit, "\tinc de\n");
+          cc1_emit_text0(&cc->emit, "\tld a, h\n");
+          cc1_emit_text0(&cc->emit, "\tld (de), a\n");
         }
         lhs.in_hl = 1;
-        lhs.has_ix_off = 0;
-        lhs.addr_in_hl = 0;
       }
+
       lhs.is_lvalue = 0;
+      lhs.has_ix_off = 0;
+      lhs.addr_in_hl = 0;
       continue;
     }
 
@@ -818,7 +883,9 @@ static void cc1_parse_compound(struct cc1_compilation *cc,
               sprintf(buf, "\tld (ix%+d), a\n", s->stack_offset);
               cc1_emit_text0(&cc->emit, buf);
             } else {
+              cc1_emit_text0(&cc->emit, "\tpush af\n");
               cc1_z80_emit_load_local_addr_hl(&fn->cg, s->stack_offset);
+              cc1_emit_text0(&cc->emit, "\tpop af\n");
               cc1_z80_emit_store_u8_to_addr_from_a(&fn->cg);
             }
           } else {
@@ -830,8 +897,12 @@ static void cc1_parse_compound(struct cc1_compilation *cc,
               sprintf(buf, "\tld (ix%+d), h\n", s->stack_offset + 1);
               cc1_emit_text0(&cc->emit, buf);
             } else {
+              cc1_emit_text0(&cc->emit, "\tpush hl\n");
               cc1_z80_emit_load_local_addr_hl(&fn->cg, s->stack_offset);
-              cc1_z80_emit_store_u16_to_addr_from_hl(&fn->cg);
+              cc1_emit_text0(&cc->emit, "\tpop de\n");
+              cc1_emit_text0(&cc->emit, "\tld (hl), e\n");
+              cc1_emit_text0(&cc->emit, "\tinc hl\n");
+              cc1_emit_text0(&cc->emit, "\tld (hl), d\n");
             }
           }
         } else {

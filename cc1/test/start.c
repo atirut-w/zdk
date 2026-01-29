@@ -21,19 +21,36 @@ void puts(const char *str) {
 unsigned char retchar(unsigned char c) { return c; }
 
 void start() {
+  {
+    unsigned short x;
+    unsigned short *p = &x;
+    if (p != &x) {
+      puts("Address-of failed.\n");
+      exit(2);
+    }
+
+    *p = 0x1234;
+    if (x != 0x1234) {
+      puts("Dereference failed.\n");
+      puts("x = ");
+      puthex16(x);
+      putnl();
+      puts("expected = 0x1234\n");
+      exit(3);
+    }
+  }
+
   if (retchar('A') != 'A') {
     puts("Test failed.\n");
-    exit(0);
+    exit(1);
   }
-  puts("Test passed.\n");
 
+  puts("Test passed.\n");
   puts("retchar('A') = ");
   puthex8(retchar('A'));
   putnl();
-
   puts("expected = ");
   puthex16('A');
   putnl();
-
   exit(0);
 }
