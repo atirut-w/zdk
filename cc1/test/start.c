@@ -4,6 +4,10 @@ size_t read(unsigned char dev, void *buf, size_t size);
 size_t write(unsigned char dev, const void *buf, size_t size);
 void exit(int code);
 
+void puthex8(unsigned char v);
+void puthex16(unsigned short v);
+void putnl(void);
+
 void puts(const char *str) {
   const char *p = str;
   size_t len = 0;
@@ -17,10 +21,19 @@ void puts(const char *str) {
 unsigned char retchar(unsigned char c) { return c; }
 
 void start() {
-  if (retchar('A') == 'A') {
-    puts("Test passed.\n");
+  if (retchar('A') != 'A') {
+    puts("Test failed.\n");
     exit(0);
   }
-  puts("Test failed.\n");
-  exit(1);
+  puts("Test passed.\n");
+
+  puts("retchar('A') = ");
+  puthex8(retchar('A'));
+  putnl();
+
+  puts("expected = ");
+  puthex16('A');
+  putnl();
+
+  exit(0);
 }
