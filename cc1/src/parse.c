@@ -19,6 +19,10 @@ struct cc1_expr {
   /* Value location: for this bring-up we just track what register holds it */
   int in_a;
   int in_hl;
+
+  /* lvalue location */
+  int has_ix_off;
+  int ix_off;
   int addr_in_hl;
 };
 
@@ -271,12 +275,13 @@ static void cc1_z80_ensure_rvalue_a(struct cc1_compilation *cc,
 
 static void cc1_z80_load_ident(struct cc1_fn_ctx *fn, struct cc1_expr *out,
                                struct cc1_sym *s) {
+  (void)fn;
   memset(out, 0, sizeof(*out));
   out->type = s->type;
   out->is_lvalue = (s->kind == SYM_VAR);
   if (s->kind == SYM_VAR) {
-    cc1_z80_emit_load_local_addr_hl(&fn->cg, s->stack_offset);
-    out->addr_in_hl = 1;
+    out->has_ix_off = 1;
+    out->ix_off = s->stack_offset;
   } else {
     /* function designator: treat as const address */
     out->is_const = 1;
@@ -458,11 +463,30 @@ static void cc1_z80_ensure_rvalue_a(struct cc1_compilation *cc,
   (void)cc;
   if (e->in_a)
     return;
-  if (e->addr_in_hl && e->type && cc1_type_is_char8(e->type)) {
-    cc1_z80_emit_load_u8_from_addr_a(&fn->cg);
-    e->in_a = 1;
-    e->addr_in_hl = 0;
-    return;
+
+  if (e->type && cc1_type_is_char8(e->type)) {
+    if (e->has_ix_off) {
+      int off = e->ix_off;
+      if (off >= -128 && off <= 127) {
+        char buf[64];
+        sprintf(buf, "\tld a, (ix%+d)\n", off);
+        cc1_emit_text0(&cc->emit, buf);
+        e->in_a = 1;
+        e->has_ix_off = 0;
+        return;
+      }
+      cc1_z80_emit_load_local_addr_hl(&fn->cg, off);
+      cc1_z80_emit_load_u8_from_addr_a(&fn->cg);
+      e->in_a = 1;
+      e->has_ix_off = 0;
+      return;
+    }
+    if (e->addr_in_hl) {
+      cc1_z80_emit_load_u8_from_addr_a(&fn->cg);
+      e->in_a = 1;
+      e->addr_in_hl = 0;
+      return;
+    }
   }
   if (e->is_const) {
     cc1_emit_text0(&cc->emit, "\tld a, ");
@@ -486,6 +510,44 @@ static void cc1_z80_ensure_rvalue_hl(struct cc1_compilation *cc,
                                      struct cc1_expr *e) {
   if (e->in_hl)
     return;
+
+  if (e->has_ix_off) {
+    int off = e->ix_off;
+    if (e->type && cc1_type_is_char8(e->type)) {
+      if (off >= -128 && off <= 127) {
+        char buf[64];
+        sprintf(buf, "\tld l, (ix%+d)\n", off);
+        cc1_emit_text0(&cc->emit, buf);
+        cc1_emit_text0(&cc->emit, "\tld h, 0\n");
+        e->in_hl = 1;
+        e->has_ix_off = 0;
+        return;
+      }
+      cc1_z80_emit_load_local_addr_hl(&fn->cg, off);
+      cc1_z80_emit_load_u8_from_addr_a(&fn->cg);
+      cc1_emit_text0(&cc->emit, "\tld l, a\n");
+      cc1_emit_text0(&cc->emit, "\tld h, 0\n");
+      e->in_hl = 1;
+      e->has_ix_off = 0;
+      return;
+    }
+    if (off >= -128 && (off + 1) <= 127) {
+      char buf[64];
+      sprintf(buf, "\tld l, (ix%+d)\n", off);
+      cc1_emit_text0(&cc->emit, buf);
+      sprintf(buf, "\tld h, (ix%+d)\n", off + 1);
+      cc1_emit_text0(&cc->emit, buf);
+      e->in_hl = 1;
+      e->has_ix_off = 0;
+      return;
+    }
+    cc1_z80_emit_load_local_addr_hl(&fn->cg, off);
+    cc1_z80_emit_load_u16_from_addr_hl(&fn->cg);
+    e->in_hl = 1;
+    e->has_ix_off = 0;
+    return;
+  }
+
   if (e->addr_in_hl) {
     if (e->type && cc1_type_is_char8(e->type)) {
       cc1_z80_emit_load_u8_from_addr_a(&fn->cg);
@@ -537,18 +599,44 @@ static void cc1_parse_expr(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
     if (op == TOK_ASSIGN) {
       /* only simple lvalue = rvalue; lvalue must be local var */
       cc1_parse_expr(cc, fn, p, &rhs);
-      if (!lhs.is_lvalue || !lhs.addr_in_hl) {
+      if (!lhs.is_lvalue || (!lhs.has_ix_off && !lhs.addr_in_hl)) {
         cc1_diag_error_at(&cc->diag, cc->tok.loc, "lvalue required");
       }
       if (lhs.type && cc1_type_is_char8(lhs.type)) {
         cc1_z80_ensure_rvalue_a(cc, fn, &rhs);
-        cc1_z80_emit_store_u8_to_addr_from_a(&fn->cg);
+        if (lhs.has_ix_off && lhs.ix_off >= -128 && lhs.ix_off <= 127) {
+          char buf[64];
+          sprintf(buf, "\tld (ix%+d), a\n", lhs.ix_off);
+          cc1_emit_text0(&cc->emit, buf);
+        } else {
+          if (lhs.has_ix_off) {
+            cc1_z80_emit_load_local_addr_hl(&fn->cg, lhs.ix_off);
+            lhs.has_ix_off = 0;
+            lhs.addr_in_hl = 1;
+          }
+          cc1_z80_emit_store_u8_to_addr_from_a(&fn->cg);
+        }
         lhs.in_a = 1;
+        lhs.has_ix_off = 0;
         lhs.addr_in_hl = 0;
       } else {
         cc1_z80_ensure_rvalue_hl(cc, fn, &rhs);
-        cc1_z80_emit_store_u16_to_addr_from_hl(&fn->cg);
+        if (lhs.has_ix_off && lhs.ix_off >= -128 && (lhs.ix_off + 1) <= 127) {
+          char buf[64];
+          sprintf(buf, "\tld (ix%+d), l\n", lhs.ix_off);
+          cc1_emit_text0(&cc->emit, buf);
+          sprintf(buf, "\tld (ix%+d), h\n", lhs.ix_off + 1);
+          cc1_emit_text0(&cc->emit, buf);
+        } else {
+          if (lhs.has_ix_off) {
+            cc1_z80_emit_load_local_addr_hl(&fn->cg, lhs.ix_off);
+            lhs.has_ix_off = 0;
+            lhs.addr_in_hl = 1;
+          }
+          cc1_z80_emit_store_u16_to_addr_from_hl(&fn->cg);
+        }
         lhs.in_hl = 1;
+        lhs.has_ix_off = 0;
         lhs.addr_in_hl = 0;
       }
       lhs.is_lvalue = 0;
@@ -569,6 +657,32 @@ static void cc1_parse_expr(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
       continue;
     }
 
+    if (op == TOK_EQ) {
+      char lbuf[32];
+      const char *lend;
+      cc1_z80_ensure_rvalue_hl(cc, fn, &lhs);
+      cc1_z80_emit_push_hl(&fn->cg);
+      cc1_z80_ensure_rvalue_hl(cc, fn, &rhs);
+      cc1_emit_text0(&cc->emit, "\tpop de\n");
+      cc1_emit_text0(&cc->emit, "\txor a\n");
+      cc1_emit_text0(&cc->emit, "\tsbc hl, de\n");
+      cc1_emit_text0(&cc->emit, "\tld hl, 0\n");
+      cc1_emit_new_local_label(&cc->emit, lbuf, sizeof(lbuf));
+      lend = cc1_strpool_intern(cc->sp, lbuf, (unsigned long)strlen(lbuf));
+      cc1_emit_text0(&cc->emit, "\tjp nz, ");
+      cc1_emit_text0(&cc->emit, lend);
+      cc1_emit_text0(&cc->emit, "\n");
+      cc1_emit_text0(&cc->emit, "\tinc l\n");
+      cc1_emit_text0(&cc->emit, lend);
+      cc1_emit_text0(&cc->emit, ":\n");
+      lhs.in_hl = 1;
+      lhs.in_a = 0;
+      lhs.addr_in_hl = 0;
+      lhs.is_lvalue = 0;
+      lhs.type = cc->types->t_int;
+      continue;
+    }
+
     /* otherwise: just keep rhs for now */
     lhs = rhs;
   }
@@ -578,6 +692,14 @@ static void cc1_parse_expr(struct cc1_compilation *cc, struct cc1_fn_ctx *fn,
 
 static void cc1_parse_statement(struct cc1_compilation *cc,
                                 struct cc1_fn_ctx *fn);
+
+static void cc1_emit_test_hl_jz(struct cc1_compilation *cc, const char *label) {
+  cc1_emit_text0(&cc->emit, "\tld a, h\n");
+  cc1_emit_text0(&cc->emit, "\tor l\n");
+  cc1_emit_text0(&cc->emit, "\tjp z, ");
+  cc1_emit_text0(&cc->emit, label);
+  cc1_emit_text0(&cc->emit, "\n");
+}
 
 static void cc1_parse_return(struct cc1_compilation *cc,
                              struct cc1_fn_ctx *fn) {
@@ -660,6 +782,37 @@ static void cc1_parse_statement(struct cc1_compilation *cc,
                                 struct cc1_fn_ctx *fn) {
   if (cc->tok.kind == TOK_LBRACE) {
     cc1_parse_compound(cc, fn);
+    return;
+  }
+  if (cc1_accept(cc, TOK_KW_IF)) {
+    struct cc1_expr cond;
+    char lbuf1[32];
+    char lbuf2[32];
+    const char *lelse;
+    const char *lend;
+
+    cc1_expect(cc, TOK_LPAREN, "expected '('");
+    cc1_parse_expr(cc, fn, 1, &cond);
+    cc1_expect(cc, TOK_RPAREN, "expected ')'");
+
+    cc1_z80_ensure_rvalue_hl(cc, fn, &cond);
+    cc1_emit_new_local_label(&cc->emit, lbuf1, sizeof(lbuf1));
+    cc1_emit_new_local_label(&cc->emit, lbuf2, sizeof(lbuf2));
+    lelse = cc1_strpool_intern(cc->sp, lbuf1, (unsigned long)strlen(lbuf1));
+    lend = cc1_strpool_intern(cc->sp, lbuf2, (unsigned long)strlen(lbuf2));
+    cc1_emit_test_hl_jz(cc, lelse);
+
+    cc1_parse_statement(cc, fn);
+    cc1_emit_text0(&cc->emit, "\tjp ");
+    cc1_emit_text0(&cc->emit, lend);
+    cc1_emit_text0(&cc->emit, "\n");
+    cc1_emit_text0(&cc->emit, lelse);
+    cc1_emit_text0(&cc->emit, ":\n");
+    if (cc1_accept(cc, TOK_KW_ELSE)) {
+      cc1_parse_statement(cc, fn);
+    }
+    cc1_emit_text0(&cc->emit, lend);
+    cc1_emit_text0(&cc->emit, ":\n");
     return;
   }
   if (cc1_accept(cc, TOK_KW_RETURN)) {

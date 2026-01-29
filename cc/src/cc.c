@@ -362,6 +362,9 @@ int main(int argc, char **argv) {
   if (n_inputs == 0)
     zdk_die("no input files");
 
+  if (out_path && (opt_S || opt_c) && n_inputs != 1)
+    zdk_die("-o with -S/-c requires exactly one input");
+
   if (opt_E)
     zdk_die("-E not implemented (no preprocessor yet)");
 
@@ -438,15 +441,23 @@ int main(int argc, char **argv) {
       if (!zdk_basename_noext(in, base, sizeof(base)))
         zdk_die("input name too long");
 
-      if (opt_S && out_path && n_inputs == 1) {
-        strcpy(s_path, out_path);
-      } else if (save_temps) {
-        if ((unsigned long)strlen(base) + 3u > sizeof(s_path))
-          zdk_die("path too long");
-        sprintf(s_path, "%s.s", base);
+      if (opt_S) {
+        if (out_path) {
+          strcpy(s_path, out_path);
+        } else {
+          if ((unsigned long)strlen(base) + 3u > sizeof(s_path))
+            zdk_die("path too long");
+          sprintf(s_path, "%s.s", base);
+        }
       } else {
-        if (!zdk_tmpname_with_suffix(s_path, sizeof(s_path), ".s"))
-          zdk_die("failed to create temp name");
+        if (save_temps) {
+          if ((unsigned long)strlen(base) + 3u > sizeof(s_path))
+            zdk_die("path too long");
+          sprintf(s_path, "%s.s", base);
+        } else {
+          if (!zdk_tmpname_with_suffix(s_path, sizeof(s_path), ".s"))
+            zdk_die("failed to create temp name");
+        }
       }
 
       {
@@ -467,15 +478,23 @@ int main(int argc, char **argv) {
       }
 
       /* assemble to .o */
-      if (opt_c && out_path && n_inputs == 1) {
-        strcpy(o_path, out_path);
-      } else if (save_temps) {
-        if ((unsigned long)strlen(base) + 3u > sizeof(o_path))
-          zdk_die("path too long");
-        sprintf(o_path, "%s.o", base);
+      if (opt_c) {
+        if (out_path) {
+          strcpy(o_path, out_path);
+        } else {
+          if ((unsigned long)strlen(base) + 3u > sizeof(o_path))
+            zdk_die("path too long");
+          sprintf(o_path, "%s.o", base);
+        }
       } else {
-        if (!zdk_tmpname_with_suffix(o_path, sizeof(o_path), ".o"))
-          zdk_die("failed to create temp name");
+        if (save_temps) {
+          if ((unsigned long)strlen(base) + 3u > sizeof(o_path))
+            zdk_die("path too long");
+          sprintf(o_path, "%s.o", base);
+        } else {
+          if (!zdk_tmpname_with_suffix(o_path, sizeof(o_path), ".o"))
+            zdk_die("failed to create temp name");
+        }
       }
 
       {
