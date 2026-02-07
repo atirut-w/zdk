@@ -1,6 +1,6 @@
 # Toolchain Notes
 
-Default target triplet: `z80-unknown-none-elf`.
+Default target triplet: `z80-unknown-elf`.
 
 Toolchain name: by default, the `cc` driver uses its own executable name to
 pick toolchain directories. This allows multiple toolchains to coexist via
@@ -12,9 +12,9 @@ renaming/symlinking the driver.
 - `PREFIX/libexec/<cc-name>/cc1`: C compiler proper (preferred)
 - `PREFIX/libexec/zdk/cc1`: fallback legacy location
 - `PREFIX/bin/as`, `PREFIX/bin/ld`: (future) ZDK binutils-style tools
-- `PREFIX/bin/z80-unknown-none-elf-as`, `PREFIX/bin/z80-unknown-none-elf-ld`: GNU binutils (optional)
-- `PREFIX/z80-unknown-none-elf/<cc-name>/sysroot/`: target sysroot (preferred)
-- `PREFIX/z80-unknown-none-elf/sysroot/`: fallback
+- `PREFIX/bin/z80-unknown-elf-as`, `PREFIX/bin/z80-unknown-elf-ld`: GNU binutils (optional)
+- `PREFIX/z80-unknown-elf/<cc-name>/sysroot/`: target sysroot (preferred)
+- `PREFIX/z80-unknown-elf/sysroot/`: fallback
 
 ## Driver goals
 
@@ -39,7 +39,7 @@ Creates the directory skeleton:
 
 Prereqs:
 
-- GNU binutils for Z80 in `PATH` (at minimum `z80-unknown-none-elf-as` and `z80-unknown-none-elf-ld`)
+- GNU binutils for Z80 in `PATH` (at minimum `z80-unknown-elf-as` and `z80-unknown-elf-ld`)
 
 Build:
 
@@ -53,7 +53,7 @@ Run without installing:
 - `build/bin/cc` will try, in order:
   - tools next to itself
   - `PREFIX/bin/as|ld` (future ZDK tools)
-  - `z80-unknown-none-elf-as|ld` via `--tool-prefix` (default)
+  - `z80-unknown-elf-as|ld` via `--tool-prefix` (default)
 
 Example (Zeal flat binary):
 
@@ -80,10 +80,10 @@ cmake --install build --prefix /opt/zdk
 Create a named sysroot skeleton (matches the `cc` executable name):
 
 ```sh
-sh /opt/zdk/cc/mksysroot.sh --prefix /opt/zdk --target z80-unknown-none-elf --name cc
+sh /opt/zdk/cc/mksysroot.sh --prefix /opt/zdk --target z80-unknown-elf --name cc
 ```
 
 The driver will prefer:
 
-- `PREFIX/z80-unknown-none-elf/cc/sysroot` (if present)
-- then `PREFIX/z80-unknown-none-elf/sysroot`
+- `PREFIX/z80-unknown-elf/cc/sysroot` (if present)
+- then `PREFIX/z80-unknown-elf/sysroot`

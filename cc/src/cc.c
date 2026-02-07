@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
   int opt_S = 0;
   int opt_c = 0;
 
-  const char *target = "z80-unknown-none-elf";
+  const char *target = "z80-unknown-elf";
   char tool_prefix[128];
 
   const char *out_path = 0;
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
   char sysroot_named[4096];
   char sysroot_lib[4096];
 
-  strcpy(tool_prefix, "z80-unknown-none-elf-");
+  strcpy(tool_prefix, "z80-unknown-elf-");
 
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-v")) {

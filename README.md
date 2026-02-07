@@ -34,5 +34,5 @@ cmake --install build --prefix /opt/zdk
 Then create a sysroot skeleton:
 
 ```sh
-sh /opt/zdk/cc/mksysroot.sh --prefix /opt/zdk --target z80-unknown-none-elf --name cc
+sh /opt/zdk/cc/mksysroot.sh --prefix /opt/zdk --target z80-unknown-elf --name cc
 ```

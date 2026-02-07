@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
-project(ZDK)
+project(ZDK LANGUAGES C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(-pedantic -pedantic-errors -Wall -Wextra)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set(ZDK_TARGET_TRIPLET "z80-unknown-none-elf" CACHE STRING "ZDK target triplet")
+set(ZDK_TARGET_TRIPLET "z80-unknown-elf" CACHE STRING "ZDK target triplet")
 set(ZDK_TOOLCHAIN_NAME "cc" CACHE STRING "ZDK toolchain name (matches driver exec name by default)")
 
 add_subdirectory(cc1)

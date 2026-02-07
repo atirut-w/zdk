@@ -2,7 +2,7 @@
 set -eu
 
 prefix=""
-target="z80-unknown-none-elf"
+target="z80-unknown-elf"
 name="cc"
 out=""
 
